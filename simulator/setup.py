@@ -31,18 +31,15 @@ data_files = [
 
 setup(name='sawtooth-poet-simulator',
       version=subprocess.check_output(
-          ['../../../bin/get_version']).decode('utf-8').strip(),
+          ['../bin/get_version']).decode('utf-8').strip(),
       description='Sawtooth PoET Simulator Enclave',
       author='Hyperledger Sawtooth',
-      url='https://github.com/hyperledger/sawtooth-core',
+      url='https://github.com/hyperledger/sawtooth-poet',
       packages=find_packages(),
       install_requires=[
           'cryptography>=1.7.1',
-          'protobuf',
           'sawtooth-poet-common',
-          'sawtooth-poet-simulator',
           'sawtooth-signing',
-          'sawtooth-sdk',
       ],
       data_files=data_files,
       entry_points={})
