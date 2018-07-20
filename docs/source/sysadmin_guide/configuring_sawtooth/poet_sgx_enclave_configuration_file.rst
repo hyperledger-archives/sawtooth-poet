@@ -13,8 +13,8 @@ in the configuration file.
 Note: By default, the config directory is /etc/sawtooth/.
 See :doc:`path_configuration_file` for more information.
 
-An example configuration file is in the ``sawtooth-core`` repository at
-``/sawtooth-core/consensus/poet/sgx/packaging/poet_enclave_sgx.toml.example``.
+An example configuration file is in the ``sawtooth-poet`` repository at
+``/sawtooth-poet/sgx/packaging/poet_enclave_sgx.toml.example``.
 To create a PoET SGX enclave configuration file, download this example file to
 the config directory and name it ``poet_enclave_sgx.toml``. Then edit the file
 to change the example configuration options as necessary for your system.

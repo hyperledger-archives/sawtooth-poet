@@ -27,7 +27,7 @@ The Commit Process
 ==================
 
 Hyperledger Sawtooth is Apache 2.0 licensed and accepts contributions
-via `GitHub <https://github.com/hyperledger/sawtooth-core>`_
+via `GitHub <https://github.com/hyperledger/sawtooth-poet>`_
 pull requests. When contributing code, please follow these guidelines:
 
 * Fork the repository and make your changes in a feature branch
