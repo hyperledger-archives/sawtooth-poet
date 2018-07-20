@@ -19,14 +19,14 @@ services:
 
   unit-ias-client:
     build:
-      context: ../../..
-      dockerfile: utility/ias_client/tests/ias-client-tests.dockerfile
+      context: ../..
+      dockerfile: ias_client/tests/ias-client-tests.dockerfile
     image: ias-client-tests:$ISOLATION_ID
     volumes:
-      - $SAWTOOTH_CORE:/project/sawtooth-core
+      - $SAWTOOTH_POET:/project/sawtooth-poet
     command: nose2-3
-        -c /project/sawtooth-core/utility/ias_client/nose2.cfg
+        -c /project/sawtooth-poet/ias_client/nose2.cfg
         -v
-        -s /project/sawtooth-core/utility/ias_client/tests/unit
+        -s /project/sawtooth-poet/ias_client/tests/unit
     environment:
-        PYTHONPATH: "/project/sawtooth-core/utility/ias_client"
+        PYTHONPATH: "/project/sawtooth-poet/ias_client"

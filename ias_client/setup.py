@@ -28,10 +28,10 @@ else:
 setup(
     name='sawtooth-ias-client',
     version=subprocess.check_output(
-        ['../../bin/get_version']).decode('utf-8').strip(),
+        ['../bin/get_version']).decode('utf-8').strip(),
     description='Sawtooth Intel Attestation Service Client',
     author='Hyperledger Sawtooth',
-    url='https://github.com/hyperledger/sawtooth-core',
+    url='https://github.com/hyperledger/sawtooth-poet',
     packages=find_packages(),
     install_requires=[
         'requests',
