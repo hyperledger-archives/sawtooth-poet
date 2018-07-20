@@ -20,34 +20,29 @@ FROM ubuntu:xenial as poet-cli-builder
 
 ENV VERSION=AUTO_STRICT
 
-RUN echo "deb http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sources.list \
- && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8AA7AF1F1091A5FD \
- || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 8AA7AF1F1091A5FD) \
- && apt-get update
-
-RUN apt-get install -y -q --allow-downgrades \
-    git \
-    python3 \
-    python3-stdeb
-
-RUN apt-get install -y -q --allow-downgrades \
-    python3-grpcio \
-    python3-grpcio-tools \
-    python3-protobuf
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly xenial universe" >> /etc/apt/sources.list \
+ && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
+ || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
+ && apt-get update \
+ && apt-get install -y -q --allow-downgrades \
+    python3
 
 RUN apt-get install -y -q --allow-downgrades \
     python3-cbor \
-    python3-colorlog \
+    python3-cryptography>=1.7.1 \
+    python3-grpcio \
+    python3-grpcio-tools \
     python3-lmdb \
-    python3-secp256k1 \
+    python3-protobuf \
+    python3-requests \
+    python3-sawtooth-sdk \
     python3-toml
 
-ENV PATH=$PATH:/project/sawtooth-core/bin
+ENV PATH=$PATH:/project/sawtooth-poet/bin
 
-WORKDIR /project/sawtooth-core
+WORKDIR /project/sawtooth-poet
 
 CMD echo "\033[0;32m--- Building poet cli ---\n\033[0m" \
- && bin/protogen \
- && cd consensus/poet/cli \
+ && cd cli \
  && python3 setup.py clean --all \
  && python3 setup.py build
