@@ -17,13 +17,13 @@ version: "2.1"
 
 services:
   test-systemd-services:
+    image: sawtooth-poet-tests:$ISOLATION_ID
     build:
-      context: ../../..
-      dockerfile: ./integration/sawtooth_integration/docker/integration-tests.dockerfile
-    image: integration-tests:$ISOLATION_ID
+      context: .
+      dockerfile: ../Dockerfile
     volumes:
-      - $SAWTOOTH_CORE:/project/sawtooth-core
+      - $SAWTOOTH_POET:/project/sawtooth-poet
       - /var/run/docker.sock:/var/run/docker.sock
-    command: /project/sawtooth-core/integration/sawtooth_integration/tests/test_systemd.sh
+    command: /project/sawtooth-poet/tests/sawtooth_poet_tests/test_systemd.sh
     environment:
       ISOLATION_ID: ${ISOLATION_ID}

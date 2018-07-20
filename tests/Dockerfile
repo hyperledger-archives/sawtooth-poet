@@ -14,35 +14,38 @@
 
 FROM ubuntu:xenial
 
-RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sources.list \
- && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8AA7AF1F1091A5FD \
- || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 8AA7AF1F1091A5FD) \
- && apt-get update
-
-RUN apt-get install -y -q \
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly xenial universe" >> /etc/apt/sources.list \
+ && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
+ || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
+ && apt-get update \
+ && apt-get install -y -q \
     apt-transport-https \
     curl \
-    python3-aiohttp \
+    python3-sawtooth-block-info \
+    python3-sawtooth-cli \
+    python3-sawtooth-intkey \
+    python3-sawtooth-rest-api \
+    python3-sawtooth-settings \
+    python3-sawtooth-validator \
+    sawtooth-intkey-tp-go \
+    sawtooth-intkey-workload \
+    sawtooth-smallbank-tp-go \
+    sawtooth-smallbank-workload \
     python3-cbor \
-    python3-colorlog \
-    python3-cov-core \
-    python3-cryptography-vectors=1.7.2-1 \
-    python3-cryptography=1.7.2-1 \
-    python3-dev \
+    python3-cryptography>=1.7.1 \
+    python3-grpcio \
+    python3-grpcio-tools \
     python3-lmdb \
     python3-nose2 \
     python3-pip \
     python3-protobuf \
-    python3-pyformance \
     python3-requests \
-    python3-secp256k1 \
+    python3-sawtooth-sdk \
     python3-toml \
     python3-yaml \
-    python3-zmq \
     software-properties-common
 
-RUN pip3 install \
-    coverage --upgrade
+RUN pip3 install coverage --upgrade
 
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
  && add-apt-repository \
@@ -53,6 +56,6 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
 RUN apt-get update && apt-get install -y -q \
     docker-ce
 
-ENV PATH=$PATH:/project/sawtooth-core/bin
+ENV PATH=$PATH:/project/sawtooth-poet/bin
 
-WORKDIR /project/sawtooth-core
+WORKDIR /project/sawtooth-poet

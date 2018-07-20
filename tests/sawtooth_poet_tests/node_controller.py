@@ -20,7 +20,7 @@ import time
 import logging
 import signal
 
-from sawtooth_integration.tests.integration_tools import wait_for_rest_apis
+from sawtooth_poet_tests.integration_tools import wait_for_rest_apis
 
 
 LOGGER = logging.getLogger(__name__)
@@ -181,7 +181,7 @@ def validator_cmds(num,
     ])
 
     with open(
-        '/project/sawtooth-core/consensus/poet/simulator/packaging/'
+        '/project/sawtooth-poet/simulator/packaging/'
             'simulator_rk_pub.pem') as fd:
         public_key_pem = fd.read()
 

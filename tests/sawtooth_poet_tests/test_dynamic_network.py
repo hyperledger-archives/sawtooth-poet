@@ -20,9 +20,9 @@ import subprocess
 import shlex
 from tempfile import mkdtemp
 
-from sawtooth_integration.tests.integration_tools import SetSawtoothHome
-from sawtooth_integration.tests import node_controller as NodeController
-from sawtooth_integration.tests.intkey_client import IntkeyClient
+from sawtooth_poet_tests.integration_tools import SetSawtoothHome
+from sawtooth_poet_tests import node_controller as NodeController
+from sawtooth_poet_tests.intkey_client import IntkeyClient
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)

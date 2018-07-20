@@ -19,17 +19,7 @@
 
 services="
 poet-engine
-smallbank-tp-go
-xo-tp-go
-intkey-tp-go
-validator
-rest-api
-intkey-tp-python
-xo-tp-python
-settings-tp
-identity-tp
 poet-validator-registry-tp
-devmode-rust
 "
 
 if [ -z $ISOLATION_ID ]
