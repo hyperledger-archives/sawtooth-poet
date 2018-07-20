@@ -17,38 +17,20 @@ version: '3.6'
 
 services:
 
-  lint-python:
+  lint:
     build:
       context: ../
-      dockerfile: ./lint
+      dockerfile: ci/lint
     image: lint:${ISOLATION_ID}
     volumes:
-      - ../../:/project/sawtooth-core
+      - ../:/project/sawtooth-poet
     command: run_lint
 
-  lint-go:
+  bandit:
     build:
       context: ../
-      dockerfile: ./lint
-    image: lint:${ISOLATION_ID}
+      dockerfile: ci/bandit
+    image: bandit:${ISOLATION_ID}
     volumes:
-      - ../../:/project/sawtooth-core
-    command: run_go_fmt
-
-  lint-rust:
-    build:
-      context: ../
-      dockerfile: ./lint
-    image: lint:${ISOLATION_ID}
-    volumes:
-      - ../../:/project/sawtooth-core
-    command: run_lint_rust
-
-  lint-validator:
-    build:
-      context: ../
-      dockerfile: ./lint
-    image: lint:${ISOLATION_ID}
-    volumes:
-      - ../../:/project/sawtooth-core
-    command: run_lint_validator
+      - ../:/project/sawtooth-poet
+    command: run_bandit

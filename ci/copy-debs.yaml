@@ -16,82 +16,10 @@ version: '3.6'
 
 services:
 
-  settings-tp:
-    image: sawtooth-settings-tp:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  intkey-tp-python:
-    image: sawtooth-intkey-tp-python:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
   poet-engine:
     image: sawtooth-poet-engine:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  xo-tp-python:
-    image: sawtooth-xo-tp-python:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  validator:
-    image: sawtooth-validator:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  rest-api:
-    image: sawtooth-rest-api:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  shell:
-    image: sawtooth-shell:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  admin-tools:
-    image: sawtooth-admin-tools:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  sawtooth-cli:
-    image: sawtooth-cli:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs
@@ -100,7 +28,7 @@ services:
   poet-cli:
     image: sawtooth-poet-cli:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs
@@ -109,7 +37,7 @@ services:
   poet-common:
     image: sawtooth-poet-common:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs
@@ -118,7 +46,7 @@ services:
   poet-core:
     image: sawtooth-poet-core:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs
@@ -127,7 +55,7 @@ services:
   poet-validator-registry:
     image: sawtooth-poet-validator-registry-tp:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs
@@ -136,7 +64,7 @@ services:
   poet-sgx:
     image: sawtooth-poet-sgx:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs
@@ -145,88 +73,15 @@ services:
   poet-simulator:
     image: sawtooth-poet-simulator:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs
       "
-
-  block-info-tp:
-    image: sawtooth-block-info-tp:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  identity-tp:
-    image: sawtooth-identity-tp:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  smallbank-tp-go:
-    image: sawtooth-smallbank-tp-go:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  sawtooth-intkey-tp-go:
-    image: sawtooth-intkey-tp-go:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  sawtooth-noop-tp-go:
-    image: sawtooth-noop-tp-go:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  sawtooth-xo-tp-go:
-    image: sawtooth-xo-tp-go:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  python-sdk:
-    image: sawtooth-sdk-python:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  signing:
-    image: sawtooth-signing:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
   ias_client:
     image: sawtooth-ias-client:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs
@@ -235,52 +90,16 @@ services:
   ias_proxy:
     image: sawtooth-ias-proxy:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs
       "
 
-  intkey-tests:
-    image: sawtooth-intkey-tests:${ISOLATION_ID}
+  poet-tests:
+    image: sawtooth-poet-tests:${ISOLATION_ID}
     volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  xo-tests:
-    image: sawtooth-xo-tests:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  integration:
-    image: sawtooth-integration:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  smallbank-workload:
-    image: sawtooth-smallbank-workload:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
-    command: |
-      bash -c "
-        cp /tmp/*.deb /build/debs
-      "
-
-  devmode-rust:
-    image: sawtooth-devmode-rust:${ISOLATION_ID}
-    volumes:
-      - ../../build/debs:/build/debs
+      - ../build/debs:/build/debs
     command: |
       bash -c "
         cp /tmp/*.deb /build/debs

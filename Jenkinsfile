@@ -63,30 +63,19 @@ node ('master') {
             env.ISOLATION_ID = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
             env.COMPOSE_PROJECT_NAME = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
 
-            // Use a docker container to build and protogen, so that the Jenkins
-            // environment doesn't need all the dependencies.
-
-            stage("Build Lint Requirements") {
-                sh 'docker-compose -f docker/compose/run-lint.yaml build'
-                sh 'docker-compose -f docker/compose/sawtooth-build.yaml up'
-                sh 'docker-compose -f docker/compose/sawtooth-build.yaml down'
+            stage("Build Lint Dependencies") {
+                sh 'docker-compose up --build --abort-on-container-exit --exit-code-from poet-common poet-common'
+                sh 'docker-compose down'
             }
 
             stage("Run Lint") {
-                sh 'docker-compose -f docker/compose/run-lint.yaml up --abort-on-container-exit --exit-code-from lint-python lint-python'
-                sh 'docker-compose -f docker/compose/run-lint.yaml up --abort-on-container-exit --exit-code-from lint-go lint-go'
-                sh 'docker-compose -f docker/compose/run-lint.yaml up --abort-on-container-exit --exit-code-from lint-rust lint-rust'
-                sh 'docker-compose -f docker/compose/run-lint.yaml up --abort-on-container-exit --exit-code-from lint-validator lint-validator'
+                sh 'docker-compose -f ci/run-lint.yaml up --build --abort-on-container-exit --exit-code-from lint lint'
+                sh 'docker-compose -f ci/run-lint.yaml up --build --abort-on-container-exit --exit-code-from bandit bandit'
+                sh 'docker-compose -f ci/run-lint.yaml down'
             }
 
             stage("Build Test Dependencies") {
                 sh 'docker-compose -f docker-compose-installed.yaml build'
-                sh 'docker-compose -f docker/compose/external.yaml build'
-                sh 'docker build -f docker/bandit -t bandit:$ISOLATION_ID .'
-            }
-
-            stage("Run Bandit") {
-                sh 'docker run --rm -v $(pwd):/project/sawtooth-core bandit:$ISOLATION_ID run_bandit'
             }
 
             // Run the tests
@@ -95,7 +84,7 @@ node ('master') {
             }
 
             stage("Compile coverage report") {
-                sh 'docker run --rm -v $(pwd):/project/sawtooth-core integration-tests:$ISOLATION_ID /bin/bash -c "cd coverage && coverage combine && coverage html -d html"'
+                sh 'docker run --rm -v $(pwd):/project/sawtooth-poet sawtooth-poet-tests:$ISOLATION_ID /bin/bash -c "cd coverage && coverage combine && coverage html -d html"'
             }
 
             stage("Create git archive") {
@@ -109,17 +98,17 @@ node ('master') {
 
             stage ("Build documentation") {
                 sh 'docker build . -f ci/sawtooth-build-docs -t sawtooth-build-docs:$ISOLATION_ID'
-                sh 'docker run --rm -v $(pwd):/project/sawtooth-core sawtooth-build-docs:$ISOLATION_ID'
+                sh 'docker run --rm -v $(pwd):/project/sawtooth-poet sawtooth-build-docs:$ISOLATION_ID'
             }
 
             stage("Archive Build artifacts") {
-                sh 'docker-compose -f docker/compose/copy-debs.yaml up'
+                sh 'docker-compose -f ci/copy-debs.yaml up'
                 archiveArtifacts artifacts: '*.tgz, *.zip'
                 archiveArtifacts artifacts: 'build/debs/*.deb'
                 archiveArtifacts artifacts: 'build/bandit.html'
                 archiveArtifacts artifacts: 'coverage/html/*'
                 archiveArtifacts artifacts: 'docs/build/html/**, docs/build/latex/*.pdf'
-                sh 'docker-compose -f docker/compose/copy-debs.yaml down'
+                sh 'docker-compose -f ci/copy-debs.yaml down'
             }
         }
     }

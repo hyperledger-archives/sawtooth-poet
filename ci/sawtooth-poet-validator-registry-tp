@@ -18,11 +18,11 @@
 #   the Sawtooth Package Repository.
 #
 # Build:
-#   $ cd sawtooth-core/docker
+#   $ cd sawtooth-poet/docker
 #   $ docker build . -f sawtooth-poet-validator-registry-tp -t sawtooth-poet-validator-registry-tp
 #
 # Run:
-#   $ cd sawtooth-core
+#   $ cd sawtooth-poet
 #   $ docker run sawtooth-poet-validator-registry-tp
 
 FROM ubuntu:xenial
