@@ -29,9 +29,10 @@ from http.server import BaseHTTPRequestHandler
 import requests
 import toml
 
+from sawtooth_sdk.processor import config
+
 from sawtooth_ias_client import ias_client
 from sawtooth_ias_proxy.utils import LruCache
-from sawtooth_sdk.processor import config
 
 
 LOGGER = logging.getLogger(__name__)

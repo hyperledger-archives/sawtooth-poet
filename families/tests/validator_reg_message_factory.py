@@ -28,6 +28,8 @@ from sawtooth_signing.secp256k1 import Secp256k1PrivateKey
 
 from sawtooth_processor_test.message_factory import MessageFactory
 
+from sawtooth_sdk.protobuf.setting_pb2 import Setting
+
 from sawtooth_poet_common import sgx_structs
 from sawtooth_poet_common.protobuf.validator_registry_pb2 import \
     ValidatorInfo
@@ -35,8 +37,6 @@ from sawtooth_poet_common.protobuf.validator_registry_pb2 import \
     SignUpInfo
 from sawtooth_poet_common.protobuf.validator_registry_pb2 import \
     ValidatorMap
-
-from sawtooth_sdk.protobuf.setting_pb2 import Setting
 
 
 class ValidatorRegistryMessageFactory:

@@ -16,11 +16,6 @@
 import logging
 import os
 
-from sawtooth_poet.poet_consensus.poet_block_publisher \
-    import PoetBlockPublisher
-from sawtooth_poet.poet_consensus.poet_block_verifier import PoetBlockVerifier
-from sawtooth_poet.poet_consensus.poet_fork_resolver import PoetForkResolver
-
 import sawtooth_signing as signing
 from sawtooth_signing import CryptoFactory
 from sawtooth_signing.secp256k1 import Secp256k1PrivateKey
@@ -40,6 +35,11 @@ from sawtooth_sdk.protobuf.client_block_pb2 \
 from sawtooth_sdk.protobuf.block_pb2 import BlockHeader
 from sawtooth_sdk.protobuf.consensus_pb2 import ConsensusBlock
 from sawtooth_sdk.protobuf.validator_pb2 import Message
+
+from sawtooth_poet.poet_consensus.poet_block_publisher \
+    import PoetBlockPublisher
+from sawtooth_poet.poet_consensus.poet_block_verifier import PoetBlockVerifier
+from sawtooth_poet.poet_consensus.poet_fork_resolver import PoetForkResolver
 
 
 LOGGER = logging.getLogger(__name__)
