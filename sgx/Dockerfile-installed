@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# docker build -f consensus/poet/sgx/Dockerfile-installed -t sawtooth-poet-sgx .
+# docker build -f sgx/Dockerfile-installed -t sawtooth-poet-sgx .
 
 # -------------=== poet common build ===-------------
 
@@ -20,22 +20,22 @@ FROM ubuntu:xenial as poet-common-builder
 
 ENV VERSION=AUTO_STRICT
 
-RUN echo "deb http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sources.list \
- && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8AA7AF1F1091A5FD \
- || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 8AA7AF1F1091A5FD) \
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly xenial universe" >> /etc/apt/sources.list \
+ && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
+ || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
  && apt-get update \
  && apt-get install -y -q --allow-downgrades \
     git \
     python3 \
-    python3-grpcio-tools \
-    python3-grpcio \
     python3-protobuf \
-    python3-stdeb
+    python3-stdeb \
+    python3-grpcio-tools \
+    python3-grpcio
 
 COPY . /project
 
-RUN /project/bin/protogen \
- && cd /project/consensus/poet/common/ \
+RUN cd /project/common/ \
+ && /project/bin/protogen \
  && if [ -d "debian" ]; then rm -rf debian; fi \
  && python3 setup.py clean --all \
  && python3 setup.py --command-packages=stdeb.command debianize \
@@ -48,9 +48,9 @@ FROM ubuntu:xenial as ias-client-builder
 
 ENV VERSION=AUTO_STRICT
 
-RUN echo "deb http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sources.list \
- && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8AA7AF1F1091A5FD \
- || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 8AA7AF1F1091A5FD) \
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly xenial universe" >> /etc/apt/sources.list \
+ && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
+ || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
  && apt-get update \
  && apt-get install -y -q --allow-downgrades \
     git \
@@ -60,13 +60,12 @@ RUN echo "deb http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sou
 
 COPY . /project
 
-RUN cd /project/utility/ias_client \
+RUN cd /project/ias_client \
  && if [ -d "debian" ]; then rm -rf debian; fi \
  && python3 setup.py clean --all \
  && python3 setup.py --command-packages=stdeb.command debianize \
  && if [ -d "packaging/ubuntu" ]; then cp -R packaging/ubuntu/* debian/; fi \
  && dpkg-buildpackage -b -rfakeroot -us -uc
-
 
  # -------------=== poet sgx builder ===-------------
 
@@ -74,9 +73,9 @@ FROM ubuntu:xenial as poet-sgx-builder
 
 ENV VERSION=AUTO_STRICT
 
-RUN echo "deb http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sources.list \
- && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8AA7AF1F1091A5FD \
- || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 8AA7AF1F1091A5FD) \
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly xenial universe" >> /etc/apt/sources.list \
+ && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
+ || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
  && apt-get update \
  && apt-get install -y -q --allow-downgrades \
     build-essential \
@@ -112,10 +111,10 @@ RUN wget https://download.01.org/intel-sgx/linux-2.0/sgx_linux_ubuntu16.04.1_x64
  && . /tmp/sgxsdk/environment \
  && export SGXSDKInstallPath=/tmp/sgxsdk/ \
  && export POET_ENCLAVE_PEM=/tmp/sgxsdk/SampleCode/SampleEnclave/Enclave/Enclave_private.pem \
- && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/project/consensus/poet/sgx
+ && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/project/sgx
 
-COPY --from=poet-common-builder /project/consensus/poet/python3-sawtooth-poet-common*.deb /tmp
-COPY --from=ias-client-builder /project/utility/python3-sawtooth-ias-client*.deb /tmp
+COPY --from=poet-common-builder /project/python3-sawtooth-poet-common*.deb /tmp
+COPY --from=ias-client-builder /project/python3-sawtooth-ias-client*.deb /tmp
 
 RUN dpkg -i /tmp/python3-sawtooth-*.deb || true \
  && apt-get -f -y install
@@ -126,22 +125,23 @@ RUN export SGXSDKInstallPath=/tmp/sgxsdk/ \
  && if [ -z ${POET_ENCLAVE_PEM+x} ]; then \
       export POET_ENCLAVE_PEM=/tmp/sgxsdk/SampleCode/SampleEnclave/Enclave/Enclave_private.pem; \
     fi \
- && cd  /project/consensus/poet/sgx \
+ && cd  /project/sgx \
  && python3 setup.py clean --all \
  && python3 setup.py --command-packages=stdeb.command debianize \
  && if [ -d "packaging/ubuntu" ]; then cp -R packaging/ubuntu/* debian/; fi \
  && dpkg-buildpackage -b -rfakeroot -us -uc
 
  # -------------=== poet sgx docker build ===-------------
+
 FROM ubuntu:xenial
 
-COPY --from=poet-common-builder /project/consensus/poet/python3-sawtooth-poet-common*.deb /tmp
-COPY --from=ias-client-builder /project/utility/python3-sawtooth-ias-client*.deb /tmp
-COPY --from=poet-sgx-builder /project/consensus/poet/python3-sawtooth-poet-sgx*.deb /tmp
+COPY --from=poet-common-builder /project/python3-sawtooth-poet-common*.deb /tmp
+COPY --from=ias-client-builder /project/python3-sawtooth-ias-client*.deb /tmp
+COPY --from=poet-sgx-builder /project/python3-sawtooth-poet-sgx*.deb /tmp
 
-RUN echo "deb http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sources.list \
- && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8AA7AF1F1091A5FD \
- || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 8AA7AF1F1091A5FD) \
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly xenial universe" >> /etc/apt/sources.list \
+ && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
+ || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
  && apt-get update \
  && dpkg -i /tmp/python3-sawtooth-*.deb || true \
  && apt-get -f -y install \
