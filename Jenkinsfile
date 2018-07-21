@@ -64,13 +64,13 @@ node ('master') {
             env.COMPOSE_PROJECT_NAME = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
 
             stage("Build Lint Dependencies") {
-                sh 'docker-compose up --build --abort-on-container-exit --exit-code-from poet-common poet-common'
+                sh 'docker-compose up --abort-on-container-exit --build --force-recreate --renew-anon-volumes --exit-code-from poet-common poet-common'
                 sh 'docker-compose down'
             }
 
             stage("Run Lint") {
-                sh 'docker-compose -f ci/run-lint.yaml up --build --abort-on-container-exit --exit-code-from lint lint'
-                sh 'docker-compose -f ci/run-lint.yaml up --build --abort-on-container-exit --exit-code-from bandit bandit'
+                sh 'docker-compose -f ci/run-lint.yaml up --abort-on-container-exit --build --force-recreate --renew-anon-volumes --exit-code-from lint lint'
+                sh 'docker-compose -f ci/run-lint.yaml up --abort-on-container-exit --build --force-recreate --renew-anon-volumes --exit-code-from bandit bandit'
                 sh 'docker-compose -f ci/run-lint.yaml down'
             }
 
