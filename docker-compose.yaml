@@ -23,7 +23,6 @@ services:
     image: sawtooth-poet-engine-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
-    container_name: sawtooth-poet-engine-local
     command: |
       bash -c "
         cd engine
@@ -40,7 +39,6 @@ services:
     image: sawtooth-poet-cli-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
-    container_name: sawtooth-poet-cli-local
 
   poet-common:
     build:
@@ -49,7 +47,6 @@ services:
     image: sawtooth-poet-common-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
-    container_name: sawtooth-poet-common-local
 
   poet-core:
     build:
@@ -58,7 +55,6 @@ services:
     image: sawtooth-poet-core-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
-    container_name: sawtooth-poet-core-local
 
   poet-families:
     build:
@@ -67,7 +63,6 @@ services:
     image: sawtooth-poet-validator-registry-tp-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
-    container_name: sawtooth-poet-families-local
     command: |
       bash -c "
         bin/protogen
@@ -85,11 +80,9 @@ services:
     image: sawtooth-poet-simulator-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
-    container_name: sawtooth-poet-simulator-local
 
   poet-tests:
     build:
       context: .
       dockerfile: tests/Dockerfile
     image: sawtooth-poet-tests:${ISOLATION_ID}
-    container_name: sawtooth-poet-tests-local
