@@ -37,17 +37,17 @@ if os.path.exists("/lib/systemd/system"):
 setup(
     name='sawtooth-poet-families',
     version=subprocess.check_output(
-        ['../../../bin/get_version']).decode('utf-8').strip(),
+        ['../bin/get_version']).decode('utf-8').strip(),
     description='Sawtooth Transaction Processor Families',
     author='Hyperledger Sawtooth',
-    url='https://github.com/hyperledger/sawtooth-core',
+    url='https://github.com/hyperledger/sawtooth-poet',
     packages=find_packages(),
     install_requires=[
         'colorlog',
         'cryptography>=1.7.1',
-        'sawtooth-poet-common',
         'sawtooth-sdk',
         'sawtooth-signing',
+        'sawtooth-poet-common',
     ],
     data_files=data_files,
     entry_points={

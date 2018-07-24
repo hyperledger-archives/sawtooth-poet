@@ -1,0 +1,193 @@
+#!/bin/bash
+#
+# Copyright 2017 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+
+# MODULE_LIST determines the order in which modules are run.
+# Quicker tests should run before slower ones.
+MODULE_LIST="
+    poet_cli
+    poet_common
+    poet_core
+    poet_simulator
+    poet_families
+    ias
+    integration
+"
+
+usage() {
+    echo "Usage:"
+    echo "  $0 [-m Module] [-x Module] [-i Module]"
+    echo "  (-m, -x and -i can be passed multiple times)"
+    echo ""
+    echo "Options:"
+    echo "  -h          print usage and exit"
+    echo "  -m Module   only run tests of specified module"
+    echo "  -x Module   exclude the tests of specified module"
+    echo "  -i Module   include the tests of specified module"
+    echo ""
+    echo "Current modules: $MODULE_LIST"
+}
+
+# Exit on non-zero exit code from subcommand
+set -e
+# Set sawtooth-poepoet project directory relative to this file
+PROJECT_DIR=$(cd $(dirname $(dirname $0)) && pwd)
+
+# Make sawtooth scripts accessible
+PATH=$PROJECT_DIR/bin:$PATH
+
+if [ ! -d "$PROJECT_DIR/coverage" ]; then
+  mkdir $PROJECT_DIR/coverage
+fi
+
+# Default args
+MODULES=""
+EXCLUDE=""
+INCLUDE=""
+
+while getopts i:x:m:h opt
+do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        m)
+            MODULES="$MODULES $OPTARG"
+            ;;
+        x)
+            EXCLUDE="$EXCLUDE $OPTARG"
+            ;;
+        i)
+            INCLUDE="$INCLUDE $OPTARG"
+            ;;
+
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 2
+            ;;
+    esac
+done
+
+# If no '-m' flags are passed, run these modules
+if [[ $MODULES = "" ]]
+then
+    MODULES=$MODULE_LIST
+fi
+
+MODULES="$INCLUDE $MODULES"
+
+main() {
+
+# Start in project directory
+    cd $PROJECT_DIR
+
+    for module in $MODULES
+    do
+
+# Check if we are skipping this module
+        skip=0
+        for exclude in $EXCLUDE
+        do
+            if [[ $module == $exclude ]]
+            then
+                skip=1
+                break
+            fi
+        done
+
+        if [[ $skip == 1 ]]
+        then
+            echo "[---Skipping $module tests---]"
+        else
+            echo "[---Running $module tests---]"
+            case $module in
+                poet_cli)
+                    test_poet_cli
+                    ;;
+                poet_common)
+                    test_poet_common
+                    ;;
+                poet_core)
+                    test_poet_core
+                    ;;
+                poet_simulator)
+                    test_poet_simulator
+                    ;;
+                poet_families)
+                    test_poet_families
+                    ;;
+                ias)
+                    test_ias
+                    ;;
+                integration)
+                    test_integration
+                    ;;
+                deployment)
+                    test_deployment
+                    ;;
+                *)
+                    echo "Module '$module' not found."
+                    ;;
+            esac
+        fi
+    done
+}
+
+test_poet_cli() {
+    run_docker_test ./cli/tests/unit_poet_cli.yaml
+    copy_coverage .coverage.poet_cli
+}
+
+test_poet_common() {
+    run_docker_test ./common/tests/unit_poet_common.yaml
+    copy_coverage .coverage.poet_common
+}
+
+test_poet_core() {
+    run_docker_test ./core/tests/unit_poet_core.yaml
+    copy_coverage .coverage.poet_core
+}
+
+test_poet_simulator() {
+    run_docker_test ./simulator/tests/unit_poet_simulator.yaml
+    copy_coverage .coverage.poet_simulator
+}
+
+test_poet_families() {
+    run_docker_test ./families/tests/test_tp_validator_registry.yaml
+    copy_coverage .coverage.poet_families
+}
+
+test_ias() {
+    run_docker_test ./ias_client/tests/unit_ias_client.yaml
+    copy_coverage .coverage.ias
+}
+
+test_integration() {
+    run_docker_test ./tests/sawtooth_poet_tests/test_dynamic_network.yaml
+    run_docker_test ./tests/sawtooth_poet_tests/test_poet_liveness.yaml
+}
+
+test_deployment() {
+    run_docker_test ./tests/sawtooth_poet_tests/test_systemd_services.yaml
+}
+
+copy_coverage() {
+    mv -f .coverage $PROJECT_DIR/coverage/$1
+}
+
+main

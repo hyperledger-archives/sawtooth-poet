@@ -17,6 +17,14 @@ from hashlib import sha256
 import os
 import time
 
+from sawtooth_signing import create_context
+from sawtooth_signing import CryptoFactory
+from sawtooth_signing import ParseError
+from sawtooth_signing.secp256k1 import Secp256k1PrivateKey
+
+import sawtooth_sdk.protobuf.transaction_pb2 as txn_pb
+import sawtooth_sdk.protobuf.batch_pb2 as batch_pb
+
 from sawtooth_poet_cli import config
 from sawtooth_poet_cli.exceptions import CliException
 from sawtooth_poet_cli.poet_enclave_module_wrapper import \
@@ -29,14 +37,6 @@ from sawtooth_poet.poet_consensus.poet_key_state_store \
 from sawtooth_poet.journal.block_wrapper import NULL_BLOCK_IDENTIFIER
 from sawtooth_poet.state.settings_view import SettingsView
 import sawtooth_poet_common.protobuf.validator_registry_pb2 as vr_pb
-
-from sawtooth_signing import create_context
-from sawtooth_signing import CryptoFactory
-from sawtooth_signing import ParseError
-from sawtooth_signing.secp256k1 import Secp256k1PrivateKey
-
-import sawtooth_sdk.protobuf.transaction_pb2 as txn_pb
-import sawtooth_sdk.protobuf.batch_pb2 as batch_pb
 
 
 VR_NAMESPACE = sha256('validator_registry'.encode()).hexdigest()[0:6]

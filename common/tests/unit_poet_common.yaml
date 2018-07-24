@@ -19,16 +19,16 @@ services:
 
   unit-poet-common:
     build:
-      context: ../../../..
-      dockerfile: consensus/poet/common/tests/poet-common-tests.dockerfile
+      context: .
+      dockerfile: poet-common-tests.dockerfile
     image: poet-common-tests:$ISOLATION_ID
     volumes:
-      - $SAWTOOTH_CORE:/project/sawtooth-core
+      - $SAWTOOTH_POET:/project/sawtooth-poet
     command: nose2-3
-        -c /project/sawtooth-core/consensus/poet/common/nose2.cfg
+        -c /project/sawtooth-poet/common/nose2.cfg
         -v
-        -s /project/sawtooth-core/consensus/poet/common/tests
+        -s /project/sawtooth-poet/common/tests
     environment:
         PYTHONPATH: "\
-          /project/sawtooth-core/consensus/poet/common:\
-          /project/sawtooth-core/consensus/poet/common/tests"
+          /project/sawtooth-poet/common:\
+          /project/sawtooth-poet/common/tests"
