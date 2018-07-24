@@ -23,14 +23,6 @@ services:
     image: sawtooth-poet-engine-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
-    command: |
-      bash -c "
-        cd engine
-        python3 setup.py clean --all
-        python3 setup.py build
-        poet-engine -vv -C tcp://validator:5050 --component tcp://validator:4004
-      "
-    stop_signal: SIGKILL
 
   poet-cli:
     build:
@@ -63,15 +55,6 @@ services:
     image: sawtooth-poet-validator-registry-tp-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
-    command: |
-      bash -c "
-        bin/protogen
-        cd families
-        python3 setup.py clean --all
-        python3 setup.py build
-        poet-validator-registry-tp -vv -C tcp://validator:4004
-      "
-    stop_signal: SIGKILL
 
   poet-simulator:
     build:
