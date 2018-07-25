@@ -209,9 +209,6 @@ services:
       - sawtooth-db-0:/var/lib/sawtooth
     command: poet-engine --connect tcp://validator-0:5005 --component tcp://validator-0:4004 -vv
     stop_signal: SIGKILL
-    environment:
-      PYTHONPATH: "/project/sawtooth-poet/sdk/python:\
-        /project/sawtooth-poet/signing:"
 
   poet-1:
     image: sawtooth-poet-engine$INSTALL_TYPE:$ISOLATION_ID
@@ -224,9 +221,6 @@ services:
       - sawtooth-db-1:/var/lib/sawtooth
     command: poet-engine --connect tcp://validator-1:5005 --component tcp://validator-1:4004 -vv
     stop_signal: SIGKILL
-    environment:
-      PYTHONPATH: "/project/sawtooth-poet/sdk/python:\
-        /project/sawtooth-poet/signing:"
 
   poet-2:
     image: sawtooth-poet-engine$INSTALL_TYPE:$ISOLATION_ID
@@ -239,9 +233,6 @@ services:
       - sawtooth-db-2:/var/lib/sawtooth
     command: poet-engine --connect tcp://validator-2:5005 --component tcp://validator-2:4004 -vv
     stop_signal: SIGKILL
-    environment:
-      PYTHONPATH: "/project/sawtooth-poet/sdk/python:\
-        /project/sawtooth-poet/signing:"
 
   poet-3:
     image: sawtooth-poet-engine$INSTALL_TYPE:$ISOLATION_ID
@@ -254,9 +245,6 @@ services:
       - sawtooth-db-3:/var/lib/sawtooth
     command: poet-engine --connect tcp://validator-3:5005 --component tcp://validator-3:4004 -vv
     stop_signal: SIGKILL
-    environment:
-      PYTHONPATH: "/project/sawtooth-poet/sdk/python:\
-        /project/sawtooth-poet/signing:"
 
   poet-4:
     image: sawtooth-poet-engine$INSTALL_TYPE:$ISOLATION_ID
@@ -269,9 +257,6 @@ services:
       - sawtooth-db-4:/var/lib/sawtooth
     command: poet-engine --connect tcp://validator-4:5005 --component tcp://validator-4:4004 -vv
     stop_signal: SIGKILL
-    environment:
-      PYTHONPATH: "/project/sawtooth-poet/sdk/python:\
-        /project/sawtooth-poet/signing:"
 
   rest-api-0:
     image: sawtooth-poet-tests:$ISOLATION_ID
