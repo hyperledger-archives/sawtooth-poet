@@ -201,8 +201,8 @@ services:
   poet-0:
     image: sawtooth-poet-engine$INSTALL_TYPE:$ISOLATION_ID
     build:
-      context: ./../..
-      dockerfile: ./consensus/poet/engine/Dockerfile
+      context: .
+      dockerfile: ../../engine/Dockerfile
     volumes:
       - $SAWTOOTH_POET:/project/sawtooth-poet
       - sawtooth-keys-0:/etc/sawtooth/keys
@@ -216,8 +216,8 @@ services:
   poet-1:
     image: sawtooth-poet-engine$INSTALL_TYPE:$ISOLATION_ID
     build:
-      context: ./../..
-      dockerfile: ./consensus/poet/engine/Dockerfile
+      context: .
+      dockerfile: ../../engine/Dockerfile
     volumes:
       - $SAWTOOTH_POET:/project/sawtooth-poet
       - sawtooth-keys-1:/etc/sawtooth/keys
