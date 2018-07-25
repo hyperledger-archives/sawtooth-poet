@@ -16,16 +16,15 @@
 
 # -------------=== poet cli build ===-------------
 
-FROM ubuntu:xenial as poet-cli-builder
-
-ENV VERSION=AUTO_STRICT
+FROM ubuntu:xenial
 
 RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly xenial universe" >> /etc/apt/sources.list \
  && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
  || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
  && apt-get update \
  && apt-get install -y -q --allow-downgrades \
-    python3
+    python3 \
+    python3-setuptools
 
 RUN apt-get install -y -q --allow-downgrades \
     python3-cbor \
