@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# docker build -f consensus/poet/core/Dockerfile -t sawtooth-poet-core-local .
+# docker build -f core/Dockerfile -t sawtooth-poet-core-local .
 
 # -------------=== rest_api build ===-------------
 

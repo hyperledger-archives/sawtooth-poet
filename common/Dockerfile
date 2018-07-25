@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# docker build -f consensus/poet/common/Dockerfile -t sawtooth-poet-common-local .
+# docker build -f common/Dockerfile -t sawtooth-poet-common-local .
 
 # -------------=== poet common build ===-------------
 
