@@ -21,6 +21,10 @@ services:
     build:
       context: ../
       dockerfile: ../families/Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     image: sawtooth-poet-validator-registry-tp$INSTALL_TYPE:$ISOLATION_ID
     volumes:
       - $SAWTOOTH_POET:/project/sawtooth-poet
@@ -36,6 +40,10 @@ services:
     build:
       context: .
       dockerfile: tp-validator-registry-tests.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     image: tp-validator-registry-tests$INSTALL_TYPE:$ISOLATION_ID
     volumes:
       - $SAWTOOTH_POET:/project/sawtooth-poet

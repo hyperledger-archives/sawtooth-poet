@@ -21,6 +21,11 @@ services:
     build:
       context: .
       dockerfile: poet-simulator-tests.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+
     image: poet-simulator-tests$INSTALL_TYPE:$ISOLATION_ID
     volumes:
       - $SAWTOOTH_POET:/project/sawtooth-poet

@@ -26,7 +26,7 @@ from sawtooth_poet.database.lmdb_nolock_database \
     import LMDBNoLockDatabase
 
 LOGGER = logging.getLogger(__name__)
-
+LOGGER.setLevel(logging.INFO)
 
 class ConsensusStateStore(MutableMapping):
     """Manages access to the underlying database holding per-block consensus

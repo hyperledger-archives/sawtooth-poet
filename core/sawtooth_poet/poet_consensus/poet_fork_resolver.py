@@ -30,7 +30,7 @@ from sawtooth_poet_common.validator_registry_view.validator_registry_view \
 
 
 LOGGER = logging.getLogger(__name__)
-
+LOGGER.setLevel(logging.INFO)
 
 class PoetForkResolver(ForkResolverInterface):
     # Provides the fork resolution interface for the BlockValidator to use

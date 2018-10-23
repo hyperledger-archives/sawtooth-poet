@@ -20,6 +20,10 @@ services:
     build:
       context: .
       dockerfile: engine/Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     image: sawtooth-poet-engine-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
@@ -28,6 +32,10 @@ services:
     build:
       context: .
       dockerfile: cli/Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     image: sawtooth-poet-cli-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
@@ -36,6 +44,10 @@ services:
     build:
       context: .
       dockerfile: common/Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     image: sawtooth-poet-common-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
@@ -44,6 +56,10 @@ services:
     build:
       context: .
       dockerfile: core/Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     image: sawtooth-poet-core-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
@@ -52,6 +68,10 @@ services:
     build:
       context: .
       dockerfile: families/Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     image: sawtooth-poet-validator-registry-tp-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
@@ -60,6 +80,10 @@ services:
     build:
       context: .
       dockerfile: simulator/Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     image: sawtooth-poet-simulator-local:${ISOLATION_ID}
     volumes:
       - ./:/project/sawtooth-poet
@@ -68,4 +92,8 @@ services:
     build:
       context: .
       dockerfile: tests/Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     image: sawtooth-poet-tests:${ISOLATION_ID}

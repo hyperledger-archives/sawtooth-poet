@@ -21,6 +21,11 @@ services:
     build:
       context: .
       dockerfile: ../Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+
     volumes:
       - $SAWTOOTH_POET:/project/sawtooth-poet
       - /var/run/docker.sock:/var/run/docker.sock

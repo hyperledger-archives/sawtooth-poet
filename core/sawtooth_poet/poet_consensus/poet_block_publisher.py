@@ -48,7 +48,7 @@ from sawtooth_poet_common.validator_registry_view.validator_registry_view \
     import ValidatorRegistryView
 
 LOGGER = logging.getLogger(__name__)
-
+LOGGER.setLevel(logging.INFO)
 
 class PoetBlockPublisher(BlockPublisherInterface):
     """Consensus objects provide the following services to the Journal:

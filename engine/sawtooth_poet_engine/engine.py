@@ -27,7 +27,7 @@ from sawtooth_poet_engine.pending import PendingForks
 
 
 LOGGER = logging.getLogger(__name__)
-
+LOGGER.setLevel(logging.INFO)
 
 class PoetEngine(Engine):
     def __init__(self, path_config, component_endpoint):

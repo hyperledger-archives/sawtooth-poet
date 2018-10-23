@@ -49,7 +49,7 @@ from sawtooth_poet_simulator.poet_enclave_simulator.enclave_wait_certificate \
     import EnclaveWaitCertificate
 
 LOGGER = logging.getLogger(__name__)
-
+LOGGER.setLevel(logging.INFO)
 TIMER_TIMEOUT_PERIOD = 30.0
 
 

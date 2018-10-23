@@ -21,6 +21,11 @@ services:
     build:
       context: .
       dockerfile: poet-core-tests.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+
     image: poet-core-tests:$ISOLATION_ID
     volumes:
       - $SAWTOOTH_POET:/project/sawtooth-poet

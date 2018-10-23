@@ -27,7 +27,7 @@ from sawtooth_poet.database.lmdb_nolock_database \
     import LMDBNoLockDatabase
 
 LOGGER = logging.getLogger(__name__)
-
+LOGGER.setLevel(logging.INFO)
 PoetKeyState = \
     namedtuple(
         'PoetKeyState',

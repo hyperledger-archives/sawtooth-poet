@@ -23,7 +23,7 @@ from urllib.parse import urljoin
 import requests
 
 LOGGER = logging.getLogger(__name__)
-
+LOGGER.setLevel(logging.INFO)
 
 class IasClient:
     """

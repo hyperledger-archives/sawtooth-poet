@@ -21,6 +21,11 @@ services:
     build:
       context: ../..
       dockerfile: ias_client/tests/ias-client-tests.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+
     image: ias-client-tests:$ISOLATION_ID
     volumes:
       - $SAWTOOTH_POET:/project/sawtooth-poet
