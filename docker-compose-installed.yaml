@@ -18,55 +18,55 @@ services:
   poet-engine:
     build:
       context: .
-      dockerfile: engine/Dockerfile-installed
+      dockerfile: engine/Dockerfile-installed-${DISTRO}
     image: sawtooth-poet-engine:${ISOLATION_ID}
 
   poet-cli:
     build:
       context: .
-      dockerfile: cli/Dockerfile-installed
+      dockerfile: cli/Dockerfile-installed-${DISTRO}
     image: sawtooth-poet-cli:${ISOLATION_ID}
 
   poet-common:
     build:
       context: .
-      dockerfile: common/Dockerfile-installed
+      dockerfile: common/Dockerfile-installed-${DISTRO}
     image: sawtooth-poet-common:${ISOLATION_ID}
 
   poet-core:
     build:
       context: .
-      dockerfile: core/Dockerfile-installed
+      dockerfile: core/Dockerfile-installed-${DISTRO}
     image: sawtooth-poet-core:${ISOLATION_ID}
     container_name: sawtooth-poet-core-default
 
   poet-families:
     build:
       context: .
-      dockerfile: families/Dockerfile-installed
+      dockerfile: families/Dockerfile-installed-${DISTRO}
     image: sawtooth-poet-validator-registry-tp:${ISOLATION_ID}
 
   poet-sgx:
     build:
       context: .
-      dockerfile: sgx/Dockerfile-installed
+      dockerfile: sgx/Dockerfile-installed-${DISTRO}
     image: sawtooth-poet-sgx:${ISOLATION_ID}
     container_name: sawtooth-poet-sgx-default
 
   poet-simulator:
     build:
       context: .
-      dockerfile: simulator/Dockerfile-installed
+      dockerfile: simulator/Dockerfile-installed-${DISTRO}
     image: sawtooth-poet-simulator:${ISOLATION_ID}
 
   ias-client:
     build:
       context: .
-      dockerfile: ias_client/Dockerfile-installed
+      dockerfile: ias_client/Dockerfile-installed-${DISTRO}
     image: sawtooth-ias-client:${ISOLATION_ID}
 
   ias-proxy:
     build:
       context: .
-      dockerfile: ias_proxy/Dockerfile-installed
+      dockerfile: ias_proxy/Dockerfile-installed-${DISTRO}
     image: sawtooth-ias-proxy:${ISOLATION_ID}
