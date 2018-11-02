@@ -93,3 +93,8 @@ FROM ubuntu:xenial
 
 COPY --from=poet2-builder /project/sawtooth-poet2/src/core/target/debian/sawtooth-poet2*.deb /tmp
 
+RUN apt-get update \
+ && dpkg -i /tmp/sawtooth*.deb || true \
+ && apt-get -f -y install
+
+CMD sawtooth-poet2

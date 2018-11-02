@@ -13,8 +13,3 @@ services:
         - http_proxy
         - https_proxy
         - no_proxy
-    volumes:
-      - .:/project/sawtooth-poet2/
-    entrypoint: "bash -c \"\
-        tail -f /dev/null \
-        \""

@@ -13,4 +13,4 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-#SAWTOOTH_POET2_ARGS=-v -C tcp://localhost:5050
+SAWTOOTH_POET2_ARGS=-v -C tcp://localhost:5050

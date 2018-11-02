@@ -22,19 +22,21 @@ bincode = "1.0.1"
 rust_sgxffi = { path = "../sgx/rust_sgxffi"}
 
 [package.metadata.deb]
+maintainer = "sawtooth"
+depends = "$auto,rsyslog"
 assets = [
     ["../../packaging/systemd/sawtooth-poet2.service", "/lib/systemd/system/sawtooth-poet2.service", "644"],
     ["../../packaging/systemd/sawtooth-poet2", "/etc/default/sawtooth-poet2", "644"],
-    ["target/release/sawtooth-poet2", "usr/bin/", "755"],
-    ["../build/bin/librust_sgx_bridge.so", "usr/lib/", "755"],
-    ["../build/bin/libsgxffi.so", "usr/lib/", "755"],
-    ["/tmp/sgxsdk/lib64/libsgx_capable.so", "usr/lib/", "755"],
-    ["/tmp/sgxsdk/lib64/libsgx_ptrace.so", "usr/lib/", "755"],
-    ["/tmp/sgxsdk/lib64/libsgx_uae_service.so", "usr/lib/", "755"],
-    ["/tmp/sgxsdk/lib64/libsgx_uae_service_sim.so", "usr/lib/", "755"],
-    ["/tmp/sgxsdk/lib64/libsgx_urts.so", "usr/lib/", "755"],
-    ["/tmp/sgxsdk/lib64/libsgx_urts_sim.so", "usr/lib/", "755"],
-    ["../build/bin/libpoet_enclave.signed.so", "usr/lib/", "755"],
-    ["../build/lib/libpoet_enclave.so", "usr/lib/", "755"],
+    ["target/release/sawtooth-poet2", "/usr/bin/sawtooth-poet2", "755"],
+    ["../build/bin/librust_sgx_bridge.so", "/usr/lib/librust_sgx_bridge.so", "755"],
+    ["../build/bin/libsgxffi.so", "/usr/lib/libsgxffi.so", "755"],
+    ["/tmp/sgxsdk/lib64/libsgx_capable.so", "/usr/lib/libsgx_capable.so", "755"],
+    ["/tmp/sgxsdk/lib64/libsgx_ptrace.so", "/usr/lib/libsgx_ptrace.so", "755"],
+    ["/tmp/sgxsdk/lib64/libsgx_uae_service.so", "/usr/lib/libsgx_uae_service.so", "755"],
+    ["/tmp/sgxsdk/lib64/libsgx_uae_service_sim.so", "/usr/lib/libsgx_uae_service_sim.so", "755"],
+    ["/tmp/sgxsdk/lib64/libsgx_urts.so", "/usr/lib/libsgx_urts.so", "755"],
+    ["/tmp/sgxsdk/lib64/libsgx_urts_sim.so", "/usr/lib/libsgx_urts_sim.so", "755"],
+    ["../build/bin/libpoet_enclave.signed.so", "/usr/lib/libpoet_enclave.signed.so", "755"],
+    ["../build/lib/libpoet_enclave.so", "/usr/lib/libpoet_enclave.so", "755"],
 ]
 maintainer-scripts = "../../packaging/ubuntu"
