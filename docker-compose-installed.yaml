@@ -1,72 +1,20 @@
-# Copyright 2018 Cargill Incorporated
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 version: '3.6'
 
+volumes:
+  cargo-registry:
+
 services:
-  poet-engine:
+  poet2-engine:
+    image: sawtooth-poet2-engine:${ISOLATION_ID}
     build:
       context: .
-      dockerfile: engine/Dockerfile-installed
-    image: sawtooth-poet-engine:${ISOLATION_ID}
-
-  poet-cli:
-    build:
-      context: .
-      dockerfile: cli/Dockerfile-installed
-    image: sawtooth-poet-cli:${ISOLATION_ID}
-
-  poet-common:
-    build:
-      context: .
-      dockerfile: common/Dockerfile-installed
-    image: sawtooth-poet-common:${ISOLATION_ID}
-
-  poet-core:
-    build:
-      context: .
-      dockerfile: core/Dockerfile-installed
-    image: sawtooth-poet-core:${ISOLATION_ID}
-    container_name: sawtooth-poet-core-default
-
-  poet-families:
-    build:
-      context: .
-      dockerfile: families/Dockerfile-installed
-    image: sawtooth-poet-validator-registry-tp:${ISOLATION_ID}
-
-  poet-sgx:
-    build:
-      context: .
-      dockerfile: sgx/Dockerfile-installed
-    image: sawtooth-poet-sgx:${ISOLATION_ID}
-    container_name: sawtooth-poet-sgx-default
-
-  poet-simulator:
-    build:
-      context: .
-      dockerfile: simulator/Dockerfile-installed
-    image: sawtooth-poet-simulator:${ISOLATION_ID}
-
-  ias-client:
-    build:
-      context: .
-      dockerfile: ias_client/Dockerfile-installed
-    image: sawtooth-ias-client:${ISOLATION_ID}
-
-  ias-proxy:
-    build:
-      context: .
-      dockerfile: ias_proxy/Dockerfile-installed
-    image: sawtooth-ias-proxy:${ISOLATION_ID}
+      dockerfile: src/core/Dockerfile-installed
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    volumes:
+      - .:/project/sawtooth-poet2/
+    entrypoint: "bash -c \"\
+        tail -f /dev/null \
+        \""

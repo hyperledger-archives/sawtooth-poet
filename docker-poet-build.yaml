@@ -13,24 +13,23 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-# Exclude IDE and Editor files
-/.idea/
-*.sublime*
+version: "3.6"
 
-# Exclude poet2 build artifacts
-/src/build/
+services:
 
-/src/core/target/
-/src/core/Cargo.lock
-/src/core/bin/
-/src/core/log/
+ poet-engine:
+     build:
+       context: .
+       dockerfile: poet2-sgx-engine.dockerfile
+       args:
+         - http_proxy
+         - https_proxy
+         - no_proxy
+     volumes:
+       - ./:/project/sawtooth-poet2/
+     working_dir: '/project/sawtooth-poet2/src/core'
+     entrypoint: "bash -c \"\
+         source /project/sawtooth-poet2/build_sgx_binary.sh \
+         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet2 -- -C tcp://validator-x:5050 -v \""
+     stop_signal: SIGKILL
 
-/src/validator-registry-tp/target/
-/src/validator-registry-tp/Cargo.lock
-/src/validator-registry-tp/bin/
-
-/src/sgx/rust_sgxffi/src/bindings.rs
-/src/sgx/rust_sgxffi/Cargo.lock
-/src/sgx/rust_sgxffi/target/
-
-*.batch

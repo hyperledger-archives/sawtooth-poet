@@ -1,6 +1,6 @@
 #!groovy
 
-// Copyright 2017 Intel Corporation
+// Copyright 2018 Intel Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,20 +29,12 @@ node ('master') {
                 sh 'git fetch --tag'
             }
 
-            if (!(env.BRANCH_NAME == 'master' && env.JOB_BASE_NAME == 'master')) {
-                stage("Check Whitelist") {
-                    readTrusted 'bin/whitelist'
-                    sh './bin/whitelist "$CHANGE_AUTHOR" /etc/jenkins-authorized-builders'
-                }
-            }
-
             stage("Check for Signed-Off Commits") {
                 sh '''#!/bin/bash -l
                     if [ -v CHANGE_URL ] ;
                     then
                         temp_url="$(echo $CHANGE_URL |sed s#github.com/#api.github.com/repos/#)/commits"
                         pull_url="$(echo $temp_url |sed s#pull#pulls#)"
-
                         IFS=$'\n'
                         for m in $(curl -s "$pull_url" | grep "message") ; do
                             if echo "$m" | grep -qi signed-off-by:
@@ -63,52 +55,16 @@ node ('master') {
             env.ISOLATION_ID = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
             env.COMPOSE_PROJECT_NAME = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
 
-            stage("Build Lint Dependencies") {
-                sh 'docker-compose up --abort-on-container-exit --build --force-recreate --renew-anon-volumes --exit-code-from poet-common poet-common'
-                sh 'docker-compose down'
+            // Build PoET2
+            stage("Build PoET2") {
+              //sh "docker-compose up --build --abort-on-container-exit --force-recreate --renew-anon-volumes --exit-code-from poet2-engine"
+              sh "docker-compose -f docker-compose-installed.yaml build"
             }
 
-            stage("Run Lint") {
-                sh 'docker-compose -f ci/run-lint.yaml up --abort-on-container-exit --build --force-recreate --renew-anon-volumes --exit-code-from lint lint'
-                sh 'docker-compose -f ci/run-lint.yaml up --abort-on-container-exit --build --force-recreate --renew-anon-volumes --exit-code-from bandit bandit'
-                sh 'docker-compose -f ci/run-lint.yaml down'
-            }
-
-            stage("Build Test Dependencies") {
-                sh 'docker-compose -f docker-compose-installed.yaml build'
-            }
-
-            // Run the tests
-            stage("Run Tests") {
-                sh 'INSTALL_TYPE="" ./bin/run_tests -i deployment'
-            }
-
-            stage("Compile coverage report") {
-                sh 'docker run --rm -v $(pwd):/project/sawtooth-poet sawtooth-poet-tests:$ISOLATION_ID /bin/bash -c "cd coverage && coverage combine && coverage html -d html"'
-            }
-
-            stage("Create git archive") {
-                sh '''
-                    REPO=$(git remote show -n origin | grep Fetch | awk -F'[/.]' '{print $6}')
-                    VERSION=`git describe --dirty`
-                    git archive HEAD --format=zip -9 --output=$REPO-$VERSION.zip
-                    git archive HEAD --format=tgz -9 --output=$REPO-$VERSION.tgz
-                '''
-            }
-
-            stage ("Build documentation") {
-                sh 'docker build . -f ci/sawtooth-build-docs -t sawtooth-build-docs:$ISOLATION_ID'
-                sh 'docker run --rm -v $(pwd):/project/sawtooth-poet sawtooth-build-docs:$ISOLATION_ID'
-            }
-
-            stage("Archive Build artifacts") {
-                sh 'docker-compose -f ci/copy-debs.yaml up'
-                archiveArtifacts artifacts: '*.tgz, *.zip'
-                archiveArtifacts artifacts: 'build/debs/*.deb'
-                archiveArtifacts artifacts: 'build/bandit.html'
-                archiveArtifacts artifacts: 'coverage/html/*'
-                archiveArtifacts artifacts: 'docs/build/html/**, docs/build/latex/*.pdf'
-                sh 'docker-compose -f ci/copy-debs.yaml down'
+            stage("Archive Build Artifacts") {
+                sh 'docker-compose -f copy-debs.yaml up'
+                sh 'docker-compose -f copy-debs.yaml down'
+                archiveArtifacts artifacts: 'sawtooth-poet2*amd64.deb'
             }
         }
     }

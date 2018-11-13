@@ -19,9 +19,9 @@ system are Bash scripts and require Bash to execute.
 
 Step One: Install Docker
 -------------
-The Sawtooth core requirements are:
+The Sawtooth POET requirements are:
 - Docker Community Edition (version 17.05.0-ce or newer)
-- Docker Compose (version 1.13.0 or newer)
+- Docker Compose (version 1.21.0 or newer)
 
 Install the Docker software.
 
@@ -151,36 +151,27 @@ Open a terminal and run the following commands:
    $ cd $HOME
    $ mkdir sawtooth
    $ cd sawtooth
-   $ git clone https://github.com/hyperledger/sawtooth-core.git
+   $ git clone https://github.com/hyperledger/sawtooth-poet -branch poet2   
 ```
 
 Step Four: Build Docker Images
 -------------
-
-Development of Sawtooth PoET is done in two separate modes: mounted and
-installed.
-
-**Mounted Mode**
-In mounted mode, docker images are built which contain all of the dependencies
+Docker images are built which contain all of the dependencies
 required to run each component, but which do not contain any source code or
-build artifacts. In this mode, the PoET repo must be mounted as a docker volume
+build artifacts. The PoET repo must be mounted as a docker volume
 to `/project/sawtooth-poet` for each of the containers when they are started.
 
-Working in mounted mode allows developers to iterate quickly on the project by
-making changes to the source code and testing it without needing to rebuild any
-docker images or build artifacts.
-
-To build docker images for mounted PoET development, run:
+To build docker images for PoET development, run:
 
   ```bash
-  $ docker-compose build
+  $ docker-compose -f docker-compose.yaml build
   ```
 
 From the project root directory. To run any build steps defined for the
 packages, such as generating or compiling code, run:
 
   ```bash
-  $ docker-compose up
+  $ docker-compose -f docker-compose.yaml up
   ```
 
 Then once all components are built, you can CTRL+C to shutdown the
@@ -190,37 +181,5 @@ project directory will now be modified according to the build steps.
 To combine the above two steps you can also do:
 
   ```bash
-  $ docker-compose up --build
+  $ docker-compose -f docker-compose.yaml up --build
   ```
-
-Once you have built the docker images and run the build steps for components,
-environments for specific components can be started with:
-
-  ```bash
-  $ docker run -it -v $(pwd):/project/sawtooth-poet {component image} bash
-  ```
-
-**Installed Mode**
-In installed mode, docker images are built which contain each component
-installed as it would be had a user installed it from a deb package using `apt`
-or `dpkg`. To accomplish this efficiently, several intermediary docker builder
-images are created which build and package the component and all its
-dependencies in the repo. Installed mode allows developers to run and test
-packages as they would exist in deployment, but iterating on changes in this
-mode requires rebuilding and repackaging the package and all dependent packages
-after every change.
-
-To build docker images for installed development, run:
-
-  ```bash
-  $ docker-compose -f docker-compose-installed.yaml build
-  ```
-
-To start an installed development environment for a specific component, do:
-
-  ```bash
-  $ docker run -it {component image} bash
-  ```
-
-These installed images also generate .deb artifacts during build. They can be found
-in the `/tmp` dir in any of the images.

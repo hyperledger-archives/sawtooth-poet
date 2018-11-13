@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,24 +15,27 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-# Exclude IDE and Editor files
-/.idea/
-*.sublime*
+set -e
 
-# Exclude poet2 build artifacts
-/src/build/
+directories="
+    /var/lib/sawtooth-poet2
+    /var/log/sawtooth-poet2
+"
 
-/src/core/target/
-/src/core/Cargo.lock
-/src/core/bin/
-/src/core/log/
+user="sawtooth"
+group="sawtooth"
 
-/src/validator-registry-tp/target/
-/src/validator-registry-tp/Cargo.lock
-/src/validator-registry-tp/bin/
+if ! getent group $group > /dev/null; then
+    addgroup --quiet --system $group
+fi
 
-/src/sgx/rust_sgxffi/src/bindings.rs
-/src/sgx/rust_sgxffi/Cargo.lock
-/src/sgx/rust_sgxffi/target/
+if ! getent passwd $user > /dev/null; then
+    adduser --quiet --system --ingroup $group $user
+fi
 
-*.batch
+for dir in $directories
+do
+    mkdir -p $dir
+    chown -R $user:$group $dir
+    chmod 750 $dir
+done

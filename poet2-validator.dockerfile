@@ -13,24 +13,17 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-# Exclude IDE and Editor files
-/.idea/
-*.sublime*
+FROM ubuntu:xenial
 
-# Exclude poet2 build artifacts
-/src/build/
-
-/src/core/target/
-/src/core/Cargo.lock
-/src/core/bin/
-/src/core/log/
-
-/src/validator-registry-tp/target/
-/src/validator-registry-tp/Cargo.lock
-/src/validator-registry-tp/bin/
-
-/src/sgx/rust_sgxffi/src/bindings.rs
-/src/sgx/rust_sgxffi/Cargo.lock
-/src/sgx/rust_sgxffi/target/
-
-*.batch
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly xenial universe" >> /etc/apt/sources.list \
+ && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
+ || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
+ && apt-get update \
+ && apt-get install -y -q --allow-downgrades \
+    pkg-config \
+    python3 \
+    python3-sawtooth-cli \
+    python3-sawtooth-validator \
+    python3-requests \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
