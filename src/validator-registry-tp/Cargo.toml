@@ -1,0 +1,20 @@
+[package]
+name = "validator_registry_tp"
+version = "1.0.0"
+authors = ["Intel Corporation"]
+
+[dependencies]
+sawtooth_sdk = { git = "https://github.com/hyperledger/sawtooth-core.git" }
+log = "0.3.0"
+log4rs = "0.7.0"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+clap = "~2.27.0"
+rust-crypto = "0.2.36"
+protobuf = "2.0"
+
+[build-dependencies]
+protoc-rust = "2.0"
+glob = "0.2"
+cfg-if = "0.1"
