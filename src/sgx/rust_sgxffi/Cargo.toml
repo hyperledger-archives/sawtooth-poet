@@ -1,0 +1,24 @@
+[package]
+name = "rust_sgxffi"
+version = "0.1.0"
+authors = ["Intel Corporation"]
+description = "Rust SGX FFI which calls SGX C++ functions"
+
+build = "build.rs"
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.26.3"
+
+[lib]
+# The name of a target is the name of the library that will be generated.
+name = "sgxffi"
+
+# This field points at where the crate is located, relative to the `Cargo.toml`.
+path = "src/lib.rs"
+
+# A flag for enabling unit tests for this target. This is used by `cargo test`.
+test = true
+
+crate-type = ["cdylib", "rlib"]
