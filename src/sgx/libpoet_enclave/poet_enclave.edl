@@ -1,0 +1,86 @@
+/*
+ Copyright 2018 Intel Corporation
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+------------------------------------------------------------------------------
+*/
+
+enclave {
+    from "sgx_tkey_exchange.edl" import *;
+    include "sgx_key_exchange.h"
+    include "sgx_trts.h"
+    include "../libpoet_shared/poet_defs.h"
+
+    trusted {
+        public poet_err_t ecall_Initialize(
+            [out] sgx_ra_context_t *p_context
+            );
+
+        public poet_err_t ecall_CreateErsatzEnclaveReport(
+            [in, out] sgx_target_info_t* targetInfo,
+            [out] sgx_report_t* outReport
+            );       
+
+        public poet_err_t ecall_CreateSignupData(
+            [in] const sgx_target_info_t* inTargetInfo,
+            [in, string] const char* inOriginatorPublicKeyHash,
+            [out] sgx_ec256_public_t* outPoetPublicKey,
+            [out] sgx_report_t* outEnclaveReport
+            );
+        
+        public poet_err_t ecall_VerifySignupInfo(
+            [in] const sgx_target_info_t*   inTargetInfo,
+            [in, string] const char*        inOriginatorPublicKeyHash,
+            [in] const sgx_ec256_public_t*  inPoetPublicKey,
+            [out] sgx_report_t*             outEnclaveReport
+            );
+        
+        public poet_err_t ecall_InitializeWaitCertificate(
+            [in, string] const char* inPreviousWaitCertificate, 
+            size_t inPreviousWaitCertificateLen, 
+            [in, string] const char* inValidatorId, 
+            size_t inValidatorIdLen,
+            [in] const sgx_ec256_signature_t* inPreviousWaitCertificateSig,
+            [in] const sgx_ec256_public_t* inPoetPublicKey,
+            [out, size=inDurationLenBytes] uint8_t* outDuration,
+            size_t inDurationLenBytes
+            );
+
+        public poet_err_t ecall_FinalizeWaitCertificate(
+            [in, string] const char* inPrevWaitCert,
+            size_t inPrevWaitCertLen,
+            [in, string] const char* inPrevBlockId, 
+            size_t inPrevBlockIdLen,
+            [in, string] const char* inPrevWaitCertificateSig, 
+            size_t inPrevWaitCertificateSigLen,
+            [in, string] const char* inBlockSummary, 
+            size_t inBlockSummaryLen,
+            uint64_t inWaitTime,
+            [out, size=outSerializedWaitCertificateLen] char* outSerializedWaitCertificate, 
+            size_t outSerializedWaitCertificateLen, 
+            [out] sgx_ec256_signature_t* outWaitCertificateSignature
+            );
+
+        public poet_err_t ecall_VerifyWaitCertificateSignature(
+            [in, string] const char* inSerializedWaitCertificate,
+            [in] const sgx_ec256_signature_t* inWaitCertificateSignature,
+            [in] const sgx_ec256_public_t* inPoetPublicKey
+            );
+    };
+
+    untrusted {
+        void ocall_Print([in, string] const char* str);
+        void ocall_Log(int level, [in, string] const char* str);
+        void ocall_SetErrorMessage([in, string] const char* msg);
+    };
+};
