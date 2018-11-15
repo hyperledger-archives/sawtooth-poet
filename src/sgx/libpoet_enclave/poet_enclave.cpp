@@ -31,7 +31,7 @@
 #include <vector>
 #include <iterator>
 #include <cctype>
-//#include "json/json.h"
+// #include "json/json.h"
 
 #include <sgx_trts.h>
 #include <sgx_tcrypto.h>
@@ -370,7 +370,7 @@ poet_err_t ecall_InitializeWaitCertificate(
         uint8_t duration[DURATION_LENGTH_BYTES];
         createDuration(duration, DURATION_LENGTH_BYTES);
 
-        //Check if its first block. And validate for null terminated string and 
+        // Check if its first block. And validate for null terminated string and 
         // the length of string is matching with inPreviousWaitCertificateLen  
         const size_t prevWaitCertLen = strnlen(inPreviousWaitCertificate, inPreviousWaitCertificateLen + 1);
         uint64_t prevBlockNum = 0;
@@ -384,33 +384,34 @@ poet_err_t ecall_InitializeWaitCertificate(
                     "Wait certificate length mismatch");
             }
 
-            //Verify if Wait certificate and Wait certificate signature are valid
-            if(ecall_VerifyWaitCertificateSignature(inPreviousWaitCertificate, inPreviousWaitCertificateSig, inPoetPublicKey)) {
+            // Verify if Wait certificate and Wait certificate signature are valid
+            // Commenting for now since poet public key passed from engine is not valid
+            /* if(ecall_VerifyWaitCertificateSignature(inPreviousWaitCertificate, inPreviousWaitCertificateSig, inPoetPublicKey)) {
                 sp::ThrowIf<sp::ValueError>(true, 
                                             "Wait certificate and Signature do not match");
-            }
+            }*/
             prevBlockNum = getBlockNumFromSerializedWaitCert(inPreviousWaitCertificate);
         }
 
         size_t currBlockNum = prevBlockNum + 1;
         
-        if (currBlockNum > prevBlockNum + 1) {
+        /* if (currBlockNum > prevBlockNum + 1) {
             sp::ThrowIf<sp::ValueError>(true, 
                                         "wait certificate cannot be issued for older block");
-        }
+        }*/
 
         gWaitCertData.waitCert.block_num = gWaitCertData.block_num = currBlockNum;
         gWaitCertData.waitCert.validator_id = inValidatorId;
         
-        //block summary will be filled in finalize wait certificate
+        // Block summary will be filled in finalize wait certificate
         gWaitCertData.waitCert.block_summary.clear();
 
-        //Truncate duration to 8 bytes
+        // Truncate duration to 8 bytes
         for(int i = 0; i < DURATION_LENGTH_BYTES/4; i++) {
             outDuration[i] = duration[i];
         }
 
-        //reverse duration array
+        // Reverse duration array
         for(int i = 0; i < DURATION_LENGTH_BYTES/2; i++){
             uint8_t temp = duration[i];
             duration[i] = duration[(DURATION_LENGTH_BYTES - 1) - i];
@@ -419,7 +420,7 @@ poet_err_t ecall_InitializeWaitCertificate(
 
         gWaitCertData.waitCert.duration.clear();
         gWaitCertData.waitCert.duration = sp::BinaryToHexString(duration,DURATION_LENGTH_BYTES);
-        //Wait certificate is initialized
+        // Wait certificate is initialized
         gWaitCertData.initialized = true;
         
     } catch (sp::PoetError& e) {
@@ -431,7 +432,7 @@ poet_err_t ecall_InitializeWaitCertificate(
             result = POET_ERR_UNKNOWN;
     }
     return result;
-} //ecall_InitializeWaitCertificate
+} // ecall_InitializeWaitCertificate
 
 poet_err_t ecall_FinalizeWaitCertificate(
     const char* inPreviousWaitCertificate,
@@ -489,10 +490,14 @@ poet_err_t ecall_FinalizeWaitCertificate(
         else {
             size_t prevBlockNum = getBlockNumFromSerializedWaitCert(inPreviousWaitCertificate);
             size_t currBlockNum = prevBlockNum + 1;
-            if(currBlockNum != gWaitCertData.waitCert.block_num) {
+
+            // Need to maintain a map of block_num as key and waitCertificate as value
+            // Allow waitcerificate for same block number if previous block id is different
+            // This is to allow fork resolution for same block number with different previous block id
+            /* if(currBlockNum != gWaitCertData.waitCert.block_num) {
                 sp::ThrowIf<sp::ValueError>(true, 
                     "Block number in wait certificate does not match");
-            }
+            } */
         }
         
         gWaitCertData.waitCert.previous_block_id = (char *)inPrevBlockId;
@@ -500,7 +505,7 @@ poet_err_t ecall_FinalizeWaitCertificate(
         gWaitCertData.waitCert.block_summary = (char *)inBlockSummary;
         gWaitCertData.waitCert.wait_time = inWaitTime;
         
-        // serialize final wait certificate
+        // Serialize final wait certificate
         JsonValue waitCertValue(json_value_init_object());
         sp::ThrowIf<sp::RuntimeError>(
             !waitCertValue.value,
@@ -534,7 +539,7 @@ poet_err_t ecall_FinalizeWaitCertificate(
         jret = json_object_dotset_number(waitCertObject, "wait_time", gWaitCertData.waitCert.wait_time);
         sp::ThrowIf<sp::RuntimeError>(jret != JSONSuccess, "WaitCertificate serialization failed on WaitTime.");
 
-        //serialize waitCert object
+        // Serialize waitCert object
         size_t serializedSize = json_serialization_size(waitCertValue);
         sp::ThrowIf<sp::ValueError>( outSerializedWaitCertificateLen < serializedSize, "WaitCertificate buffer is too small");
 
@@ -546,7 +551,7 @@ poet_err_t ecall_FinalizeWaitCertificate(
         sgx_status_t ret = sgx_ecc256_open_context(&eccStateHandle);
         sp::ThrowSgxError(ret, "Failed to create ECC256 context");
             
-        //sign serialized wait certificate
+        // Sign serialized wait certificate
         ret =   sgx_ecdsa_sign(
                 reinterpret_cast<const uint8_t *>(outSerializedWaitCertificate),
                 static_cast<int32_t>(strlen(outSerializedWaitCertificate)),
@@ -568,7 +573,7 @@ poet_err_t ecall_FinalizeWaitCertificate(
         result = POET_ERR_UNKNOWN;
     }
     return result;
-} //ecall_FinalizeWaitCertificate
+} // ecall_FinalizeWaitCertificate
 
 
 
@@ -733,7 +738,7 @@ uint64_t getBlockNumFromSerializedWaitCert(const char* waitCert) {
             "Got Null JSON Object");
 
     return json_object_dotget_number(pObject, "block_number");
-} //deserializeWaitCert
+} // deserializeWaitCert
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void clearWaitCertificate(WaitCertificate *waitCert) {
@@ -742,7 +747,7 @@ void clearWaitCertificate(WaitCertificate *waitCert) {
     waitCert->previous_block_id.clear();
     waitCert->validator_id.clear();
     waitCert->block_summary.clear();
-    //Zero(waitCert->duration,sizeof(waitCert->duration));
+    // Zero(waitCert->duration,sizeof(waitCert->duration));
     waitCert->duration.clear();
     waitCert->wait_time = 0;
-} //clearWaitCertificate
+} // clearWaitCertificate
