@@ -466,10 +466,10 @@ poet_err_t Poet_InitializeWaitCertificate(
         // convert them into something that is more convenient to use internally
         if (strnlen(prevWaitCertificateSig, prevWaitCertificateSigLen) > 0) {
             sp::Poet_DecodeSignature(&waitCertificateSignature, prevWaitCertificateSig);
-        } 
-        
+        }
+
         sp::DecodePublicKey(&decodedPoetPublicKey, poetPubKey);
-    
+
         g_Enclave.Enclave_InitializeWaitCertificate(
             prevWaitCertificate,
             prevWaitCertificateLen,
@@ -583,7 +583,6 @@ poet_err_t Poet_VerifyWaitCertificate(
             &waitCertificateSignature,
             inWaitCertificateSignature);
         sp::DecodePublicKey(&poetPublicKey, inPoetPublicKey);
-
         g_Enclave.VerifyWaitCertificate(
             inSerializedWaitCertificate,
             &waitCertificateSignature,

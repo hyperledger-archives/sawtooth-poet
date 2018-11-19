@@ -32,15 +32,16 @@
 
 Poet* Poet::instance = 0;
 
-WaitCertificate* validate_wait_certificate(const char* ser_wait_cert, 
-              const char* ser_wait_cert_sig);
+WaitCertificate* validate_wait_certificate(const char *ser_wait_cert,
+              const char *ser_wait_cert_sig);
 
-int r_initialize_enclave(r_sgx_enclave_id_t *eid, const char * enclave_path, 
-                         const char *spid) 
+r_error_code_t r_initialize_enclave(r_sgx_enclave_id_t *eid,
+                                    const char *enclave_path,
+                                    const char *spid)
 {
     //check parameters
     if (!eid || !enclave_path || !spid) {
-        return -1;
+        return R_FAILURE;
     }
     try{
         Poet *poet_enclave_id = Poet::getInstance(enclave_path, spid);
@@ -49,223 +50,273 @@ int r_initialize_enclave(r_sgx_enclave_id_t *eid, const char * enclave_path,
         eid->mr_enclave = (char *)poet_enclave_id->mr_enclave.c_str();
         eid->basename = (char *)poet_enclave_id->basename.c_str();
     } catch( sawtooth::poet::PoetError& e) {
-        return -1;
-    }catch(...) {
-        return -1;
+        return R_FAILURE;
+    } catch(...) {
+        return R_FAILURE;
     }
-    return 0;
+    return R_SUCCESS;
 }
 
-int r_free_enclave(r_sgx_enclave_id_t *eid)
+r_error_code_t r_free_enclave(r_sgx_enclave_id_t *eid)
 {
-    if (eid->handle != 0) {
-      Poet *poet_enclave_id = (Poet *)eid->handle;   
-      delete poet_enclave_id;   
-      eid->handle = 0;
+    if (eid->handle) {
+        Poet *poet_enclave_id = (Poet *)eid->handle;
+        delete poet_enclave_id;
+        eid->handle = 0;
     }
 
-    return 0;
+    return R_SUCCESS;
 }
 
-int r_get_epid_group(r_sgx_enclave_id_t *eid, r_sgx_epid_group_t *epid_group) {
+r_error_code_t r_get_epid_group(r_sgx_enclave_id_t *eid,
+                                r_sgx_epid_group_t *epid_group) {
     if (!eid) {
-        return -1;
+        return R_FAILURE;
     }
-    if (eid->handle == 0) {
-        return -1;
+    if (!eid->handle) {
+        return R_FAILURE;
     }
     StringBuffer epidBuffer(Poet_GetEpidGroupSize());
     try {
-        poet_err_t ret = Poet_GetEpidGroup(epidBuffer.data(), epidBuffer.length);
-        if(ret != POET_SUCCESS) {
-            return -1;
+        poet_err_t ret = Poet_GetEpidGroup(epidBuffer.data(),
+                                           epidBuffer.length);
+        if (ret != POET_SUCCESS) {
+            return R_FAILURE;
         }
         
         epid_group->epid = epidBuffer.data();
-    } catch( sawtooth::poet::PoetError& e) {
-        return -1;
-    }catch(...) {
-        return -1;
+    } catch ( sawtooth::poet::PoetError& e) {
+        return R_FAILURE;
+    } catch (...) {
+        return R_FAILURE;
     }
     
-    return 0;
+    return R_SUCCESS;
  }
 
-bool r_is_sgx_simulator(r_sgx_enclave_id_t *eid) {
+r_error_code_t r_is_sgx_simulator(r_sgx_enclave_id_t *eid,
+                                  bool *sgx_simulator) {
     if (!eid) {
-        return -1;
+        return R_FAILURE;
     }
-    if (eid->handle == 0) {
-        return -1;
+    if (!eid->handle) {
+        return R_FAILURE;
     }
     bool is_simulator = _is_sgx_simulator();
-    return is_simulator;
+    if (!is_simulator) {
+        *sgx_simulator = false;
+    } else {
+        *sgx_simulator = true;
+    }
+    return R_SUCCESS;
 }
 
-int r_set_signature_revocation_list(r_sgx_enclave_id_t *eid, const char *sig_revocation_list) {
+r_error_code_t r_set_signature_revocation_list(r_sgx_enclave_id_t *eid,
+                                            const char *sig_revocation_list) {
     if (!eid) {
-        return -1;
+        return R_FAILURE;
     }
-    if (eid->handle == 0) {
-        return -1;
+    if (!eid->handle) {
+        return R_FAILURE;
     }
     try {
         poet_err_t ret = Poet_SetSignatureRevocationList(sig_revocation_list);
-        if(ret != POET_SUCCESS) {
-            return -1;
+        if (ret != POET_SUCCESS) {
+            return R_FAILURE;
         }
-    } catch( sawtooth::poet::PoetError& e) {
-        return -1;
-    } catch(...) {
-        return -1;
+    } catch (sawtooth::poet::PoetError& e) {
+        return R_FAILURE;
+    } catch (...) {
+        return R_FAILURE;
     }
-    return 0;
+    return R_SUCCESS;
 }
 
-int r_create_signup_info(r_sgx_enclave_id_t *eid, const char *opk_hash, 
-                         r_sgx_signup_info_t *signup_info) {
+r_error_code_t r_create_signup_info(r_sgx_enclave_id_t *eid,
+                                    const char *opk_hash,
+                                    r_sgx_signup_info_t *signup_info) {
 	
     if (!eid || !opk_hash || !signup_info) {
-        return -1;
+        return R_FAILURE;
     }
 
-    if (eid->handle == 0) {
-        return -1;
+    if (!eid->handle) {
+        return R_FAILURE;
     }
-  
-    _SignupData *signup_data = _create_signup_data(opk_hash);
-    if (signup_data == NULL) {
-        return -1;
-    }
-    //store the _SignupData handle
-    signup_info->handle = (intptr_t)signup_data; 
 
-    if (signup_data->poet_public_key.empty()) {
-      return -1;
-    }
-    signup_info->poet_public_key = (char *)signup_data->poet_public_key.c_str();
-    signup_info->enclave_quote = (char *)signup_data->enclave_quote.c_str();
+    try {
+        _SignupData *signup_data = _create_signup_data(opk_hash);
+        if (signup_data == nullptr) {
+            return R_FAILURE;
+        }
+        //store the _SignupData handle
+        signup_info->handle = (intptr_t)signup_data; 
 
-    return 0;   
+        if (signup_data->poet_public_key.empty()) {
+            return R_FAILURE;
+        }
+        signup_info->poet_public_key = (char *)signup_data->poet_public_key
+                                                                    .c_str();
+        signup_info->enclave_quote = (char *)signup_data->enclave_quote.c_str();
+    } catch ( sawtooth::poet::PoetError& e) {
+        return R_FAILURE;
+    } catch (...) {
+        return R_FAILURE;
+    }
+    return R_SUCCESS; 
 }
 
 
-int r_initialize_wait_certificate(r_sgx_enclave_id_t *eid, uint8_t* duration, 
-                                  const char* prev_wait_cert,
-                                  const char* prev_wait_cert_sig, 
-                                  const char* validator_id,
-                                  const char* poet_pub_key) {
-    if (!eid || (prev_wait_cert == NULL) || (prev_wait_cert_sig == NULL) 
-          || (validator_id == NULL) || (poet_pub_key == NULL)) {
-       return -1;
+r_error_code_t r_initialize_wait_certificate(r_sgx_enclave_id_t *eid,
+                                  uint8_t *duration,
+                                  const char *prev_wait_cert,
+                                  const char *prev_wait_cert_sig,
+                                  const char *validator_id,
+                                  const char *poet_pub_key) {
+    if (!eid || (prev_wait_cert == nullptr) || (prev_wait_cert_sig == nullptr)
+          || (validator_id == nullptr) || (poet_pub_key == nullptr)) {
+       return R_FAILURE;
     }
 
-    if (eid-> handle == 0) {
-        return -1;
+    if (!eid-> handle) {
+        return R_FAILURE;
     }
 
-    poet_err_t ret = initialize_wait_certificate(prev_wait_cert, validator_id,
-                                                 prev_wait_cert_sig, poet_pub_key, duration,
-                                                 DURATION_LENGTH_BYTES); 
-    return ret;
+    try {
+        poet_err_t ret = initialize_wait_certificate(prev_wait_cert,
+                                            validator_id, prev_wait_cert_sig,
+                                            poet_pub_key, duration,
+                                            DURATION_LENGTH_BYTES);
+        if (ret != POET_SUCCESS) {
+            return R_FAILURE;
+        }
+    } catch (sawtooth::poet::PoetError& e) {
+        return R_FAILURE;
+    } catch (...) {
+        return R_FAILURE;
+    }
+    return R_SUCCESS;
 }
 
-int r_finalize_wait_certificate(r_sgx_enclave_id_t* eid, 
-                                r_sgx_wait_certificate_t* wait_cert,
-                                const char* prev_wait_cert,
-                                const char* prev_block_id,
-                                const char* prev_wait_cert_sig,
-                                const char* block_summary,
+r_error_code_t r_finalize_wait_certificate(r_sgx_enclave_id_t *eid,
+                                r_sgx_wait_certificate_t *wait_cert,
+                                const char *prev_wait_cert,
+                                const char *prev_block_id,
+                                const char *prev_wait_cert_sig,
+                                const char *block_summary,
                                 uint64_t wait_time) {
 
-    if (!eid || (prev_block_id == NULL) || (prev_wait_cert_sig == NULL)
-        || (block_summary == NULL)) {
-        return -1;
+    if (!eid || (prev_block_id == nullptr) || (prev_wait_cert_sig == nullptr)
+        || (block_summary == nullptr)) {
+        return R_FAILURE;
     }
     
-    if ( (eid->handle == 0)) {
-        return -1;
+    if (!eid->handle) {
+        return R_FAILURE;
     }
 
-    WaitCertificate *wait_certificate = finalize_wait_certificate(prev_wait_cert,
-                                                                  prev_block_id, 
-                                                                  prev_wait_cert_sig,
-                                                                  block_summary,
-                                                                  wait_time);                                                                 
-    if (wait_certificate == NULL) {
-      return -1;
+    try {
+        WaitCertificate *wait_certificate = finalize_wait_certificate(
+                                                            prev_wait_cert,
+                                                            prev_block_id,
+                                                            prev_wait_cert_sig,
+                                                            block_summary,
+                                                            wait_time);
+        if (wait_certificate == nullptr) {
+            return R_FAILURE;
+        }
+        //store wait certificate handle
+        wait_cert->handle = (intptr_t) wait_certificate;
+        if (wait_certificate->serialized.empty()) {
+            return R_FAILURE;
+        }
+        wait_cert->ser_wait_cert = (char*) wait_certificate->serialized.c_str();
+        if (wait_certificate->signature.empty()) {
+            return R_FAILURE;
+        }
+        wait_cert->ser_wait_cert_sign = (char*) wait_certificate->signature
+                                                                    .c_str();
+    } catch (sawtooth::poet::PoetError& e) {
+        return R_FAILURE;
+    } catch (...) {
+        return R_FAILURE;
     }
-    //store wait certificate handle
-    wait_cert->handle = (intptr_t) wait_certificate;
-    if ( wait_certificate->serialized.empty() ) {
-        return -1;
-    }
-    wait_cert->ser_wait_cert = (char*) wait_certificate->serialized.c_str();
-    if (wait_certificate->signature.empty()) {
-        return -1;
-    }
-    wait_cert->ser_wait_cert_sign = (char*) wait_certificate->signature.c_str();   
-    return 0;
+    return R_SUCCESS;
 }
 
 
-WaitCertificate* validate_wait_certificate(const char* ser_wait_cert, 
-                                           const char* ser_wait_cert_sig) {
+WaitCertificate* validate_wait_certificate(const char *ser_wait_cert,
+                                           const char *ser_wait_cert_sig) {
     
     return deserialize_wait_certificate(ser_wait_cert, 
                                           ser_wait_cert_sig);
 }
 
-bool r_verify_wait_certificate(r_sgx_enclave_id_t *eid, const char *ppk,
-                               const char* wait_cert, const char* wait_cert_sign) {
-    if (!eid || (ppk == NULL) || (wait_cert == NULL) || (wait_cert_sign == NULL)) {
-        return -1;
+r_error_code_t r_verify_wait_certificate(r_sgx_enclave_id_t *eid, const char *ppk,
+                              const char *wait_cert, const char *wait_cert_sign,
+                              bool *verify_cert_status) {
+    if (!eid || (ppk == nullptr) || (wait_cert == nullptr) || (wait_cert_sign == nullptr)) {
+        return R_FAILURE;
     }
 
-    if(eid->handle == 0){
-        return -1;
+    if (!eid->handle){
+        return R_FAILURE;
     }
-    return _verify_wait_certificate(wait_cert, wait_cert_sign, ppk);
+
+    try {
+        bool ret = _verify_wait_certificate(wait_cert, wait_cert_sign, ppk);
+        if (!ret) {
+            *verify_cert_status = false;
+        } else {
+            *verify_cert_status = true;
+        }
+    } catch (sawtooth::poet::PoetError& e) {
+        return R_FAILURE;
+    } catch (...) {
+        return R_FAILURE;
+    }
+    return R_SUCCESS;
 }
 
 
-int r_release_signup_info(r_sgx_enclave_id_t *eid, r_sgx_signup_info_t *signup_info)
+r_error_code_t r_release_signup_info(r_sgx_enclave_id_t *eid,
+                                     r_sgx_signup_info_t *signup_info)
 {
     if (!eid || !signup_info) {
-        return -1;
+        return R_FAILURE;
     }
 
-    if (eid->handle == 0) {
-       return -1;
+    if (!eid->handle) {
+        return R_FAILURE;
     }
 
-    if (signup_info->handle == 0) {
-       return -1;
+    if (!signup_info->handle) {
+       return R_FAILURE;
     }
 
     _SignupData *signup_data = (_SignupData *)signup_info->handle;
-    if (signup_data != NULL) {
+    if (signup_data != nullptr) {
         _destroy_signup_data(signup_data);
         signup_info->handle = 0;
     }    
-    return 0;
+    return R_SUCCESS;
 }
 
-int r_release_wait_certificate(r_sgx_enclave_id_t *eid, 
+r_error_code_t r_release_wait_certificate(r_sgx_enclave_id_t *eid, 
                                r_sgx_wait_certificate_t *wait_cert)
 {
     if (!eid || !wait_cert) {
-        return -1;
+        return R_FAILURE;
     }
     
-    if ((eid->handle == 0) || (wait_cert->handle == 0)) {
-        return -1;
+    if (!eid->handle || !wait_cert->handle) {
+        return R_FAILURE;
     }
 
     WaitCertificate *wait_certificate = (WaitCertificate *)wait_cert->handle;
-    if (wait_certificate != NULL) {
+    if (wait_certificate != nullptr) {
         _destroy_wait_certificate(wait_certificate);
         wait_cert->handle = 0;
     }
-    return 0;
+    return R_SUCCESS;
 }

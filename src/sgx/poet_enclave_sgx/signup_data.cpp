@@ -41,6 +41,7 @@ _SignupData::_SignupData(
     ThrowPoetError(result);
     
     // Save the output parameters in our properties
+
     this->poet_public_key = std::string(&poetPublicKey[0]);
     this->enclave_quote = std::string(&enclaveQuote[0]);
 } // _SignupData::_SignupData
