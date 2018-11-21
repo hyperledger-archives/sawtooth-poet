@@ -236,6 +236,15 @@ impl Poet2Service {
         self.get_setting( head_id, key )
     }
 
+    pub fn get_state(&mut self, block_id: BlockId, key: &String) -> Result<HashMap<String, Vec<u8>>, Error> {
+        self.service.get_state(
+            block_id,
+            vec![
+                     key.clone(),
+                ]);
+       Ok(HashMap::new())
+    }
+
     pub fn create_consensus(&mut self, summary: Vec<u8>, chain_head: Block, wait_time : u64) -> String {
         let mut wait_certificate = String::new();
         let mut wait_certificate_sig = String::new();

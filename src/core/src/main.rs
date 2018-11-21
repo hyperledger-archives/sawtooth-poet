@@ -59,6 +59,19 @@ pub mod poet2_util;
 pub mod settings_view;
 mod registration;
 mod poet_config;
+pub mod validator_registry_validator_info;
+pub mod validator_registry_signup_info;
+pub mod validator_registry_view;
+
+use engine::Poet2Engine;
+use sawtooth_sdk::consensus::zmq_driver::ZmqDriver;
+
+use std::process;
+use log::LevelFilter;
+use log4rs::append::file::FileAppender;
+use log4rs::append::console::ConsoleAppender;
+use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::pattern::PatternEncoder;
 
 /*
  *
