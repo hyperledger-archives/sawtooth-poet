@@ -16,18 +16,21 @@
 version: "2.1"
 
 services:
-
   unit-poet2:
+    image: sawtooth-poet-engine-local:$ISOLATION_ID
     container_name: poet2-test
     build:
       context: ./
-      dockerfile: ./poet2-sgx-engine.dockerfile
+      dockerfile: ../poet2-sgx-engine.dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ./:/project/sawtooth-poet2/
-    working_dir: '/project/sawtooth-poet2/src/core'
-    command:  cargo test
+      - ..:/project/sawtooth-poet/
+    working_dir: '/project/sawtooth-poet/src/core'
+    #command:  cargo test
+    entrypoint: "bash -c \"\
+        source /project/sawtooth-poet/build_sgx_binary.sh \
+        && cargo test \""
     stop_signal: SIGKILL

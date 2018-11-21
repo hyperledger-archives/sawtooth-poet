@@ -29,6 +29,13 @@ node ('master') {
                 sh 'git fetch --tag'
             }
 
+            if (!(env.BRANCH_NAME == 'poet2-dev' && env.JOB_BASE_NAME == 'poet2-dev')) {
+                stage("Check Whitelist") {
+                    readTrusted 'bin/whitelist'
+                    sh './bin/whitelist "$CHANGE_AUTHOR" /etc/jenkins-authorized-builders'
+                }
+            }
+
             stage("Check for Signed-Off Commits") {
                 sh '''#!/bin/bash -l
                     if [ -v CHANGE_URL ] ;
@@ -55,9 +62,18 @@ node ('master') {
             env.ISOLATION_ID = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
             env.COMPOSE_PROJECT_NAME = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
 
+            // Run the tests
+            stage("Run Tests") {
+                sh './bin/run_docker_test tests/unit-poet2.yaml'
+                sh '''
+                  docker rm -f \
+                    $(docker ps -f "label=com.sawtooth.isolation_id=${ISOLATION_ID}" \
+                    | awk {\'if(NR>1)print $1\'}) &> /dev/null
+                '''
+            }
+
             // Build PoET2
             stage("Build PoET2") {
-              //sh "docker-compose up --build --abort-on-container-exit --force-recreate --renew-anon-volumes --exit-code-from poet2-engine"
               sh "docker-compose -f docker-compose-installed.yaml build"
             }
 
