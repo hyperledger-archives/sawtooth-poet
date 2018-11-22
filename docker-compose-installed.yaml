@@ -4,8 +4,8 @@ volumes:
   cargo-registry:
 
 services:
-  poet2-engine:
-    image: sawtooth-poet2-engine:${ISOLATION_ID}
+  poet-engine:
+    image: sawtooth-poet-engine:${ISOLATION_ID}
     build:
       context: .
       dockerfile: src/core/Dockerfile-installed

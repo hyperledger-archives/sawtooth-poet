@@ -18,8 +18,8 @@
 set -e
 
 directories="
-    /var/lib/sawtooth-poet2
-    /var/log/sawtooth-poet2
+    /var/lib/sawtooth-poet
+    /var/log/sawtooth-poet
 "
 
 user="sawtooth"

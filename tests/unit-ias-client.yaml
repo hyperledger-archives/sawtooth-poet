@@ -1,4 +1,4 @@
-# Copyright 2018 Intel Corporation
+# Copyright 2017 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,20 +16,18 @@
 version: "3.6"
 
 services:
-
- poet-engine:
-     build:
-       context: .
-       dockerfile: poet-sgx-engine.dockerfile
-       args:
-         - http_proxy
-         - https_proxy
-         - no_proxy
-     volumes:
-       - ./:/project/sawtooth-poet/
-     working_dir: '/project/sawtooth-poet/src/core'
-     entrypoint: "bash -c \"\
-         source /project/sawtooth-poet/build_sgx_binary.sh \
-         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C tcp://validator-x:5050 -v \""
-     stop_signal: SIGKILL
+  unit-ias-client:
+    image: sawtooth-ias-client-local:$ISOLATION_ID
+    build:
+      context: ./
+      dockerfile: ../ias-client.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    volumes:
+      - ..:/project/
+    working_dir: '/project/src/ias_client'
+    command: cargo test
+    stop_signal: SIGKILL
 

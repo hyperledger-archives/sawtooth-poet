@@ -1,5 +1,5 @@
 [package]
-name = "sawtooth-poet2"
+name = "sawtooth-poet"
 version = "0.1.0"
 authors = ["Intel Corporation"]
 
@@ -25,9 +25,9 @@ rust_sgxffi = { path = "../sgx/rust_sgxffi"}
 maintainer = "sawtooth"
 depends = "$auto,rsyslog"
 assets = [
-    ["../../packaging/systemd/sawtooth-poet2.service", "/lib/systemd/system/sawtooth-poet2.service", "644"],
-    ["../../packaging/systemd/sawtooth-poet2", "/etc/default/sawtooth-poet2", "644"],
-    ["target/release/sawtooth-poet2", "/usr/bin/sawtooth-poet2", "755"],
+    ["../../packaging/systemd/sawtooth-poet.service", "/lib/systemd/system/sawtooth-poet.service", "644"],
+    ["../../packaging/systemd/sawtooth-poet", "/etc/default/sawtooth-poet", "644"],
+    ["target/release/sawtooth-poet", "/usr/bin/sawtooth-poet", "755"],
     ["../build/bin/librust_sgx_bridge.so", "/usr/lib/librust_sgx_bridge.so", "755"],
     ["../build/bin/libsgxffi.so", "/usr/lib/libsgxffi.so", "755"],
     ["/tmp/sgxsdk/lib64/libsgx_capable.so", "/usr/lib/libsgx_capable.so", "755"],

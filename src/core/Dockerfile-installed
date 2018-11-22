@@ -13,8 +13,8 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-# -------------=== poet2 build ===-------------
-FROM ubuntu:xenial as poet2-builder
+# -------------=== poet build ===-------------
+FROM ubuntu:xenial as poet-builder
 
 RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sources.list \
  && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8AA7AF1F1091A5FD \
@@ -78,23 +78,23 @@ RUN bash -c "curl -OLsS https://download.01.org/intel-sgx/linux-2.3/ubuntu16.04-
 ENV PATH=$PATH:/protoc3/bin:/root/.cargo/bin
 RUN /root/.cargo/bin/cargo install cargo-deb
 
-COPY . /project/sawtooth-poet2
+COPY . /project/sawtooth-poet
 
-WORKDIR /project/sawtooth-poet2
+WORKDIR /project/sawtooth-poet
 RUN bash -c "source build_sgx_binary.sh"
  
-WORKDIR /project/sawtooth-poet2/src/core
+WORKDIR /project/sawtooth-poet/src/core
 
 #RUN sed -i -e s/version.*$/version\ =\ \"$(bin/get_version)\"/ Cargo.toml
 RUN bash -c "/root/.cargo/bin/cargo deb"
 
-# -------------=== poet2 docker build ===-------------
+# -------------=== poet docker build ===-------------
 FROM ubuntu:xenial
 
-COPY --from=poet2-builder /project/sawtooth-poet2/src/core/target/debian/sawtooth-poet2*.deb /tmp
+COPY --from=poet-builder /project/sawtooth-poet/src/core/target/debian/sawtooth-poet*.deb /tmp
 
 RUN apt-get update \
  && dpkg -i /tmp/sawtooth*.deb || true \
  && apt-get -f -y install
 
-CMD sawtooth-poet2
+CMD sawtooth-poet

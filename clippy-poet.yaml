@@ -13,22 +13,22 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-version: "2.1"
+version: "3.6"
 
 services:
 
-  poet2-engine-clippy:
-    container_name: poet2-engine-clippy
+  poet-engine-clippy:
+    container_name: poet-engine-clippy
     build:
       context: ./
-      dockerfile: ./clippy-poet2.dockerfile
+      dockerfile: ./clippy-poet.dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ./:/project/sawtooth-poet2/
-    working_dir: '/project/sawtooth-poet2/src/core/'
+      - ./:/project/sawtooth-poet/
+    working_dir: '/project/sawtooth-poet/src/core/'
     entrypoint: "bash -c \"\
       rustup show &&\
       cargo clippy \""

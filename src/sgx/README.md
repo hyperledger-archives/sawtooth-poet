@@ -25,19 +25,19 @@ Steps to build PoET2 SGX Enclave in standalone mode in SIMUATOR mode
 
 3. Build SGX code
 	1. create build folder and build SGX code from the folder
-	   eg. mkdir <sawtooth-poet2-home>/src/build 
-	       cd  <sawtooth-poet2-home>/src/build/
+	   eg. mkdir <sawtooth-poet-home>/src/build 
+	       cd  <sawtooth-poet-home>/src/build/
 	2. cmake ../sgx
 	3. make
 
 Steps to run Unit test
 1. set SGX binary path
-	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<sawtooth-poet2-home>/src/build/bin
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<sawtooth-poet-home>/src/build/bin
 2. execute unit tests using cargo
-	cd <sawtooth-poet2-home>/sawtooth-poet2/src/sgx/rust_sgxffi
+	cd <sawtooth-poet-home>/sawtooth-poet/src/sgx/rust_sgxffi
 	cargo test -- --nocapture
 
 3. C++ unit test cases
-    cd <sawtooth-poet2-home>/src/build/bin
+    cd <sawtooth-poet-home>/src/build/bin
     ./testEnclave
     

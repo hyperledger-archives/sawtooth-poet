@@ -64,7 +64,9 @@ node ('master') {
 
             // Run the tests
             stage("Run Tests") {
-                sh './bin/run_docker_test tests/unit-poet2.yaml'
+                sh './bin/run_docker_test tests/unit-poet.yaml'
+                sh './bin/run_docker_test tests/unit-ias-client.yaml'
+                sh './bin/run_docker_test tests/unit-ias-proxy.yaml'
                 sh '''
                   docker rm -f \
                     $(docker ps -f "label=com.sawtooth.isolation_id=${ISOLATION_ID}" \
@@ -80,7 +82,7 @@ node ('master') {
             stage("Archive Build Artifacts") {
                 sh 'docker-compose -f copy-debs.yaml up'
                 sh 'docker-compose -f copy-debs.yaml down'
-                archiveArtifacts artifacts: 'sawtooth-poet2*amd64.deb'
+                archiveArtifacts artifacts: 'sawtooth-poet*amd64.deb'
             }
         }
     }

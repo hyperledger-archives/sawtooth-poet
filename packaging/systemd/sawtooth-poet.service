@@ -13,4 +13,16 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-SAWTOOTH_POET2_ARGS=-v -C tcp://localhost:5050
+[Unit]
+Description=Sawtooth PoET Consensus Engine
+After=network.target
+
+[Service]
+User=sawtooth
+Group=sawtooth
+EnvironmentFile=-/etc/default/sawtooth-poet
+ExecStart=/usr/bin/sawtooth-poet $SAWTOOTH_POET_ARGS
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

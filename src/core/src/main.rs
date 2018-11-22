@@ -66,7 +66,7 @@ use log4rs::encode::pattern::PatternEncoder;
  *
  */
 fn main() {
-    let matches = clap_app!(sawtooth_poet2 =>
+    let matches = clap_app!(sawtooth_poet =>
         (version: crate_version!())
         (about: "PoET 2 Consensus Engine")
         (@arg connect: -C --connect +takes_value

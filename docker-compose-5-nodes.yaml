@@ -22,10 +22,10 @@ volumes:
 services:
 
   validator-1:
-    image: sawtooth-poet2-validator:latest
+    image: sawtooth-poet-validator:latest
     build:
       context: .
-      dockerfile: poet2-validator.dockerfile
+      dockerfile: poet-validator.dockerfile
       args:
         - http_proxy
         - https_proxy
@@ -70,10 +70,10 @@ services:
     stop_signal: SIGKILL
 
   validator-2:
-    image: sawtooth-poet2-validator:latest
+    image: sawtooth-poet-validator:latest
     build:
       context: .
-      dockerfile: poet2-validator.dockerfile
+      dockerfile: poet-validator.dockerfile
       args:
         - http_proxy
         - https_proxy
@@ -104,10 +104,10 @@ services:
     stop_signal: SIGKILL
 
   validator-3:
-    image: sawtooth-poet2-validator:latest
+    image: sawtooth-poet-validator:latest
     build:
       context: .
-      dockerfile: poet2-validator.dockerfile
+      dockerfile: poet-validator.dockerfile
       args:
         - http_proxy
         - https_proxy
@@ -138,10 +138,10 @@ services:
     stop_signal: SIGKILL
 
   validator-4:
-    image: sawtooth-poet2-validator:latest
+    image: sawtooth-poet-validator:latest
     build:
       context: .
-      dockerfile: poet2-validator.dockerfile
+      dockerfile: poet-validator.dockerfile
       args:
         - http_proxy
         - https_proxy
@@ -172,10 +172,10 @@ services:
     stop_signal: SIGKILL
 
   validator-5:
-    image: sawtooth-poet2-validator:latest
+    image: sawtooth-poet-validator:latest
     build:
       context: .
-      dockerfile: poet2-validator.dockerfile
+      dockerfile: poet-validator.dockerfile
       args:
         - http_proxy
         - https_proxy
@@ -208,101 +208,101 @@ services:
   poet-2-engine-1:
     build:
       context: .
-      dockerfile: poet2-sgx-engine.dockerfile
+      dockerfile: poet-sgx-engine.dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ./:/project/sawtooth-poet2/
+      - ./:/project/sawtooth-poet/
       - cargo-registry:/root/.cargo/registry
-      - ./logs1/poet:/project/sawtooth-poet2/src/core/log
-    working_dir: '/project/sawtooth-poet2/src/core'
+      - ./logs1/poet:/project/sawtooth-poet/src/core/log
+    working_dir: '/project/sawtooth-poet/src/core'
     depends_on:
       - validator-1
     entrypoint: "bash -c \"\
-        source /project/sawtooth-poet2/build_sgx_binary.sh \
-        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet2 -- -C tcp://validator-1:5050 -v \""
+        source /project/sawtooth-poet/build_sgx_binary.sh \
+        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C tcp://validator-1:5050 -v \""
     stop_signal: SIGKILL
 
   poet-2-engine-2:
     build:
       context: .
-      dockerfile: poet2-sgx-engine.dockerfile
+      dockerfile: poet-sgx-engine.dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ./:/project/sawtooth-poet2/
+      - ./:/project/sawtooth-poet/
       - cargo-registry:/root/.cargo/registry
-      - ./logs2/poet:/project/sawtooth-poet2/src/core/log
-    working_dir: '/project/sawtooth-poet2/src/core'
+      - ./logs2/poet:/project/sawtooth-poet/src/core/log
+    working_dir: '/project/sawtooth-poet/src/core'
     depends_on:
       - validator-2
     entrypoint: "bash -c \"\
-        source /project/sawtooth-poet2/build_sgx_binary.sh \
-        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet2 -- -C tcp://validator-2:5050 -v \""
+        source /project/sawtooth-poet/build_sgx_binary.sh \
+        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C tcp://validator-2:5050 -v \""
     stop_signal: SIGKILL
 
   poet-2-engine-3:
     build:
       context: .
-      dockerfile: poet2-sgx-engine.dockerfile
+      dockerfile: poet-sgx-engine.dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ./:/project/sawtooth-poet2/
+      - ./:/project/sawtooth-poet/
       - cargo-registry:/root/.cargo/registry
-      - ./logs3/poet:/project/sawtooth-poet2/src/core/log
-    working_dir: '/project/sawtooth-poet2/src/core'
+      - ./logs3/poet:/project/sawtooth-poet/src/core/log
+    working_dir: '/project/sawtooth-poet/src/core'
     depends_on:
       - validator-3
     entrypoint: "bash -c \"\
-        source /project/sawtooth-poet2/build_sgx_binary.sh \
-        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet2 -- -C tcp://validator-3:5050 -v \""
+        source /project/sawtooth-poet/build_sgx_binary.sh \
+        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C tcp://validator-3:5050 -v \""
     stop_signal: SIGKILL
 
   poet-2-engine-4:
     build:
       context: .
-      dockerfile: poet2-sgx-engine.dockerfile
+      dockerfile: poet-sgx-engine.dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ./:/project/sawtooth-poet2/
+      - ./:/project/sawtooth-poet/
       - cargo-registry:/root/.cargo/registry
-      - ./logs4/poet:/project/sawtooth-poet2/src/core/log
-    working_dir: '/project/sawtooth-poet2/src/core'
+      - ./logs4/poet:/project/sawtooth-poet/src/core/log
+    working_dir: '/project/sawtooth-poet/src/core'
     depends_on:
       - validator-4
     entrypoint: "bash -c \"\
-        source /project/sawtooth-poet2/build_sgx_binary.sh \
-        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet2 -- -C tcp://validator-4:5050 -v \""
+        source /project/sawtooth-poet/build_sgx_binary.sh \
+        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C tcp://validator-4:5050 -v \""
     stop_signal: SIGKILL
 
   poet-2-engine-5:
     build:
       context: .
-      dockerfile: poet2-sgx-engine.dockerfile
+      dockerfile: poet-sgx-engine.dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ./:/project/sawtooth-poet2/
+      - ./:/project/sawtooth-poet/
       - cargo-registry:/root/.cargo/registry
-      - ./logs5/poet:/project/sawtooth-poet2/src/core/log
-    working_dir: '/project/sawtooth-poet2/src/core'
+      - ./logs5/poet:/project/sawtooth-poet/src/core/log
+    working_dir: '/project/sawtooth-poet/src/core'
     depends_on:
       - validator-5
     entrypoint: "bash -c \"\
-        source /project/sawtooth-poet2/build_sgx_binary.sh \
-        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet2 -- -C tcp://validator-5:5050 -v \""
+        source /project/sawtooth-poet/build_sgx_binary.sh \
+        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C tcp://validator-5:5050 -v \""
     stop_signal: SIGKILL
 
   rest-api-1:
