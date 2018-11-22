@@ -83,6 +83,8 @@ impl<'a> ConsensusStateStore<'a> {
 mod tests {
     use super::*;
     use database::config;
+    use std::fs;
+    use std::path::Path;
 
     /// Asserts that there are COUNT many objects in DB.
     fn assert_database_db_count(count: usize, db: &LmdbDatabase) {
@@ -126,19 +128,40 @@ mod tests {
         assert!(reader.index_get(index, &[key]).unwrap().is_none());
     }
 
-    fn create_context() -> Result<lmdb::LmdbContext, CliError> {
+    /*
+     * file_prefix - Taking this as an argument to isolate the  
+     *               the context and db files for all the test cases.
+     *               Unit test threads might run in parallel which 
+     *               would then create coflicts.
+     */
+    fn create_context( file_prefix : &String ) -> lmdb::LmdbContext {
         let path_config = config::get_path_config();
-        let statestore_path = &path_config.data_dir.join(config::get_filename());
-        assert!(statestore_path.exists());
+        assert!(path_config.data_dir.exists());
+        let statestore_path = &path_config.data_dir.join(
+             Path::new(&format!("{}{}",file_prefix,config::get_filename())));
 
-        lmdb::LmdbContext::new(statestore_path, 1, None)
+         let context = lmdb::LmdbContext::new(statestore_path, 1, None)
             .map_err(|err| CliError::EnvironmentError(format!("{}", err)))
+            .expect("Error creating context.");
+        assert!(statestore_path.exists());
+        context
+    }
+
+    fn cleanup_dbfile( file_prefix : &String ) {
+        let path_config = config::get_path_config();
+        let statestore_path = &path_config.data_dir.join(
+             Path::new(&format!("{}{}",file_prefix,config::get_filename())));
+
+        fs::remove_file(statestore_path.to_str().unwrap());
+        // Ensure the file has been deleted
+        assert!(!statestore_path.exists());
     }
 
     #[test]
     fn test_state_store_get() {
 
-        let mut ctx = create_context().unwrap();
+        let file_name = String::from("test_state_store_get_");
+        let ctx = create_context(&file_name);
         let statestore_db = lmdb::LmdbDatabase::new(
             &ctx,
             &["index_consensus_state"],
@@ -152,14 +175,14 @@ mod tests {
 
         assert!(state_store.get(BlockId::from(vec![11])).is_ok());
         //cleanup
-        state_store.delete( BlockId::from(vec![11]) );
-        assert!(state_store.get(BlockId::from(vec![11])).is_err());
+        cleanup_dbfile(&file_name);
     }
 
     #[test]
     fn test_state_store_put() {
 
-        let mut ctx = create_context().unwrap();
+        let file_name = String::from("test_state_store_put_");
+        let ctx = create_context(&file_name);
         let statestore_db = lmdb::LmdbDatabase::new(
             &ctx,
             &["index_consensus_state"],
@@ -175,14 +198,14 @@ mod tests {
         assert_eq!(*state_store.get(BlockId::from(vec![13])).unwrap(),
             ConsensusState::default());
         //cleanup
-        state_store.delete( BlockId::from(vec![13]) );
-        assert!(state_store.get(BlockId::from(vec![13])).is_err());
+        cleanup_dbfile(&file_name);
     }
 
     #[test]
     fn test_state_store_delete() {
 
-        let mut ctx = create_context().unwrap();
+        let file_name = String::from("test_state_store_delete_");
+        let ctx = create_context(&file_name);
         let statestore_db = lmdb::LmdbDatabase::new(
             &ctx,
             &["index_consensus_state"],
@@ -203,7 +226,6 @@ mod tests {
         assert!(state_store.get(BlockId::from(vec![14])).is_err());
         assert!(state_store.get(BlockId::from(vec![15])).is_ok());
         //cleanup
-        state_store.delete( BlockId::from(vec![15]) );
-        assert!(state_store.get(BlockId::from(vec![15])).is_err());
+        cleanup_dbfile(&file_name);
     }
 }
