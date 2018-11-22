@@ -16,8 +16,7 @@
 version: '3.6'
 
 volumes:
-  cargo-registry1:
-  cargo-registry2:
+  cargo-registry:
   keys:
 
 services:
@@ -59,8 +58,6 @@ services:
             --bind component:tcp://eth0:4004 \
             --bind network:tcp://eth0:8800 \
             --bind consensus:tcp://eth0:5050 \
-            --peering static \
-            --peers tcp://validator-2:8800
             --scheduler parallel \
     \""
     stop_signal: SIGKILL
@@ -75,7 +72,7 @@ services:
         - no_proxy
     volumes:
       - ./:/project/sawtooth-poet2/
-      - cargo-registry1:/root/.cargo/registry
+      - cargo-registry:/root/.cargo/registry
     working_dir: '/project/sawtooth-poet2/src/core'
     depends_on:
       - validator-1
