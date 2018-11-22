@@ -81,6 +81,22 @@ services:
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet2 -- -C tcp://validator-1:5050 -v \""
     stop_signal: SIGKILL
 
+  ias-proxy-server:
+    build:
+      context: .
+      dockerfile: ias-proxy.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    expose:
+      - 8899
+    volumes:
+      - ./:/project/
+    working_dir: '/project/src/ias_proxy'
+    entrypoint: "RUST_BACKTRACE=1 cargo run --bin ias_proxy -- -config src/tests/packaging/ias_proxy.toml -v"
+    stop_signal: SIGKILL
+
   rest-api-1:
     image: hyperledger/sawtooth-rest-api:latest
     expose:

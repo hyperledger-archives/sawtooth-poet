@@ -39,13 +39,28 @@ services:
     container_name: ias-client
     build:
       context: ./
-      dockerfile: ./ias-client.dockerfile
+      dockerfile: ../ias-client.dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ./:/project/
+      - ..:/project/
     working_dir: '/project/src/ias_client'
+    command: cargo test
+    stop_signal: SIGKILL
+
+  unit-ias-proxy:
+    container_name: ias-proxy
+    build:
+      context: ./
+      dockerfile: ../ias-proxy.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    volumes:
+      - ..:/project/
+    working_dir: '/project/src/ias_proxy'
     command: cargo test
     stop_signal: SIGKILL

@@ -37,4 +37,8 @@
 /src/ias_client/Cargo.lock
 /src/ias_client/bin/
 
+/src/ias_proxy/target/
+/src/ias_proxy/Cargo.lock
+/src/ias_proxy/bin/
+
 *.batch

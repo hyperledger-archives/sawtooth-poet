@@ -1,0 +1,25 @@
+[package]
+name = "ias_proxy"
+version = "1.0.0"
+authors = ["Intel Corporation"]
+description = "Proxy web server for IAS"
+
+[dependencies]
+hyper = "0.12.11"
+serde_json = "1.0"
+clap = "~2.27.0"
+log = "0.3.0"
+log4rs = "0.7.0"
+toml = "0.4.8"
+futures = "0.1.24"
+ias_client = { path = "../ias_client" }
+serde_derive = "1.0.79"
+serde = "1.0"
+lazy_static="1.1.0"
+
+[[bin]]
+# The name of binary created, note ias_proxy is a binary
+name = "ias_proxy"
+
+# This field point where the binary can be built (place of main)
+path = "src/main.rs"
