@@ -33,4 +33,8 @@
 /src/sgx/rust_sgxffi/Cargo.lock
 /src/sgx/rust_sgxffi/target/
 
+/src/ias_client/target/
+/src/ias_client/Cargo.lock
+/src/ias_client/bin/
+
 *.batch
