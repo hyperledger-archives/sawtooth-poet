@@ -1,0 +1,154 @@
+# Copyright 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+
+version: '3.6'
+
+volumes:
+  cargo-registry:
+  cargo-registry-tp:
+  keys:
+  poet-share:
+
+services:
+
+  validator-1:
+    image: sawtooth-poet-validator:latest
+    build:
+      context: .
+      dockerfile: poet-validator.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    expose:
+      - 4004
+      - 8800
+      - 5050
+    volumes:
+      - keys:/shared_keys
+      - poet-share:/poet_keys
+      - ./src/core/src/resources:/config
+    # start the validator with an empty genesis batch
+    working_dir: /root
+    command: "bash -c \"\
+        sawadm keygen validator-2 && \
+        sawadm keygen && \
+        sawset genesis \
+          -k /etc/sawtooth/keys/validator.priv \
+          -o config-genesis.batch && \
+        sawset proposal create \
+          -k /etc/sawtooth/keys/validator.priv \
+          sawtooth.consensus.algorithm=poet2 \
+          sawtooth.poet.block_claim_delay=0 \
+          sawtooth.poet.report_public_key_pem=\
+          \\\"$$(cat /config/ias_report_key.pem)\\\" \
+          -o config.batch && \
+        sawadm genesis \
+          config-genesis.batch config.batch && \
+        mv /etc/sawtooth/keys/validator-* /shared_keys && \
+        cp /etc/sawtooth/keys/validator.priv /poet_keys && \
+        echo $$(cat /etc/sawtooth/keys/validator.pub); \
+        sawtooth-validator -v \
+            --endpoint tcp://validator-1:8800 \
+            --bind component:tcp://eth0:4004 \
+            --bind network:tcp://eth0:8800 \
+            --bind consensus:tcp://eth0:5050 \
+            --scheduler parallel \
+    \""
+    stop_signal: SIGKILL
+
+  poet-2-engine-1:
+    build:
+      context: .
+      dockerfile: poet-sgx-engine.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    volumes:
+      - ./:/project/sawtooth-poet/
+      - cargo-registry:/root/.cargo/registry
+      - poet-share:/poet_keys
+    working_dir: '/project/sawtooth-poet/src/core'
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=${no_proxy},validator-1,rest-api-1'
+      - "SGX_HW_MODE=TRUE"
+    devices:
+      - "/dev/isgx:/dev/isgx"
+    depends_on:
+      - validator-1
+      - validator-registry-tp-1
+    entrypoint: "bash -c \"\
+        source /project/sawtooth-poet/build_sgx_binary.sh \
+        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C tcp://validator-1:5050 --config /project/sawtooth-poet/src/core/src/resources/poet_config.toml -v \""
+    stop_signal: SIGKILL
+
+  rest-api-1:
+    image: hyperledger/sawtooth-rest-api:latest
+    expose:
+      - "8008"
+    depends_on:
+      - validator-1
+    entrypoint: sawtooth-rest-api -C tcp://validator-1:4004 --bind rest-api-1:8008
+
+  settings-tp-1:
+    image: hyperledger/sawtooth-settings-tp:latest
+    depends_on:
+      - validator-1
+    entrypoint: settings-tp -vv -C tcp://validator-1:4004
+
+  intkey-tp-python-1:
+    image: hyperledger/sawtooth-intkey-tp-python:latest
+    depends_on:
+      - validator-1
+    entrypoint: intkey-tp-python -vv -C tcp://validator-1:4004
+
+  shell:
+    image: hyperledger/sawtooth-all:latest
+    container_name: sawtooth-shell-default
+    depends_on:
+      - rest-api-1
+    entrypoint: "bash -c \"\
+        sawtooth keygen --force && \
+        tail -f /dev/null \
+        \""
+
+  validator-registry-tp-1:
+    image: sawtooth-poet-validator-registry-tp:latest
+    build:
+      context: ./
+      dockerfile: ./validator-registry-tp.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    volumes:
+      - ./src/validator-registry-tp:/project/validator-registry-tp/
+      - cargo-registry-tp:/root/.cargo/registry
+    working_dir: '/project/validator-registry-tp'
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=${no_proxy},validator-1'
+    depends_on:
+      - validator-1
+    entrypoint: "bash -c \"\
+        RUST_BACKTRACE=1 cargo run --bin validator_registry_tp -- -vv -C \
+        tcp://validator-1:4004 && \
+         tail -f /dev/null \
+        \""
+    stop_signal: SIGKILL

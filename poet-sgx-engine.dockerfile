@@ -20,17 +20,21 @@ RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/ci xenial universe" >>
  && apt-get update \
  && apt-get install -y -q --allow-downgrades \
  build-essential \
+ ocaml \
  curl \
  gcc \
  cmake \
  clang \
  libclang-dev \
+ libprotobuf-dev \
  openssl \
  libssl-dev \
+ libcurl4-openssl-dev \
  libc6-dev \
  libcrypto++-dev \
  libjson-c-dev \
  libzmq3-dev \
+ libtool \
  make \
  wget \
  pkg-config \
@@ -71,7 +75,9 @@ RUN rustup component add rustfmt-preview
 
 WORKDIR /tmp
 
-RUN bash -c "wget https://download.01.org/intel-sgx/linux-2.3/ubuntu16.04-server/sgx_linux_x64_sdk_2.3.100.46354.bin \
+RUN bash -c "wget https://download.01.org/intel-sgx/linux-2.3/ubuntu16.04-server/libsgx-enclave-common_2.3.100.46354-1_amd64.deb \
+  && dpkg -i libsgx-enclave-common_2.3.100.46354-1_amd64.deb \
+  && wget https://download.01.org/intel-sgx/linux-2.3/ubuntu16.04-server/sgx_linux_x64_sdk_2.3.100.46354.bin \
   && chmod +x sgx_linux_x64_sdk_2.3.100.46354.bin  \
   && echo \"yes\" | ./sgx_linux_x64_sdk_2.3.100.46354.bin \
   && chmod +x ./sgxsdk/environment"
