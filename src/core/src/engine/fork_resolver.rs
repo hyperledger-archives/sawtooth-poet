@@ -32,7 +32,6 @@ pub fn resolve_fork(service: &mut Poet2Service, state_store: &mut ConsensusState
     if block_.is_ok(){
 
         let block = block_.unwrap();
-        service.send_block_received(&block);
 
         let prev_block_ = service.get_block(&block.previous_id);
 

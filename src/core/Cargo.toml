@@ -4,12 +4,12 @@ version = "0.1.0"
 authors = ["Intel Corporation"]
 
 [dependencies]
-sawtooth_sdk = { git = "https://github.com/hyperledger/sawtooth-core.git", rev="7ac644d" }
+sawtooth-sdk = { git = "https://github.com/hyperledger/sawtooth-core.git" }
 rand = "0.4.2"
 log = "0.4.5"
 log4rs = "0.8.1"
 protobuf="2.0"
-zmq = { git = "https://github.com/erickt/rust-zmq", branch = "release/v0.8" }
+sawtooth-zmq = "0.8.2-dev5"
 num = "0.1.42"
 lazy_static = "1.0.2"
 serde = "1.0"

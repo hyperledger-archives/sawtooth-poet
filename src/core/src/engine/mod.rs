@@ -178,7 +178,6 @@ impl Engine for Poet2Engine {
                                                                  wait_time.as_secs());
 
                 let new_block_id = service.finalize_block(consensus.as_bytes().to_vec());
-                service.broadcast(new_block_id.to_vec());
                 is_published_at_height = true;
             }
         }
