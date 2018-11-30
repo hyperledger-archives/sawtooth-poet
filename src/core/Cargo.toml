@@ -20,6 +20,7 @@ lmdb-zero = ">=0.4.1"
 rust-crypto = "^0.2"
 bincode = "1.0.1"
 rust_sgxffi = { path = "../sgx/rust_sgxffi"}
+validator_registry_tp = { path = "../validator-registry-tp" }
 
 [package.metadata.deb]
 maintainer = "sawtooth"

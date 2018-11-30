@@ -14,6 +14,7 @@
  * limitations under the License.
  * ------------------------------------------------------------------------------
  */
+
 #[macro_use]
 extern crate clap;
 extern crate serde;
@@ -32,6 +33,7 @@ extern crate zmq;
 extern crate crypto;
 extern crate bincode;
 extern crate sgxffi;
+extern crate validator_registry_tp;
 
 pub mod engine;
 pub mod service;
@@ -39,6 +41,7 @@ pub mod enclave_sgx;
 pub mod database;
 pub mod poet2_util;
 pub mod settings_view;
+pub mod validator_registry_view;
 
 use engine::Poet2Engine;
 use sawtooth_sdk::consensus::zmq_driver::ZmqDriver;
