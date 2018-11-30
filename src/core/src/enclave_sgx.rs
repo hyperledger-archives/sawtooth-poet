@@ -24,7 +24,6 @@ use std::env;
 use std::os::raw::c_char;
 use std::str;
 use std::vec::Vec;
-use num::ToPrimitive;
 use std::string::String;
 use poet2_util;
 use std::path::Path;
@@ -162,7 +161,7 @@ impl EnclaveConfig {
                                         ser_wait_cert: 0 as *mut c_char,
                                         ser_wait_cert_sign: 0 as *mut c_char};
 
-    	let ret = ffi::finalize_wait_cert(&mut eid, &mut wait_cert_info,
+    	ffi::finalize_wait_cert(&mut eid, &mut wait_cert_info,
                                           &in_wait_cert, &in_prev_block_id,
                                           &in_prev_wait_cert_sig,
                                           &in_block_summary, &in_wait_time)
@@ -177,7 +176,7 @@ impl EnclaveConfig {
         info!("wait certificate generated is {:?}", wait_cert);
 
         //release wait certificate
-        let status = ffi::release_wait_certificate(&mut eid, &mut wait_cert_info)
+        ffi::release_wait_certificate(&mut eid, &mut wait_cert_info)
                                 .expect("Failed to release wait certificate");
 
     	(wait_cert, wait_cert_sign)
@@ -192,7 +191,7 @@ impl EnclaveConfig {
     {
         let mut eid:r_sgx_enclave_id_t =  eid;
         let mut verify_wait_cert_status: bool = false;
-        let ret = ffi::verify_wait_certificate(&mut eid, &wait_cert.as_str(),
+        ffi::verify_wait_certificate(&mut eid, &wait_cert.as_str(),
                             &wait_cert_sign.as_str(), &poet_pub_key.as_str(),
                             &mut verify_wait_cert_status)
                             .expect("Failed to verify wait certificate");
@@ -203,7 +202,7 @@ impl EnclaveConfig {
         let mut eid:r_sgx_enclave_id_t = self.enclave_id;
         let mut epid_info:r_sgx_epid_group_t = r_sgx_epid_group_t {
                                                     epid : 0 as *mut c_char};
-        let ret = ffi::get_epid_group(&mut eid, &mut epid_info)
+        ffi::get_epid_group(&mut eid, &mut epid_info)
                                       .expect("Failed to get EPID group");
 
         let epid = ffi::create_string_from_char_ptr(epid_info.epid);
@@ -214,7 +213,7 @@ impl EnclaveConfig {
     pub fn check_if_sgx_simulator(&mut self) -> bool {
         let mut eid:r_sgx_enclave_id_t = self.enclave_id;
         let mut sgx_simulator: bool = false;
-        let ret = ffi::is_sgx_simulator(&mut eid, &mut sgx_simulator)
+        ffi::is_sgx_simulator(&mut eid, &mut sgx_simulator)
                                         .expect("Failed to check SGX simulator");
         debug!("is_sgx_simulator ? {:?}", if sgx_simulator {"Yes"} else {"No"});
         sgx_simulator
@@ -222,14 +221,14 @@ impl EnclaveConfig {
 
     pub fn set_sig_revocation_list(&mut self, sig_rev_list: &String) {
         let mut eid:r_sgx_enclave_id_t = self.enclave_id;
-        let ret = ffi::set_sig_revocation_list(&mut eid, 
+        ffi::set_sig_revocation_list(&mut eid, 
                                       &sig_rev_list.as_str())
                                 .expect("Failed to set sig revocation list");
         debug!("Signature revocation list has been updated");
     }
 
     pub fn get_signup_parameters(&mut self) ->(String, String) {
-        let mut signup_data:r_sgx_signup_info_t = self.signup_info;
+        let signup_data:r_sgx_signup_info_t = self.signup_info;
         let poet_pub_key = ffi::create_string_from_char_ptr(
                                   signup_data.poet_public_key as *mut c_char);
         let enclave_quote = ffi::create_string_from_char_ptr(

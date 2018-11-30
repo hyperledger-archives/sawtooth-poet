@@ -19,25 +19,10 @@ extern crate sawtooth_sdk;
 extern crate log;
 extern crate log4rs;
  
-use sawtooth_sdk::consensus::{engine::*, service::Service};
+use sawtooth_sdk::consensus::{engine::*};
 use service::Poet2Service;
-use std::sync::mpsc::{Receiver, RecvTimeoutError};
-use std::time;
-use std::str::FromStr;
 use std::cmp;
-use serde_json;
-use std::time::Duration;
-use std::time::Instant;
-use std::collections::HashMap;
-use enclave_sgx::*;
-use engine::consensus_state::*;
-use engine::consensus_state_store::ConsensusStateStore;
 use poet2_util;
-use database::config;
-use database::lmdb;
-use database::{DatabaseError, CliError};
-use settings_view::Poet2SettingsView;
-use engine::fork_resolver;
 
 const DEFAULT_BLOCK_CLAIM_LIMIT:i32 = 250;
 
@@ -109,9 +94,9 @@ fn verify_wait_certificate(
 fn validtor_has_claimed_block_limit( service: &mut Poet2Service ) -> bool {
 
     let mut block_claim_limit = DEFAULT_BLOCK_CLAIM_LIMIT;
-    let mut key_block_claim_count=9;
-    let mut    poet_public_key="abcd";
-    let mut    validator_info_signup_info_poet_public_key="abcd";
+    let key_block_claim_count=9;
+    let poet_public_key="abcd";
+    let validator_info_signup_info_poet_public_key="abcd";
     //  let mut key_block_claim_limit = poet_settings_view.key_block_claim_limit ;     //key
     // need to use get_settings from service
     let key_block_claim_limit = service.get_setting_from_head(
@@ -174,42 +159,6 @@ fn validator_is_claiming_too_early( block: &Block, service: &mut Poet2Service )-
     debug!("Passed c-test");
     return false;
 
-}
-
-fn create_context() -> Result<lmdb::LmdbContext, CliError> {
-    let path_config = config::get_path_config();
-    let statestore_path = &path_config.data_dir.join(config::get_filename());
-
-    lmdb::LmdbContext::new(statestore_path, 1, None)
-        .map_err(|err| CliError::EnvironmentError(format!("{}", err)))
-}
-
-fn open_statestore(ctx: &lmdb::LmdbContext) -> Result<ConsensusStateStore, CliError> {
-    let statestore_db = lmdb::LmdbDatabase::new(
-        ctx,
-        &["index_consensus_state"],
-    ).map_err(|err| CliError::EnvironmentError(format!("{}", err)))?;
-
-    Ok(ConsensusStateStore::new(statestore_db))
-}
-
-pub enum ResponseMessage {
-    Ack,
-    Published,
-    Received,
-}
-
-impl FromStr for ResponseMessage {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "ack" => Ok(ResponseMessage::Ack),
-            "published" => Ok(ResponseMessage::Published),
-            "received" => Ok(ResponseMessage::Received),
-            _ => Err("Invalid message type"),
-        }
-    }
 }
 
 //z-test

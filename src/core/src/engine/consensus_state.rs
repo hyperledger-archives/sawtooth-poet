@@ -21,8 +21,6 @@ use service::Poet2Service;
 use enclave_sgx::WaitCertificate;
 use std::collections::VecDeque;
 use std::collections::HashMap;
-#[macro_use]
-use serde_derive;
 use serde_json;
 
 /*
@@ -140,15 +138,13 @@ struct Entry{
 
 impl ConsensusState{
 
-    const MINIMUM_WAIT_TIME: f64 =  1.0; 
     pub fn consensus_state_for_block_id(&mut self, block_id: BlockId, svc: &mut Poet2Service) -> Option<ConsensusState>{
        let mut previous_wait_certificate: Option<WaitCertificate> = None;
        let mut consensus_state: Option<ConsensusState> = None;
-       let mut wait_certificate : Option<WaitCertificate> = None;
        let mut blocks: Vec<Entry> = Vec::new();
        let mut current_id = block_id;
        loop{
-         let mut block_ = svc.get_block(&current_id);
+         let block_ = svc.get_block(&current_id);
          let block: Block;
          if block_.is_ok(){
            block = block_.unwrap();
@@ -160,9 +156,9 @@ impl ConsensusState{
          if consensus_state != None{
            break
          }*/
-         let mut payload_vec = block.payload;
-         let mut payload_str  = String::from_utf8(payload_vec).expect("Found Invalid UTF-8"); 
-         let mut wait_certificate = Some(serde_json::from_str(&payload_str).unwrap());
+         let payload_vec = block.payload;
+         let payload_str  = String::from_utf8(payload_vec).expect("Found Invalid UTF-8"); 
+         let wait_certificate = Some(serde_json::from_str(&payload_str).unwrap());
          if  wait_certificate.is_some() {
            //TODO
          }
@@ -195,9 +191,9 @@ impl ConsensusState{
       while self.population_samples.len() > poet_settings_view.population_estimate_sample_size{
         self.population_samples.pop_front();
       }
-       let mut validator_state = self.get_validator_state(validator_info.clone());
-       let mut total_block_claim_count = validator_state.total_block_claim_count + 1;
-       let mut key_block_claim_count = if validator_info.poet_public_key == validator_state.poet_public_key {
+       let validator_state = self.get_validator_state(validator_info.clone());
+       let total_block_claim_count = validator_state.total_block_claim_count + 1;
+       let key_block_claim_count = if validator_info.poet_public_key == validator_state.poet_public_key {
                                                 validator_state.key_block_claim_count + 1
                                        } 
                                        else{
@@ -212,8 +208,8 @@ impl ConsensusState{
    pub fn get_validator_state(&mut self,  validator_info: ValidatorInfo) -> Box<ValidatorState>{
      let peerid_vec = Vec::from(validator_info.clone().id);
      let peerid_str = String::from_utf8(peerid_vec).expect("Found Invalid UTF-8");
-     let mut validator_state = self.validators.get(&peerid_str);
-     let mut val_state = ValidatorState{ key_block_claim_count: 0, poet_public_key: validator_info.clone().poet_public_key, total_block_claim_count: 0};
+     let validator_state = self.validators.get(&peerid_str);
+     let val_state = ValidatorState{ key_block_claim_count: 0, poet_public_key: validator_info.clone().poet_public_key, total_block_claim_count: 0};
      if validator_state.is_none(){
       return Box::new(val_state); 
      }

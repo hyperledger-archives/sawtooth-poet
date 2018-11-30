@@ -22,13 +22,7 @@ use std::time::Instant;
 use poet2_util;
 use std::collections::HashMap;
 use serde_json;
-use enclave_sgx as enclave;
 use enclave_sgx::*;
-use sgxffi::ffi::r_sgx_enclave_id_t;
-use sgxffi::ffi::r_sgx_signup_info_t;       
-use sgxffi::ffi::r_sgx_wait_certificate_t;
-
-const DEFAULT_WAIT_TIME: u64 = 0;
 
 pub struct Poet2Service {
     service: Box<Service>,
@@ -74,7 +68,7 @@ impl Poet2Service {
         match blocks {
             Err(err) => {
                 warn!("Could not get a block with id {:?}", block_id);
-                Err(Error::UnknownBlock(format!("Block not found for id {:?}", block_id)))
+                Err(Error::UnknownBlock(format!("Block not found for id {:?} {:?}", block_id, err)))
             }
             Ok(mut block_map) => {
                 //remove from the returned hashmap to get value
@@ -181,7 +175,6 @@ impl Poet2Service {
     pub fn get_wait_time(&mut self, pre_chain_head: &Block, validator_id: &Vec<u8>,
                         poet_pub_key: &String) -> u64
     {
-        let mut duration64: u64 = 0_u64;
         let mut prev_wait_certificate = String::new();
         let mut prev_wait_certificate_sig = String::new();
 
@@ -195,7 +188,7 @@ impl Poet2Service {
             prev_wait_certificate = result.0;
             prev_wait_certificate_sig = result.1;
         }
-        duration64 = EnclaveConfig::initialize_wait_certificate(
+        let duration64 = EnclaveConfig::initialize_wait_certificate(
                               self.enclave.enclave_id,
                               prev_wait_certificate,
                               prev_wait_certificate_sig,
@@ -270,7 +263,7 @@ impl Poet2Service {
     }
 
     pub fn verify_wait_certificate( &mut self, _block: &Block, previous_block: &Block, poet_pub_key: &String) -> bool {
-        let mut block = _block.clone();
+        let block = _block.clone();
         let mut wait_cert_verify_status:bool = false;
 
         
@@ -285,24 +278,23 @@ impl Poet2Service {
         debug!("sig_verify_status={:?}", sig_verify_status);
 
         let prev_id = poet2_util::blockid_to_hex_string(block.previous_id);
-        let block_id = poet2_util::blockid_to_hex_string(block.block_id);
         let signer_id =poet2_util::to_hex_string(&block.signer_id.to_vec());
         let summary = poet2_util::to_hex_string(&block.summary);
         
-        if( (deser_wait_cert.prev_block_id == prev_id) &&
+        if (deser_wait_cert.prev_block_id == prev_id) &&
             (deser_wait_cert.block_number == block.block_num) &&
             (deser_wait_cert.block_summary == summary) &&
             (deser_wait_cert.validator_id == signer_id) &&
-            sig_verify_status) {
+            sig_verify_status {
             
-            if( block.block_num > 1){
-                let mut prev_block = previous_block.clone();
-                let (prev_wait_cert, prev_wait_cert_sig) = get_wait_cert_and_signature(&prev_block);
-                if(deser_wait_cert.prev_wait_cert_sig == prev_wait_cert_sig){
+            if  block.block_num > 1 {
+                let prev_block = previous_block.clone();
+                let ( _ , prev_wait_cert_sig) = get_wait_cert_and_signature(&prev_block);
+                if deser_wait_cert.prev_wait_cert_sig == prev_wait_cert_sig {
                     wait_cert_verify_status = true;
                 }
             }
-            else if(block.block_num == 1) {
+            else if block.block_num == 1 {
                 wait_cert_verify_status = true;
             }
         }
@@ -313,7 +305,7 @@ impl Poet2Service {
 }
 
 pub fn get_wait_cert_and_signature(block: &Block) -> (String, String) {
-        let mut payload = block.payload.clone();
+        let payload = block.payload.clone();
         debug!("Extracted payload from block: {:?}", payload);
         let (wait_cert, wait_cert_sign) = poet2_util::payload_to_wc_and_sig(&payload);
 

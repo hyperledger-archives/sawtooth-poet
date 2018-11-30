@@ -16,7 +16,7 @@
  */
 
 use std::collections::HashMap;
-use sawtooth_sdk::consensus::{engine::BlockId, service::Service};
+use sawtooth_sdk::consensus::engine::BlockId;
 use service::Poet2Service;
 
 #[derive(Clone, Debug, Default)]
@@ -75,62 +75,62 @@ impl Poet2SettingsView {
         in_default_value
     }
 
-    fn block_claim_delay(&self) -> u64 {
+    pub fn block_claim_delay(&self) -> u64 {
         let default_block_claim_delay = 1_u64;
         self._get_config_value_as_u64(
               "sawtooth.consensus.poet2.block_claim_delay",
                                  default_block_claim_delay)
     }
 
-    fn initial_wait_time(&self) -> f64 {
+    pub fn initial_wait_time(&self) -> f64 {
         let default_initial_wait_time = 3000.0_f64;
         self._get_config_value_as_f64(
               "sawtooth.consensus.poet2.initial_wait_time",
                                  default_initial_wait_time)
     }
 
-    fn key_block_claim_limit(&self) -> u64 {
+    pub fn key_block_claim_limit(&self) -> u64 {
         let default_key_block_claim_limit = 250_u64;
         self._get_config_value_as_u64(
                "sawtooth.consensus.poet2.key_block_claim_limit",
                                  default_key_block_claim_limit)
     }
 
-    fn population_estimate_sample_size(&self) -> u64 {
+    pub fn population_estimate_sample_size(&self) -> u64 {
         let default_population_estimate_sample_size = 50_u64;
         self._get_config_value_as_u64(
                "sawtooth.consensus.poet2.population_estimate_sample_size",
                                  default_population_estimate_sample_size)
     }
 
-    fn registration_retry_delay(&self) -> u64 {
+    pub fn registration_retry_delay(&self) -> u64 {
         let default_registration_retry_delay = 10_u64;
         self._get_config_value_as_u64(
                "sawtooth.consensus.poet2.registration_retry_delay",
                                  default_registration_retry_delay)
     }
 
-    fn signup_commit_maximum_delay(&self) -> u64 {
+    pub fn signup_commit_maximum_delay(&self) -> u64 {
         let default_signup_commit_maximum_delay = 10_u64;
         self._get_config_value_as_u64(
                "sawtooth.consensus.poet2.signup_commit_maximum_delay",
                                  default_signup_commit_maximum_delay)
     }
 
-    fn target_wait_time(&self) -> f64 {
+    pub fn target_wait_time(&self) -> f64 {
         let default_target_wait_time = 20.0_f64;
         self._get_config_value_as_f64("sawtooth.consensus.poet2.target_wait_time",
                                  default_target_wait_time)
     }
 
-    fn z_test_maximum_win_deviation(&self) -> f64 {
+    pub fn z_test_maximum_win_deviation(&self) -> f64 {
         let default_z_test_maximum_win_deviation = 3.075_f64;
         self._get_config_value_as_f64(
                "sawtooth.consensus.poet2.z_test_maximum_win_deviation",
                                  default_z_test_maximum_win_deviation)
     }
 
-    fn z_test_minimum_win_count(&self) -> u64 {
+    pub fn z_test_minimum_win_count(&self) -> u64 {
         let default_z_test_minimum_win_count = 3_u64;
         self._get_config_value_as_u64(
                "sawtooth.consensus.poet2.z_test_minimum_win_count",

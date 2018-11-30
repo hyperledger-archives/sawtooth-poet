@@ -20,7 +20,6 @@ extern crate serde;
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
@@ -48,7 +47,7 @@ use std::process;
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::append::console::ConsoleAppender;
-use log4rs::config::{Appender, Config, Root, Logger};
+use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
 /*

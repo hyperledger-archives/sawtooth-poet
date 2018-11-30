@@ -15,12 +15,10 @@
  * ------------------------------------------------------------------------------
  */
 
-use protobuf;
 use engine::consensus_state::ConsensusState;
 use sawtooth_sdk::consensus::engine::BlockId;
-use database::lmdb;
-use database::lmdb::{LmdbContext, LmdbDatabase};
-use database::{DatabaseError, CliError};
+use database::lmdb::LmdbDatabase;
+use database::DatabaseError;
 use bincode::{serialize, deserialize};
 use poet2_util;
 
@@ -85,6 +83,8 @@ mod tests {
     use database::config;
     use std::fs;
     use std::path::Path;
+    use database::lmdb;
+    use database::CliError;
 
     /// Asserts that there are COUNT many objects in DB.
     fn assert_database_db_count(count: usize, db: &LmdbDatabase) {

@@ -21,9 +21,6 @@ pub mod consensus_state_store;
 pub mod consensus_state;
 pub mod fork_resolver;
  
-use std::cmp;
-use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::time::Duration;
 use std::time::Instant;
@@ -58,11 +55,11 @@ impl Engine for Poet2Engine {
         info!("Started PoET 2 Engine...");
 
         let validator_id = Vec::from(startup_state.local_peer_info.peer_id);
-        let mut chain_head = startup_state.chain_head;
+        let chain_head = startup_state.chain_head;
 
         let mut service = Poet2Service::new(service);
 
-        let mut lmdb_ctx = create_lmdb_context()
+        let lmdb_ctx = create_lmdb_context()
                            .expect("Failed to create context");
         let mut state_store = open_statestore(&lmdb_ctx)
                               .expect("Failed to create state store");
@@ -177,7 +174,7 @@ impl Engine for Poet2Engine {
                                                                  cur_chain_head,
                                                                  wait_time.as_secs());
 
-                let new_block_id = service.finalize_block(consensus.as_bytes().to_vec());
+                service.finalize_block(consensus.as_bytes().to_vec());
                 is_published_at_height = true;
             }
         }

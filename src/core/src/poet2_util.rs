@@ -10,7 +10,7 @@ pub fn to_hex_string(bytes: &Vec<u8>) -> String {
 }
 
 pub fn blockid_to_hex_string(blockid: BlockId) -> String {
-    let mut blockid_vec = Vec::from(blockid);
+    let blockid_vec = Vec::from(blockid);
     to_hex_string(&blockid_vec)
 }
 
