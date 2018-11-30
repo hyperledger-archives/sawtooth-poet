@@ -19,3 +19,20 @@ openssl = "0.10.15"
 protoc-rust = "2.0"
 glob = "0.2"
 cfg-if = "0.1"
+
+[lib]
+# The name of a target is the name of the library that will be generated.
+name = "validator_registry_tp"
+
+# This field points at where the crate is located, relative to the `Cargo.toml`.
+path = "src/lib.rs"
+
+# A flag for enabling unit tests for this target. This is used by `cargo test`.
+test = true
+
+[[bin]]
+# The name of binary created, note ias_proxy is a binary
+name = "validator_registry_tp"
+
+# This field point where the binary can be built (place of main)
+path = "src/main.rs"
