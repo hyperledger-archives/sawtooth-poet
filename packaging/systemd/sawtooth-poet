@@ -13,4 +13,4 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-SAWTOOTH_POET_ARGS=-v -C tcp://localhost:5050
+SAWTOOTH_POET_ARGS=-v -C tcp://localhost:5050 --config /etc/sawtooth/poet_config.toml

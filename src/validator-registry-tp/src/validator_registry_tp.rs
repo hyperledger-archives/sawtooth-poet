@@ -104,7 +104,7 @@ impl TransactionHandler for ValidatorRegistryTransactionHandler {
 
         // Extract the validator registry payload from txn request payload
         let val_reg_payload: ValidatorRegistryPayload =
-            ValidatorRegistryPayload::new(request.payload.as_slice(), txn_public_key)
+            ValidatorRegistryPayload::new(request.payload.clone(), txn_public_key)
                 .expect("Error constructing Validator Registry payload");
 
         // Create the txn public key's hash
@@ -214,8 +214,14 @@ impl ValidatorRegistryTransactionHandler {
         let signup_info: ValidatorRegistrySignupInfo =
             serde_json::from_str(&val_reg_payload.signup_info_str)
                 .expect("Error reading Validator Registry Sign-up info from string");
-        let proof_data: SignupInfoProofData = serde_json::from_str(&*signup_info.proof_data)
-            .expect("Error reading Sign-up info data from string");
+        let proof_data: SignupInfoProofData =
+            match serde_json::from_str(signup_info.proof_data.as_str()) {
+                Ok(proof_data_is_present) => proof_data_is_present,
+                Err(error) => {
+                    error!("{}", error);
+                    return Err(ValueError);
+                }
+            };
         // Verify the attestation verification report signature
         let verification_report = proof_data.verification_report;
         let signature = proof_data.signature;
@@ -426,13 +432,13 @@ fn _config_key_to_address(key: &String) -> String {
 
 fn get_validator_registry_prefix() -> String {
     let mut hasher = Sha256::new();
-    hasher.input(b"validator_registry");
+    hasher.input_str("validator_registry");
     hasher.result_str()[0..6].to_string()
 }
 
 fn _get_address(key: &String) -> String {
     let mut hasher = Sha256::new();
-    hasher.input(&key.to_string().into_bytes());
+    hasher.input_str(&key.to_string().as_str());
     get_validator_registry_prefix() + &hasher.result_str()
 }
 

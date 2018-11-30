@@ -36,7 +36,11 @@ proxy_port = '8899'
 
 ias_url = 'https://test-as.sgx.trustedservices.intel.com:443'
 
-# spid_cert_file is the full path to the PEM-encoded certificate file that was
+# spid_cert_file is the full path to the DER-encoded certificate file that was
 # submitted to Intel in order to obtain a SPID
 
 spid_cert_file = '/full/path/to/certificate.pem'
+
+# password to read the spid_cert_file
+
+password = ''

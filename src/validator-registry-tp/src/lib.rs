@@ -18,6 +18,8 @@
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+extern crate sawtooth_sdk;
 
 pub mod validator_registry_signup_info;
 pub mod validator_registry_validator_info;
+pub mod validator_registry_payload;

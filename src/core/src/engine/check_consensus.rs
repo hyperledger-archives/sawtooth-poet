@@ -23,7 +23,6 @@ use sawtooth_sdk::consensus::{engine::*};
 use service::Poet2Service;
 use std::cmp;
 use poet2_util;
-use validator_registry_view;
 
 const DEFAULT_BLOCK_CLAIM_LIMIT:i32 = 250;
 

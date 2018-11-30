@@ -19,37 +19,52 @@ use serde_json;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Default)]
 pub struct SignupInfoProofData {
-    pub verification_report : String,
-    pub signature : String,
+    pub verification_report: String,
+    pub signature: String,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ValidatorRegistrySignupInfo {
     // Encoded public key corresponding to private key used by PoET to sign
     // wait certificates
-    pub poet_public_key : String,
+    pub poet_public_key: String,
 
     // Information that can be used internally to verify the validity of
     // the signup information stored as an opaque buffer
-    pub proof_data : String,
+    pub proof_data: String,
 
     // A string corresponding to the anti-Sybil ID for the enclave that
     // generated the signup information
-    pub anti_sybil_id : String,
+    pub anti_sybil_id: String,
 
     // The nonce associated with the signup info.  Note that this must match
     // the nonce provided when the signup info was created.
-    pub nonce : String,
+    pub nonce: String,
 }
 
 impl Default for ValidatorRegistrySignupInfo {
     fn default() -> ValidatorRegistrySignupInfo {
         ValidatorRegistrySignupInfo {
-            poet_public_key : String::new(),
-            proof_data : String::new(),
-            anti_sybil_id : String::new(),
-            nonce : String::new(),
+            poet_public_key: String::new(),
+            proof_data: String::new(),
+            anti_sybil_id: String::new(),
+            nonce: String::new(),
         }
     }
 }
 
+impl ValidatorRegistrySignupInfo {
+    pub fn new(
+        poet_public_key: String,
+        proof_data: String,
+        anti_sybil_id: String,
+        nonce: String,
+    ) -> Self {
+        ValidatorRegistrySignupInfo {
+            poet_public_key,
+            proof_data,
+            anti_sybil_id,
+            nonce,
+        }
+    }
+}

@@ -24,9 +24,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate serde_json;
-#[cfg(test)]
 extern crate tokio;
-extern crate tokio_core;
 
 // modules defined in this crate
 pub mod ias_client;

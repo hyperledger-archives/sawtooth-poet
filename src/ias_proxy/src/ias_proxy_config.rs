@@ -22,6 +22,7 @@ pub struct IasProxyConfig {
     proxy_port: String,
     ias_url: String,
     spid_cert_file: String,
+    password: String,
 }
 
 impl IasProxyConfig {
@@ -35,12 +36,14 @@ impl IasProxyConfig {
         proxy_port: String,
         ias_url: String,
         spid_cert_file: String,
+        password: String,
     ) -> Self {
         IasProxyConfig {
             proxy_ip,
             proxy_port,
             ias_url,
             spid_cert_file,
+            password,
         }
     }
 
@@ -59,5 +62,9 @@ impl IasProxyConfig {
 
     pub fn get_spid_cert_file(&self) -> String {
         return self.spid_cert_file.clone();
+    }
+
+    pub fn get_password(&self) -> String {
+        return self.password.clone();
     }
 }

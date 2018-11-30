@@ -1,0 +1,55 @@
+#
+# Copyright 2017 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+
+#
+# Sawtooth -- PoET SGX Enclave Configuration
+#
+
+# spid is a 32-digit hex string tied to the enclave implementation
+
+spid = 'FABDEED000000000FABDEED000000000'
+
+# ias_url is the URL of the Intel Attestation Service (IAS) server.  The
+# example server is for debug enclaves only
+
+ias_url = 'https://test-as.sgx.trustedservices.intel.com:443'
+
+# spid_cert_file is the full path to the DER-encoded PKCS12 certificate file
+# that was submitted to Intel in order to obtain a SPID.
+
+spid_cert_file = '/project/sawtooth-poet/client.pfx'
+
+# password to read the DER-encoded certificate file
+
+password = ''
+
+# rest_api is endpoint where REST API of validator is available, this is
+# used to send registration request to the validator registry transaction
+# processor
+
+rest_api = 'http://rest-api-1:8008'
+
+# ias_report_key_file is PEM encoded public key file which can be used to verify
+# attestation verification report. If empty default file will be used.
+
+ias_report_key_file = ''
+
+# poet_client_private_key_file is private key used to create PoET registration
+# request payload for validator registry transaction processor.
+# If the field is empty, validator's private key file will be used from
+# /etc/sawtooth/keys/validator.priv for signing the keys.
+
+poet_client_private_key_file = '/poet_keys/validator.priv'

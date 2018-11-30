@@ -17,7 +17,7 @@
 
 use crypto::sha2::Sha512;
 use crypto::digest::Digest;
-use validator_registry_proto::*;
+use validator_registry_tp::validator_registry_validator_info::ValidatorRegistryValidatorInfo;
 
 fn _vr_namespace_prefix() -> String {
         let mut sha = Sha512::new();
@@ -31,8 +31,8 @@ fn _to_address(addressable_key: &String) -> String {
     _vr_namespace_prefix() + &sha.result_str()[..64].to_string()
 }
 
-fn _as_validatorInfo(validatorInfoStr: String) -> ValidatorInfo {
-    let validator_info : ValidatorInfo = serde_json::from_str(&validatorInfoStr).unwrap();
+fn _as_validatorInfo(validatorInfoStr: String) -> ValidatorRegistryValidatorInfo {
+    let validator_info : ValidatorRegistryValidatorInfo = serde_json::from_str(&validatorInfoStr).unwrap();
     return validator_info;
 }
 
@@ -48,9 +48,9 @@ impl ValidatorRegistryView {
         }
     }
 
-    pub fn get_validators(&self) -> HashMap<String, ValidatorInfo> {
-        let validator_map_addr = _to_address('validator_map');
-        let mut result_map : HashMap<String, ValidatorInfo> = HashMap::new();
+    pub fn get_validators(&self) -> HashMap<String, ValidatorRegistryValidatorInfo> {
+        let validator_map_addr = _to_address(&"validator_map".to_string());
+        let mut result_map : HashMap<String, ValidatorRegistryValidatorInfo> = HashMap::new();
         for (key, val) in self.state.iter() {
             if key.as_str().starts_with(_vr_namespace_prefix.as_str()) {
                 if key != validator_map_addr {
@@ -62,7 +62,7 @@ impl ValidatorRegistryView {
         return result_map;
     }
 
-    pub fn get_validator_info(&self, validator_id: &String) -> ValidatorInfo {
+    pub fn get_validator_info(&self, validator_id: &String) -> ValidatorRegistryValidatorInfo {
         let validator_id_addr = _to_address(validator_id);
         let state_data = self.state.get(validator_id_addr).unwrap();
         return _as_validatorInfo(state_data);

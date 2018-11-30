@@ -41,25 +41,41 @@ pub struct ValidatorRegistryPayload {
 }
 
 impl ValidatorRegistryPayload {
-    pub fn new(payload_data: &[u8], public_key: &str) -> Result<ValidatorRegistryPayload, ApplyError> {
-        let payload : ValidatorRegistryPayload;
+    pub fn create(
+        verb: String,
+        name: String,
+        id: String,
+        signup_info_str: String,
+    ) -> Self {
+        ValidatorRegistryPayload {
+            verb,
+            name,
+            id,
+            signup_info_str,
+        }
+    }
+
+    pub fn new(payload_data: Vec<u8>, public_key: &str) -> Result<ValidatorRegistryPayload,
+        ApplyError> {
+        let mut payload : ValidatorRegistryPayload;
         let payload_string = match from_utf8(&payload_data) {
             Ok(s) => s,
-            Err(_) => {
-                return Err(ApplyError::InvalidTransaction(String::from(
-                    "Invalid payload serialization",
+            Err(error) => {
+                return Err(ApplyError::InvalidTransaction(format!(
+                    "Invalid payload serialization {}", error
                 )))
             }
         };
 
-        let deserialized_payload = serde_json::from_str(&payload_string);
-        if deserialized_payload.is_ok() {
-            payload = deserialized_payload.unwrap();
-        } else {
-            return Err(ApplyError::InvalidTransaction(String::from(
-                    "Invalid validator payload string",
-                )));
-        }
+        payload = match serde_json::from_str(payload_string) {
+            Ok(s) => s,
+            Err(error) => {
+                println!("{} is the payload_string", payload_string);
+                return Err(ApplyError::InvalidTransaction(format!(
+                    "Invalid validator payload string {}", error
+                )))
+            }
+        };
 
         if payload.name.len() <= 0 || payload.name.len() > VALIDATOR_NAME_LEN {
             return Err(ApplyError::InvalidTransaction(String::from(

@@ -16,31 +16,39 @@
  */
 
 extern crate sawtooth_sdk;
-pub mod check_consensus;
-pub mod consensus_state_store;
-pub mod consensus_state;
-pub mod fork_resolver;
- 
+
+use database::CliError;
+use database::config;
+use database::lmdb;
+use poet2_util;
+use poet_config::PoetConfig;
+use registration::do_register;
+use sawtooth_sdk::consensus::{engine::*, service::Service};
+use self::check_consensus as czk;
+use self::consensus_state_store::ConsensusStateStore;
+use service::Poet2Service;
+use settings_view::Poet2SettingsView;
+use std::str;
 use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::time::Duration;
 use std::time::Instant;
 
-use self::check_consensus as czk;
-use self::consensus_state_store::ConsensusStateStore;
-use database::config;
-use database::lmdb;
-use database::CliError;
-use poet2_util;
-use sawtooth_sdk::consensus::{engine::*, service::Service};
-use service::Poet2Service;
-use settings_view::Poet2SettingsView;
+pub mod check_consensus;
+pub mod consensus_state_store;
+pub mod consensus_state;
+pub mod fork_resolver;
+
+const MAXIMUM_NONCE_LENGTH: usize = 32;
 
 pub struct Poet2Engine {
+    config: PoetConfig,
 }
 
 impl Poet2Engine {
-    pub fn new() -> Self {
-        Poet2Engine {}
+    pub fn new(config: PoetConfig) -> Self {
+        Poet2Engine {
+            config
+        }
     }
 }
 
@@ -51,7 +59,6 @@ impl Engine for Poet2Engine {
         service: Box<Service>,
         startup_state: StartupState,
     ) -> Result<(), Error> {
-
         info!("Started PoET 2 Engine...");
 
         let validator_id = Vec::from(startup_state.local_peer_info.peer_id);
@@ -60,25 +67,39 @@ impl Engine for Poet2Engine {
         let mut service = Poet2Service::new(service);
 
         let lmdb_ctx = create_lmdb_context()
-                           .expect("Failed to create context");
+            .expect("Failed to create context");
         let mut state_store = open_statestore(&lmdb_ctx)
-                              .expect("Failed to create state store");
+            .expect("Failed to create state store");
 
         let mut is_published_at_height = false;
 
         // The time keeper variable which martks the start of timer
         let mut start = Instant::now();
 
-        service.enclave.initialize_enclave();
-        service.enclave.create_signup_info(&validator_id);
+        service.enclave.initialize_enclave(&self.config);
+        service.enclave.initialize_remote_attestation(&self.config);
+
+        // Need nonce to create a registration request and signup info
+        let block_id = service.get_chain_head().block_id;
+        let nonce = &poet2_util::blockid_to_hex_string(block_id)[MAXIMUM_NONCE_LENGTH..];
+        println!("Nonce is {}", nonce);
+
+        let signup_info = service.enclave.create_signup_info(
+            &validator_id,
+            nonce.to_string(),
+            &self.config
+        );
+
+        // Send signup information to validator registry TP
+        do_register(&self.config, nonce, &signup_info);
 
         let (poet_pub_key, enclave_quote) = service.enclave.get_signup_parameters();
 
         debug!("Signup info parameters: poet_pub_key = {}, enclave_quote = {}",
-                                                poet_pub_key, enclave_quote);
+               poet_pub_key, enclave_quote);
 
         let mut wait_time = Duration::from_secs(service.get_wait_time(
-                                &chain_head, &validator_id, &poet_pub_key));
+            &chain_head, &validator_id, &poet_pub_key));
         let mut claim_wait_time = 0;
 
         let mut poet2_settings_view = Poet2SettingsView::new();
@@ -99,38 +120,38 @@ impl Engine for Poet2Engine {
                     match update {
                         // When a block comes into being internal/external
                         Update::BlockNew(block) => {
-                            info!("BlockNew :: Checking consensus data for block_id : {}", 
-                                poet2_util::to_hex_string(&block.block_id));
+                            info!("BlockNew :: Checking consensus data for block_id : {}",
+                                  poet2_util::to_hex_string(&block.block_id));
 
                             if czk::check_consensus(&block, &mut service, &validator_id, &poet_pub_key) {
-                                debug!("Passed consensus check for block_id : {}", 
-                                    poet2_util::to_hex_string(&block.block_id));
+                                debug!("Passed consensus check for block_id : {}",
+                                       poet2_util::to_hex_string(&block.block_id));
                                 service.check_block(block.block_id);
                             } else {
-                                debug!("Failed consensus check for block_id : {}", 
-                                    poet2_util::to_hex_string(&block.block_id));
+                                debug!("Failed consensus check for block_id : {}",
+                                       poet2_util::to_hex_string(&block.block_id));
                                 service.fail_block(block.block_id);
                             }
-                        },
+                        }
 
                         // When a block has passed validator checks
                         Update::BlockValid(block_id) => {
                             info!("BlockValid :: Checking and resolving fork for block_id : {}",
-                                poet2_util::to_hex_string(&block_id));
+                                  poet2_util::to_hex_string(&block_id));
                             let new_block_won = fork_resolver::resolve_fork(
-                                                    &mut service,
-                                                    &mut state_store,
-                                                    block_id, claim_wait_time,);
+                                &mut service,
+                                &mut state_store,
+                                block_id, claim_wait_time, );
                             if new_block_won {
                                 is_published_at_height = true;
                             }
-                        },
+                        }
 
                         // The chain head was updated, so abandon the
                         // block in progress and start a new one.
                         Update::BlockCommit(new_chain_head_blockid) => {
                             info!("BlockCommit :: Chain head updated to {}, abandoning block in progress",
-                                poet2_util::to_hex_string(&new_chain_head_blockid));
+                                  poet2_util::to_hex_string(&new_chain_head_blockid));
 
                             service.cancel_block();
 
@@ -139,18 +160,18 @@ impl Engine for Poet2Engine {
                             start = Instant::now();
                             let chain_head_block = service.get_chain_head();
                             wait_time = Duration::from_secs(service.get_wait_time(
-                                                    &chain_head_block, 
-                                                    &validator_id, &poet_pub_key));
+                                &chain_head_block,
+                                &validator_id, &poet_pub_key));
 
                             claim_wait_time = wait_time.as_secs();
                             service.initialize_block(Some(new_chain_head_blockid));
-                        },
+                        }
 
                         // Block is invalid 
                         Update::BlockInvalid(block_id) => {
                             info!("BlockInvalid :: Invalid block received with block id : {:?}",
-                                block_id);
-                        },
+                                  block_id);
+                        }
                         _ => {}
                     }
                 }
@@ -166,8 +187,8 @@ impl Engine for Poet2Engine {
             if !is_published_at_height && Instant::now().duration_since(start) > wait_time {
                 let cur_chain_head = service.get_chain_head();
                 info!("Timer expired -- publishing block");
-                debug!("Wait time was : {:?} for chain head: {}", wait_time, 
-                    poet2_util::to_hex_string(&cur_chain_head.block_id));
+                debug!("Wait time was : {:?} for chain head: {}", wait_time,
+                       poet2_util::to_hex_string(&cur_chain_head.block_id));
 
                 let summary = service.summarize_block();
                 let consensus: String = service.create_consensus(summary,

@@ -17,7 +17,9 @@ version: '3.6'
 
 volumes:
   cargo-registry:
+  cargo-registry-tp:
   keys:
+  poet-share:
 
 services:
 
@@ -36,6 +38,7 @@ services:
       - 5050
     volumes:
       - keys:/shared_keys
+      - poet-share:/poet_keys
     # start the validator with an empty genesis batch
     working_dir: /root
     command: "bash -c \"\
@@ -52,6 +55,7 @@ services:
         sawadm genesis \
           config-genesis.batch config.batch && \
         mv /etc/sawtooth/keys/validator-* /shared_keys && \
+        cp /etc/sawtooth/keys/validator.priv /poet_keys && \
         echo $$(cat /etc/sawtooth/keys/validator.pub); \
         sawtooth-validator -v \
             --endpoint tcp://validator-1:8800 \
@@ -73,12 +77,18 @@ services:
     volumes:
       - ./:/project/sawtooth-poet/
       - cargo-registry:/root/.cargo/registry
+      - poet-share:/poet_keys
     working_dir: '/project/sawtooth-poet/src/core'
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=${no_proxy},validator-1,rest-api-1'
     depends_on:
       - validator-1
+      - validator-registry-tp-1
     entrypoint: "bash -c \"\
         source /project/sawtooth-poet/build_sgx_binary.sh \
-        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C tcp://validator-1:5050 -v \""
+        && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C tcp://validator-1:5050 --config /project/sawtooth-poet/src/core/src/resources/poet_config.toml -v \""
     stop_signal: SIGKILL
 
   rest-api-1:
@@ -110,3 +120,29 @@ services:
         sawtooth keygen --force && \
         tail -f /dev/null \
         \""
+
+  validator-registry-tp-1:
+    image: sawtooth-poet-validator-registry-tp:latest
+    build:
+      context: ./
+      dockerfile: ./validator-registry-tp.dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    volumes:
+      - ./src/validator-registry-tp:/project/validator-registry-tp/
+      - cargo-registry-tp:/root/.cargo/registry
+    working_dir: '/project/validator-registry-tp'
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=${no_proxy},validator-1'
+    depends_on:
+      - validator-1
+    entrypoint: "bash -c \"\
+        RUST_BACKTRACE=1 cargo run --bin validator_registry_tp -- -vv -C \
+        tcp://validator-1:4004 && \
+         tail -f /dev/null \
+        \""
+    stop_signal: SIGKILL

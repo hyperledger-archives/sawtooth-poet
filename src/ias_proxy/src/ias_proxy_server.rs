@@ -43,7 +43,7 @@ use std::{borrow::Borrow,
           net::SocketAddr,
           str::FromStr,
           sync::Mutex};
-use utils::read_file_as_string;
+use utils::read_binary_file;
 
 /// type definition for response sent from web server
 type ResponseBox = Box<Future<Item=Response<Body>, Error=Error> + Send>;
@@ -97,7 +97,8 @@ impl IasProxyServer {
             ias_client: Box::new(
                 IasClient::new(
                     config.get_ias_url(),
-                    Vec::from(read_file_as_string(config.get_spid_cert_file().as_str())),
+                    read_binary_file(config.get_spid_cert_file().as_str()),
+                    config.get_password(),
                     None,
                 )
             ),
@@ -443,7 +444,8 @@ mod tests {
             "127.0.0.1".to_string(),
             "8000".to_string(),
             "https://dummy-ias-url".to_string(),
-            "src/tests/dummy_cert.pem".to_string(),
+            "src/tests/dummy_cert.pfx".to_string(),
+            "".to_string(),
         );
         // This would also test new function of IasProxyServer
         let ias_server = get_proxy_server(ias_proxy_config);

@@ -15,9 +15,9 @@
 ------------------------------------------------------------------------------
 */
 
+extern crate hyper_proxy;
 extern crate hyper_tls;
 extern crate native_tls;
-extern crate tokio_core;
 
 use futures::{future,
               future::Future,
@@ -28,13 +28,18 @@ use hyper::{Body,
                      ResponseFuture},
             Error,
             header::HeaderMap,
-            StatusCode};
+            StatusCode,
+            Uri};
+use self::hyper_proxy::{Intercept,
+                        Proxy,
+                        ProxyConnector};
 use self::hyper_tls::HttpsConnector;
-use self::native_tls::{Certificate,
+use self::native_tls::{Identity,
                        TlsConnector};
-use self::tokio_core::reactor::Core;
 use std::{error,
-          fmt};
+          fmt,
+          env};
+use tokio::runtime::current_thread::Runtime;
 
 /// Custom error for client utils
 #[derive(Debug, Clone)]
@@ -67,30 +72,41 @@ pub struct ClientResponse {
 /// Accepts certificate to be trusted as byte array. Returns a ```hyper::Client``` object that
 /// can be used to connect to a URI having prefix either http or https.
 pub fn get_client(
-    pem_cert: &[u8]
-) -> Result<Client<HttpsConnector<HttpConnector>, Body>, ClientError>
-{
-    let cert = match Certificate::from_pem(pem_cert) {
-        Ok(cert_contents) => cert_contents,
-        Err(error) => {
-            error!("Error creating certificate object from input bytes: {}", error);
-            return Err(ClientError);
-        }
-    };
-    // trust the supplied root certificate
-    let tls_connector = match TlsConnector::builder().add_root_certificate(cert).build() {
+    der_cert: &[u8],
+    password: &str,
+) -> Result<Client<ProxyConnector<HttpsConnector<HttpConnector>>, Body>, ClientError> {
+    let identity = Identity::from_pkcs12(der_cert, password)
+        .expect("Error reading identity from cert");
+    // client cert information
+    let tls_connector = match TlsConnector::builder().identity(identity).build() {
         Ok(tls_connector_built) => tls_connector_built,
         Err(error) => {
             error!("Unable to build TLS connector; More info: {}", error);
             return Err(ClientError);
         }
     };
+
     let mut http = HttpConnector::new(1);
     // do not enforce http only URI, we are using TlsConnector to build HttpsConnector for https URI
     http.enforce_http(false);
-    let https = HttpsConnector::from((http, tls_connector));
-    // build a client to allow both http and https URI formats
-    Ok(Client::builder().build::<_, Body>(https))
+    let https = HttpsConnector::from((http, tls_connector.clone()));
+    let mut proxy_connector = ProxyConnector::new(https.clone())
+        .expect("Error constructing client");
+    // Read proxy environment variable
+    let http_proxy = env::var("http_proxy");
+    if http_proxy.is_ok() {
+        let read_proxy = http_proxy.unwrap()
+            .parse::<Uri>().expect("Error reading proxy environment");
+        let proxy = Proxy::new(Intercept::All, read_proxy);
+        // build a client to allow both http and https URI formats
+        proxy_connector = match ProxyConnector::from_proxy(https, proxy) {
+            Ok(success) => success,
+            Err(error) => panic!("{}", error),
+        };
+        debug!("Using proxy");
+    }
+    proxy_connector.set_tls(Option::from(tls_connector));
+    Ok(Client::builder().build::<_, Body>(proxy_connector))
 }
 
 /// Function to read ```hyper::client::ResponseFuture``` (return values of .request(), .get(), .post()
@@ -109,7 +125,7 @@ pub fn read_response_future(
             match response_obj {
                 Ok(response) => {
                     debug!("Received response result code: {}", response.status());
-                    if response.status() != StatusCode::OK {
+                    if response.status() >= StatusCode::BAD_REQUEST {
                         error!("Response status is not successful: {}", response.status());
                         return Err(ClientError);
                     }
@@ -128,10 +144,14 @@ pub fn read_response_future(
                 }
             }
         });
+
     // Create a runner instance for evaluating ResponseFuture
-    let mut runner = Core::new().expect("Error creating core instance");
-    // run() method blocks for future_response
-    runner.run(future_response)
+    let mut runner = Runtime::new().expect("Error creating runtime");
+    // blocks until future is evaluated, otherwise error out
+    match runner.block_on(future_response) {
+        Ok(successful) => Ok(successful),
+        Err(_) => Err(ClientError),
+    }
 }
 
 /// Function to read ```hyper::Body``` (body) as string.
@@ -181,6 +201,8 @@ mod tests {
                              AtomicBool,
                              Ordering::SeqCst},
               thread};
+    use std::fs::File;
+    use std::io::Read;
     use super::*;
     use tokio::runtime::Runtime;
 
@@ -262,26 +284,13 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get_client() {
         if IS_INITIALIZED.load(SeqCst) == false {
             mock_setup_server();
         }
-        let cert = "-----BEGIN CERTIFICATE-----
-MIICaTCCAdKgAwIBAgIJAItOJYg0b5+lMA0GCSqGSIb3DQEBCwUAMEwxCzAJBgNV
-BAYTAklOMQswCQYDVQQIDAJLQTELMAkGA1UEBwwCQkExDjAMBgNVBAoMBUludGVs
-MRMwEQYDVQQLDApCbG9ja2NoYWluMB4XDTE4MTAyNDEyNDEwMFoXDTE5MTAyNDEy
-NDEwMFowTDELMAkGA1UEBhMCSU4xCzAJBgNVBAgMAktBMQswCQYDVQQHDAJCQTEO
-MAwGA1UECgwFSW50ZWwxEzARBgNVBAsMCkJsb2NrY2hhaW4wgZ8wDQYJKoZIhvcN
-AQEBBQADgY0AMIGJAoGBAM/uqnOiEKD/TcshpNOr8/hD/7WAvRDcPb7IFwzoaS1t
-NaheDh2W4EGd8jLPmknYGSHUL8ust2dZXTrMXxHGZWpbnEA15dboJptXEem5XoOG
-04NYw6sr/r7Bv9pi1Y34JDu7vcwdK29XHSI58msGEeU3RlPB3fuWVrw6yV2oO1FZ
-AgMBAAGjUzBRMB0GA1UdDgQWBBTOVWh5+ajCi7Xyq/cLDLCKVqm6/DAfBgNVHSME
-GDAWgBTOVWh5+ajCi7Xyq/cLDLCKVqm6/DAPBgNVHRMBAf8EBTADAQH/MA0GCSqG
-SIb3DQEBCwUAA4GBABg38E87twLUOKKwfS+bKHnp35x4eoD3Jg/e82zusADdNg6/
-FG7njB5GTDXQhfdcjTo33+pzxr38jSxSEK0g9EJ3+nWqX1SFsKl7m38GOuhjzlxc
-fL464/eRImnAtIPsDe+bywGUc5mq/EEiJ+90jXP1LAWgUk2Ip5Hl0BeEM34U
------END CERTIFICATE-----";
-        let client = get_client(cert.as_ref())
+        let cert = read_binary_file("src/tests/resources/dummy_cert.pfx");
+        let client = get_client(cert.as_ref(), "")
             .expect("Error creating the client instance");
         let address = "http://127.0.0.1:".to_string().to_owned() + "8080";
         let future_response = client.get(address.parse::<Uri>()
@@ -292,6 +301,22 @@ fL464/eRImnAtIPsDe+bywGUc5mq/EEiJ+90jXP1LAWgUk2Ip5Hl0BeEM34U
         let what_is_read_from_body = read_body_as_string(body)
             .expect("Error reading body as string");
         assert_eq!(what_is_read_from_body, RANDOM_STRING.clone());
+    }
+
+    #[test]
+    fn test_connect_to_google() {
+        let cert = read_binary_file("src/tests/resources/dummy_cert.pfx");
+        let client = get_client(cert.as_ref(), "")
+            .expect("Error creating the client instance");
+        let address = "https://www.google.com".to_string();
+        let future_response = client.get(address.parse::<Uri>()
+            .expect("Error converting string to Uri"));
+        let what_is_read_from_response = read_response_future(future_response)
+            .expect("Error reading body as string");
+        let body = what_is_read_from_response.body;
+        let what_is_read_from_body = read_body_as_string(body)
+            .expect("Error reading body as string");
+        assert!(what_is_read_from_body.len() != 0)
     }
 
     #[test]
@@ -356,5 +381,14 @@ fL464/eRImnAtIPsDe+bywGUc5mq/EEiJ+90jXP1LAWgUk2Ip5Hl0BeEM34U
             let mut handler = Runtime::new().expect("Error creating runner instance");
             handler.block_on(server).expect("Error blocking on the service")
         });
+    }
+
+    fn read_binary_file(
+        filename: &str
+    ) -> Vec<u8> {
+        let mut file = File::open(filename).unwrap();
+        let mut buffer = vec![];
+        file.read_to_end(&mut buffer).expect("Read failed!");
+        buffer
     }
 }

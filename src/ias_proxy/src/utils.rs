@@ -37,6 +37,18 @@ pub fn read_file_as_string(
     return file_contents;
 }
 
+/// Reads binary file and returns vector of u8
+///
+/// Note: This method will panic if file is not found or error occurs when reading file as binary.
+pub fn read_binary_file(
+    filename: &str
+) -> Vec<u8> {
+    let mut file = File::open(filename).expect("File not found");
+    let mut buffer = vec![];
+    file.read_to_end(&mut buffer).expect("Read failed!");
+    buffer
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
