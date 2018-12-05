@@ -103,7 +103,7 @@ pub fn verify_message_signature(
 ) -> bool {
     let mut verifier = Verifier::new(MessageDigest::sha256(), pub_key).unwrap();
     verifier.update(message).expect("Error adding message");
-    verifier.verify(signature).expect("Erro verifying message signature")
+    verifier.verify(signature).expect("Error verifying message signature")
 }
 
 #[cfg(test)]

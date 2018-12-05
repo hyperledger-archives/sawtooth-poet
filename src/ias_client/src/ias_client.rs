@@ -151,7 +151,7 @@ impl IasClient {
         &self,
         quote: &[u8],
         manifest: Option<&str>,
-        nonce: Option<u64>,
+        nonce: Option<&str>,
     ) -> Result<ClientResponse, ClientError> {
 
         // REST API to connect to for getting AVR
@@ -179,9 +179,8 @@ impl IasClient {
         // Optional nonce, add to request param if present
         if nonce.is_some() {
             request_aep.insert(String::from(NONCE),
-                               format!("{}", nonce.unwrap()).to_owned());
+                               nonce.unwrap().to_string());
         }
-
         // Construct hyper's request to be sent
         let mut req = Request::new(
             Body::from(

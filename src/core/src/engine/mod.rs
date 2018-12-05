@@ -81,7 +81,7 @@ impl Engine for Poet2Engine {
 
         // Need nonce to create a registration request and signup info
         let block_id = service.get_chain_head().block_id;
-        let nonce = &poet2_util::blockid_to_hex_string(block_id)[MAXIMUM_NONCE_LENGTH..];
+        let nonce = &poet2_util::blockid_to_hex_string(block_id)[..MAXIMUM_NONCE_LENGTH];
         println!("Nonce is {}", nonce);
 
         let signup_info = service.enclave.create_signup_info(

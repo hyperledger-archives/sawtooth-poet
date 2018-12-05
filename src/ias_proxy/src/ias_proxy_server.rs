@@ -63,7 +63,7 @@ struct IasAVRRequestBody {
     isv_enclave_quote: String,
     #[serde(rename = "pseManifest")]
     pse_manifest: String,
-    nonce: u64,
+    nonce: String,
 }
 
 /// ClientResponse decoded information stored in cache
@@ -318,7 +318,7 @@ fn handle_post_request(
                 ias_client_obj.post_verify_attestation(
                     quote.as_bytes(),
                     Option::from(json_body.pse_manifest.as_str()),
-                    Option::from(json_body.nonce),
+                    Option::from(json_body.nonce.as_str()),
                 );
             let ias_response_result = ias_response_from_client_response(result);
             if ias_response_result.is_ok() {

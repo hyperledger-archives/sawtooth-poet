@@ -42,6 +42,7 @@ ias_client = { path = "../ias_client" }
 tokio-core = "0.1.17"
 toml = "0.4.8"
 openssl = "0.10.15"
+base64 = "0.10.0"
 
 [package.metadata.deb]
 maintainer = "sawtooth"
