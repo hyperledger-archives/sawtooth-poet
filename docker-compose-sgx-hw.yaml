@@ -144,6 +144,7 @@ services:
       - 'http_proxy=${http_proxy}'
       - 'https_proxy=${https_proxy}'
       - 'no_proxy=${no_proxy},validator-1'
+      - 'SGX_HW_MODE=TRUE'
     depends_on:
       - validator-1
     entrypoint: "bash -c \"\

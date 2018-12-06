@@ -25,10 +25,8 @@ use hyper::{Body,
 use ias_client::client_utils::{read_body_as_string,
                                read_response_future};
 use poet2_util::{read_file_as_string,
-                 to_hex_string,
                  sha256_from_str,
-                 sha512_from_str,
-                 blockid_to_hex_string};
+                 sha512_from_str};
 use poet_config::PoetConfig;
 use protobuf::{Message,
                RepeatedField};
@@ -47,7 +45,6 @@ use std::str;
 use validator_registry_tp::{validator_registry_signup_info::ValidatorRegistrySignupInfo,
                             validator_registry_payload::ValidatorRegistryPayload};
 
-const MAXIMUM_NONCE_SIZE: usize = 32;
 const VALIDATOR_REGISTRY: &str = "validator_registry";
 const CONTEXT_ALGORITHM_NAME: &str = "secp256k1";
 const VALIDATOR_REGISTRY_VERSION: &str = "2.0";

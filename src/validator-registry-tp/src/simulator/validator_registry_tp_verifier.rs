@@ -15,22 +15,16 @@
  * -----------------------------------------------------------------------------
  */
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Default)]
-pub struct ValidatorRegistryValidatorMapEntry {
-    pub key: String,
-    pub value: String,
-}
+use sawtooth_sdk::processor::handler::TransactionContext;
+use validator_registry_payload::ValidatorRegistryPayload;
+use validator_registry_tp::ValueError;
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct ValidatorRegistryValidatorMap {
-    pub entries: Vec<String>,
-}
+pub fn verify_signup_info(
+    _context: &mut TransactionContext,
+    _originator_public_key_hash: &String,
+    _val_reg_payload: &ValidatorRegistryPayload,
+) -> Result<(), ValueError> {
 
-impl Default for ValidatorRegistryValidatorMap {
-    fn default() -> ValidatorRegistryValidatorMap {
-        ValidatorRegistryValidatorMap {
-            entries: Vec::new(),
-        }
-    }
+    // In simulator mode, always return success.
+    Ok(())
 }
-

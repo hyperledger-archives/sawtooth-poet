@@ -28,6 +28,8 @@
 /src/validator-registry-tp/target/
 /src/validator-registry-tp/Cargo.lock
 /src/validator-registry-tp/bin/
+# Exclude validator_registry_tp_verifier.rs, custom build will take care of it
+/src/validator-registry-tp/src/validator_registry_tp_verifier.rs
 
 /src/sgx/rust_sgxffi/src/bindings.rs
 /src/sgx/rust_sgxffi/Cargo.lock

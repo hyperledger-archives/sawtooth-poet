@@ -15,8 +15,6 @@
  * -----------------------------------------------------------------------------
  */
 
-use serde_json;
-
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Default)]
 pub struct SignupInfoProofData {
     pub verification_report: String,

@@ -15,31 +15,29 @@
  * -----------------------------------------------------------------------------
  */
 
-use serde_json;
-
 use validator_registry_signup_info::ValidatorRegistrySignupInfo;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ValidatorRegistryValidatorInfo {
     // The human readable name of the endpoint
-    pub name : String,
+    pub name: String,
 
     // The validator's public key(as in txn hdr
-    pub id : String,
+    pub id: String,
 
-    pub signup_info : ValidatorRegistrySignupInfo,
+    pub signup_info: ValidatorRegistrySignupInfo,
 
     // The header sign for a ValidatorRegistryPayload txn
-    pub txn_id : String
+    pub txn_id: String,
 }
 
 impl Default for ValidatorRegistryValidatorInfo {
     fn default() -> ValidatorRegistryValidatorInfo {
         ValidatorRegistryValidatorInfo {
-            name : String::new(),
-            id : String::new(),
-            signup_info : ValidatorRegistrySignupInfo::default(),
-            txn_id : String::new(),
+            name: String::new(),
+            id: String::new(),
+            signup_info: ValidatorRegistrySignupInfo::default(),
+            txn_id: String::new(),
         }
     }
 }

@@ -17,33 +17,34 @@
 
 #[macro_use]
 extern crate clap;
-extern crate serde;
-extern crate serde_json;
-#[macro_use]
-extern crate serde_derive;
+extern crate crypto;
 #[macro_use]
 extern crate log;
 extern crate log4rs;
-extern crate sawtooth_sdk;
-extern crate crypto;
 extern crate protobuf;
+extern crate sawtooth_sdk;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
+
+use log4rs::append::console::ConsoleAppender;
+use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::pattern::PatternEncoder;
+use log::LogLevelFilter;
+use sawtooth_sdk::processor::TransactionProcessor;
+use std::process;
+use validator_registry_tp::ValidatorRegistryTransactionHandler;
 
 pub mod validator_registry_tp;
 pub mod validator_registry_signup_info;
 pub mod validator_registry_payload;
 pub mod validator_registry_validator_info;
 pub mod validator_registry_validator_map;
-
-use sawtooth_sdk::processor::TransactionProcessor;
-use validator_registry_tp::ValidatorRegistryTransactionHandler;
-use std::process;
-use log::LogLevelFilter;
-use log4rs::append::console::ConsoleAppender;
-use log4rs::config::{Appender, Config, Root};
-use log4rs::encode::pattern::PatternEncoder;
+mod validator_registry_tp_verifier;
 
 fn main() {
-	 let matches = clap_app!(validator_registry_tp =>
+    let matches = clap_app!(validator_registry_tp =>
         (version: crate_version!())
         (about: "Validator Registry Transaction Processor")
         (@arg connect: -C --connect +takes_value
@@ -82,7 +83,7 @@ fn main() {
         error!("{}", err);
         process::exit(1);
     });
-    
+
     let handler = ValidatorRegistryTransactionHandler::new();
     let mut processor = TransactionProcessor::new(endpoint);
 
