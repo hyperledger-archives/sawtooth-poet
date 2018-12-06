@@ -59,6 +59,7 @@ bool _verify_wait_certificate(
     poet_err_t ret =
         Poet_VerifyWaitCertificate(
             serializedWaitCertificate.c_str(),
+            serializedWaitCertificate.length(),
             waitCertificateSignature.c_str(),
             poetPublicKey.c_str() );
     ThrowPoetError(ret);
@@ -190,20 +191,20 @@ void WaitCertificate::deserialize(
     json_object* jsonValue = NULL;
     // Use alphabetical order for the keys
     if (json_object_object_get_ex(jsonObject, "block_summary", &jsonValue)) {
-        
         this->block_summary = json_object_get_string(jsonValue);
          
     } else {
         throw
             ValueError(
-                "Failed to extract BlockHash from serialized wait certificate");
+                "Failed to extract BlockSummary from serialized wait certificate");
     }
+
     if (json_object_object_get_ex(jsonObject, "block_number", &jsonValue)) {  
-        this->block_num = json_object_get_int(jsonValue);     
+        this->block_num = json_object_get_int64(jsonValue);
     } else {
         throw
             ValueError(
-                "Failed to extract BlockHash from serialized wait certificate");
+                "Failed to extract BlockNumber from serialized wait certificate");
     }
 
     if (json_object_object_get_ex(jsonObject, "duration_id", &jsonValue)) {
@@ -220,7 +221,7 @@ void WaitCertificate::deserialize(
     } else {
         throw
             ValueError(
-                "Failed to extract PoetBlockId from serialized wait "
+                "Failed to extract PrevWaitCertSig from serialized wait "
                 "certificate");
     }
 
@@ -229,7 +230,7 @@ void WaitCertificate::deserialize(
     } else {
         throw
             ValueError(
-                "Failed to extract PreviousCertID from serialized wait "
+                "Failed to extract PreviousBlockId from serialized wait "
                 "certificate");
     }
 
@@ -238,9 +239,19 @@ void WaitCertificate::deserialize(
     } else {
         throw
             ValueError(
-                "Failed to extract ValidatorAddress from serialized wait "
+                "Failed to extract ValidatorId from serialized wait "
                 "certificate");
     }
+
+    if (json_object_object_get_ex(jsonObject, "wait_time", &jsonValue)) {
+        this->wait_time = json_object_get_int64(jsonValue);
+    } else {
+        throw
+            ValueError(
+                "Failed to extract WaitTime from serialized wait "
+                "certificate");
+    }
+
 } // WaitCertificate::deserialize
 
 std::string WaitCertificate::identifier() const

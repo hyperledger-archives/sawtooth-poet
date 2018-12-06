@@ -28,62 +28,62 @@
 
 class MemoryError : public std::runtime_error {
 public:
-    MemoryError(const std::string& msg) : runtime_error(msg)
+    explicit MemoryError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class MemoryError
 class IOError : public std::runtime_error {
 public:
-    IOError(const std::string& msg) : runtime_error(msg)
+    explicit IOError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class IOError
 class RuntimeError : public std::runtime_error {
 public:
-    RuntimeError(const std::string& msg) : runtime_error(msg)
+    explicit RuntimeError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class RuntimeError
 class IndexError : public std::runtime_error {
 public:
-    IndexError(const std::string& msg) : runtime_error(msg)
+    explicit IndexError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class IndexError
 class TypeError : public std::runtime_error {
 public:
-    TypeError(const std::string& msg) : runtime_error(msg)
+    explicit TypeError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class TypeError
 class DivisionByZero : public std::runtime_error {
 public:
-    DivisionByZero(const std::string& msg) : runtime_error(msg)
+    explicit DivisionByZero(const std::string& msg) : runtime_error(msg)
     {}
 }; // class DivisionByZero
 class OverflowError : public std::runtime_error {
 public:
-    OverflowError(const std::string& msg) : runtime_error(msg)
+    explicit OverflowError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class OverflowError
 class SyntaxError : public std::runtime_error {
 public:
-    SyntaxError(const std::string& msg) : runtime_error(msg)
+    explicit SyntaxError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class SyntaxError
 class ValueError : public std::runtime_error {
 public:
-    ValueError(const std::string& msg) : runtime_error(msg)
+    explicit ValueError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class ValueError
 class SystemError : public std::runtime_error {
 public:
-    SystemError(const std::string& msg) : runtime_error(msg)
+    explicit SystemError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class SystemError
 class SystemBusyError : public std::runtime_error {
 public:
-    SystemBusyError(const std::string& msg) : runtime_error(msg)
+    explicit SystemBusyError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class SystemBusyError
 class UnknownError : public std::runtime_error {
 public:
-    UnknownError(const std::string& msg) : runtime_error(msg)
+    explicit UnknownError(const std::string& msg) : runtime_error(msg)
     {}
 }; // class UnknownError
 

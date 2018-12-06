@@ -278,6 +278,7 @@ namespace sawtooth {
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::CreateSignupData(
             const std::string& inOriginatorPublicKeyHash,
+            size_t inOriginatorPublicKeyHashLen,
             sgx_ec256_public_t* outPoetPublicKey,
             buffer_t& outEnclaveQuote
             )
@@ -308,6 +309,7 @@ namespace sawtooth {
                      &poetRet,
                      &targetInfo,
                      inOriginatorPublicKeyHash,
+                     inOriginatorPublicKeyHashLen,
                      outPoetPublicKey,
                      &enclaveReport] () {
                     sgx_status_t ret =
@@ -316,6 +318,7 @@ namespace sawtooth {
                             &poetRet,
                             &targetInfo,
                             inOriginatorPublicKeyHash.c_str(),
+                            inOriginatorPublicKeyHashLen,
                             outPoetPublicKey,
                             &enclaveReport
                             );
@@ -367,6 +370,7 @@ namespace sawtooth {
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::VerifySignupInfo(
             const std::string& inOriginatorPublicKeyHash,
+            size_t inOriginatorPublicKeyHashLen,
             const sgx_ec256_public_t* inPoetPublicKey,
             const sgx_quote_t* inEnclaveQuote,
             size_t inEnclaveQuoteSize
@@ -396,6 +400,7 @@ namespace sawtooth {
                      &poetRet,
                      &targetInfo,
                      inOriginatorPublicKeyHash,
+                     inOriginatorPublicKeyHashLen,
                      inPoetPublicKey,
                      &testReport] () {
                     sgx_status_t ret =
@@ -404,6 +409,7 @@ namespace sawtooth {
                             &poetRet,
                             &targetInfo,
                             inOriginatorPublicKeyHash.c_str(),
+                            inOriginatorPublicKeyHashLen,
                             inPoetPublicKey,
                             &testReport);
                     return ConvertPoetErrorStatus(ret, poetRet);
@@ -588,6 +594,7 @@ namespace sawtooth {
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::VerifyWaitCertificate(
             const std::string& inSerializedWaitCertificate,
+            size_t inSerializedWaitCertificateLen,
             const sgx_ec256_signature_t* inWaitCertificateSignature,
             const sgx_ec256_public_t* inPoetPublicKey
             )
@@ -605,6 +612,7 @@ namespace sawtooth {
                     [this,
                      &poetRet,
                      inSerializedWaitCertificate,
+                     inSerializedWaitCertificateLen,
                      inWaitCertificateSignature,
                      inPoetPublicKey] () {
                     sgx_status_t ret =
@@ -612,6 +620,7 @@ namespace sawtooth {
                             this->enclaveId,
                             &poetRet,
                             inSerializedWaitCertificate.c_str(),
+                            inSerializedWaitCertificateLen,
                             inWaitCertificateSignature,
                             inPoetPublicKey);
                     return ConvertPoetErrorStatus(ret, poetRet);

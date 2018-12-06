@@ -41,6 +41,7 @@ void test_ecall_CreateSignupData(sgx_enclave_id_t enclaveId,
                                  poet_err_t *poetErrorPtr,
                                  const sgx_target_info_t* inTargetInfo,
                                  const char* inOriginatorPublicKeyHash,
+                                 size_t inOriginatorPublicKeyHashLen,
                                  sgx_ec256_public_t* outPoetPublicKey,
                                  sgx_report_t* outEnclaveReport);
 
@@ -48,6 +49,7 @@ void test_ecall_VerifySignupInfo(sgx_enclave_id_t enclaveId,
                                  poet_err_t *poetErrorPtr,
                                  const sgx_target_info_t* inTargetInfo,
                                  const char* inOriginatorPublicKeyHash,
+                                 size_t inOriginatorPublicKeyHashLen,
                                  const sgx_ec256_public_t* inPoetPublicKey,
                                  sgx_report_t* outEnclaveReport);
 
@@ -81,6 +83,7 @@ void test_ecall_FinalizeWaitCertificate(sgx_enclave_id_t enclaveId,
 void test_ecall_VerifyWaitCertificateSignature(sgx_enclave_id_t enclaveId,
                                                poet_err_t *poetErrorPtr,
                                                const char* inSerializedWaitCertificate,
+                                               size_t inSerializedWaitCertificateLen,
                                                const sgx_ec256_signature_t* inWaitCertificateSignature,
                                                const sgx_ec256_public_t* inPoetPublicKey);
 
@@ -105,3 +108,4 @@ public:
     std::vector<char> buffer;
     size_t length;
 }; // class StringBuffer
+

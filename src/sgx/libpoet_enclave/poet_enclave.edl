@@ -34,6 +34,7 @@ enclave {
         public poet_err_t ecall_CreateSignupData(
             [in] const sgx_target_info_t* inTargetInfo,
             [in, string] const char* inOriginatorPublicKeyHash,
+            size_t inOriginatorPublicKeyHashLen,
             [out] sgx_ec256_public_t* outPoetPublicKey,
             [out] sgx_report_t* outEnclaveReport
             );
@@ -41,6 +42,7 @@ enclave {
         public poet_err_t ecall_VerifySignupInfo(
             [in] const sgx_target_info_t*   inTargetInfo,
             [in, string] const char*        inOriginatorPublicKeyHash,
+            size_t inOriginatorPublicKeyHashLen,
             [in] const sgx_ec256_public_t*  inPoetPublicKey,
             [out] sgx_report_t*             outEnclaveReport
             );
@@ -73,6 +75,7 @@ enclave {
 
         public poet_err_t ecall_VerifyWaitCertificateSignature(
             [in, string] const char* inSerializedWaitCertificate,
+            size_t inSerializedWaitCertificateLen,
             [in] const sgx_ec256_signature_t* inWaitCertificateSignature,
             [in] const sgx_ec256_public_t* inPoetPublicKey
             );

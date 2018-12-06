@@ -145,6 +145,7 @@ extern "C" {
     */
     poet_err_t Poet_CreateSignupData(
         const char* inOriginatorPublicKeyHash,
+        size_t inOriginatorPublicKeyHashLen,
         char* outPoetPublicKey,
         size_t inPoetPublicKeySize,
         char* outEnclaveQuote,
@@ -165,6 +166,7 @@ extern "C" {
     */
     poet_err_t Poet_VerifySignupInfo(
         const char* inOriginatorPublicKeyHash,
+        size_t inOriginatorPublicKeyHashLen,
         const char* inPoetPublicKey,
         const char* inEnclaveQuote
         );    
@@ -226,6 +228,7 @@ extern "C" {
     */
     poet_err_t Poet_VerifyWaitCertificate(
         const char* inSerializedWaitCertificate,
+        size_t inSerializedWaitCertificateLen,
         const char* inWaitCertificateSignature,
         const char* inPoetPublicKey
         );

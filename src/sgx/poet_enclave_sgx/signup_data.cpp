@@ -34,6 +34,7 @@ _SignupData::_SignupData(
     poet_err_t result = 
         Poet_CreateSignupData(
             originatorPublicKeyHash.c_str(),
+            originatorPublicKeyHash.length(),
             &poetPublicKey[0],
             poetPublicKey.size(),
             &enclaveQuote[0],

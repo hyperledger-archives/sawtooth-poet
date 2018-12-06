@@ -70,6 +70,7 @@ int main(int argc, char **argv) {
                                 &poetError,
                                 &targetInfo,
                                 opk_hash.c_str(),
+                                opk_hash.length(),
                                 &outPoetPublicKey,
                                 &enclaveReport
                                 );
@@ -78,6 +79,7 @@ int main(int argc, char **argv) {
                                 &poetError,
                                 &targetInfo,
                                 opk_hash.c_str(),
+                                opk_hash.length(),
                                 &outPoetPublicKey,
                                 &enclaveReport
                                 );
@@ -135,11 +137,13 @@ int main(int argc, char **argv) {
                              &outWaitCertificateSignature);
 
     const char *inSerializedWaitCertificate = outSerializedWaitCert.data();
+    size_t inSerializedWaitCertificateLen = outSerializedWaitCert.length;
     sgx_ec256_signature_t *inWaitCertificateSignature = &outWaitCertificateSignature;
     sgx_ec256_public_t *inPoetPublicKey = &outPoetPublicKey;   
     test_ecall_VerifyWaitCertificateSignature(gEnclaveId,
                                                &poetError,
                                                inSerializedWaitCertificate,
+                                               inSerializedWaitCertificateLen,
                                                inWaitCertificateSignature,
                                                inPoetPublicKey);
 
@@ -187,6 +191,7 @@ void test_ecall_CreateSignupData(sgx_enclave_id_t enclaveId,
                                  poet_err_t *poetErrorPtr,
                                  const sgx_target_info_t* inTargetInfo,
                                  const char* inOriginatorPublicKeyHash,
+                                 size_t inOriginatorPublicKeyHashLen,
                                  sgx_ec256_public_t* outPoetPublicKey,
                                  sgx_report_t* outEnclaveReport) {
     
@@ -195,6 +200,7 @@ void test_ecall_CreateSignupData(sgx_enclave_id_t enclaveId,
                                  poetErrorPtr,
                                  inTargetInfo,
                                  inOriginatorPublicKeyHash,
+                                 inOriginatorPublicKeyHashLen,
                                  outPoetPublicKey,
                                  outEnclaveReport);
 
@@ -282,12 +288,14 @@ void test_ecall_FinalizeWaitCertificate(sgx_enclave_id_t enclaveId,
 void test_ecall_VerifyWaitCertificateSignature(sgx_enclave_id_t enclaveId,
                                                poet_err_t *poetErrorPtr,
                                                const char* inSerializedWaitCertificate,
+                                               size_t inSerializedWaitCertificateLen,
                                                const sgx_ec256_signature_t* inWaitCertificateSignature,
                                                const sgx_ec256_public_t* inPoetPublicKey) {
 
     sgx_status_t ret = ecall_VerifyWaitCertificateSignature(enclaveId,
                                                      poetErrorPtr,
                                                      inSerializedWaitCertificate,
+                                                     inSerializedWaitCertificateLen,
                                                      inWaitCertificateSignature,
                                                      inPoetPublicKey);
 
@@ -303,15 +311,17 @@ void test_ecall_VerifySignupInfo(sgx_enclave_id_t enclaveId,
                                  poet_err_t *poetErrorPtr,
                                  const sgx_target_info_t* inTargetInfo,
                                  const char* inOriginatorPublicKeyHash,
+                                 size_t inOriginatorPublicKeyHashLen,
                                  const sgx_ec256_public_t* inPoetPublicKey,
                                  sgx_report_t* outEnclaveReport) {
 
     sgx_status_t ret = ecall_VerifySignupInfo(enclaveId,
-                                                     poetErrorPtr,
-                                                     inTargetInfo,
-                                                     inOriginatorPublicKeyHash,
-                                                     inPoetPublicKey,
-                                                     outEnclaveReport);
+                                              poetErrorPtr,
+                                              inTargetInfo,
+                                              inOriginatorPublicKeyHash,
+                                              inOriginatorPublicKeyHashLen,
+                                              inPoetPublicKey,
+                                              outEnclaveReport);
 
     if(ret != SGX_SUCCESS) {
         printf("Error: test_ecall_VerifySignupInfo\n");

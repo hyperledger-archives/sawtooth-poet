@@ -31,25 +31,23 @@
 #include <vector>
 #include <iterator>
 #include <cctype>
-// #include "json/json.h"
+#include <string>
 
 #include <sgx_trts.h>
 #include <sgx_tcrypto.h>
 #include <sgx_tkey_exchange.h>
 #include <sgx_utils.h> // sgx_get_key, sgx_create_report
 #include <sgx_key.h>
+#include<mbusafecrt.h>
 
 #include "poet_enclave_defs.h"
-
-#include "parson.h"
-
 #include "poet_defs.h"
 #include "error.h"
 #include "zero.h"
 #include "hex_string.h"
 #include "public_key_util.h"
+#include "json_builder.h"
 
-#include "utils_enclave.h"
 #include "auto_handle_sgx.h"
 
 namespace sp = sawtooth::poet;
@@ -58,13 +56,6 @@ namespace sp = sawtooth::poet;
 
 PoetSignUpData gPoetSignupData;
 WaitCertificateData gWaitCertData;
-
-
-#if defined(SGX_SIMULATOR)
-    static const bool IS_SGX_SIMULATOR = true;
-#else
-    static const bool IS_SGX_SIMULATOR = false;
-#endif
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 /*
@@ -83,7 +74,6 @@ static const sgx_ec256_public_t g_sp_pub_key = {
     }
 };
 
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XX Declaration of static helper functions                         XX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -100,6 +90,7 @@ static void Log(
 
 static void CreateSignupReportData(
     const char*                 pOriginatorPublicKeyHash,
+    size_t                      pOriginatorPublicKeyHashLen,
     const sgx_ec256_public_t*   pPoetPublicKey,
     sgx_report_data_t*          pReportData
     );
@@ -110,6 +101,7 @@ static void createDuration(uint8_t* duration, size_t inDurationLenBytes);
 
 static uint64_t getBlockNumFromSerializedWaitCert(const char* waitCert);
 
+static std::string serializeWaitCert( WaitCertificate waitCert);
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XX External interface                                             XX
@@ -201,12 +193,11 @@ poet_err_t ecall_CreateErsatzEnclaveReport(
     return result;
 } // ecall_CreateErsatzEnclaveReport
 
-
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 poet_err_t ecall_CreateSignupData(
     const sgx_target_info_t* inTargetInfo,
     const char* inOriginatorPublicKeyHash,
+    size_t inOriginatorPublicKeyHashLen,
     sgx_ec256_public_t* outPoetPublicKey,
     sgx_report_t* outEnclaveReport
     )
@@ -240,6 +231,7 @@ poet_err_t ecall_CreateSignupData(
         sgx_report_data_t reportData = { 0 };
         CreateSignupReportData(
             inOriginatorPublicKeyHash,
+            inOriginatorPublicKeyHashLen,
             &gPoetSignupData.publicKey,
             &reportData);
 
@@ -249,10 +241,9 @@ poet_err_t ecall_CreateSignupData(
         gPoetSignupData.initialized = true;      
 
         // Give the caller a copy of the PoET public key
-        memcpy(
-            outPoetPublicKey,
-            &gPoetSignupData.publicKey,
-            sizeof(*outPoetPublicKey));
+        memcpy_s(
+            outPoetPublicKey, sizeof(*outPoetPublicKey),
+            &gPoetSignupData.publicKey, sizeof(*outPoetPublicKey));
     } catch (sp::PoetError& e) {
         Log(
             POET_LOG_ERROR,
@@ -271,11 +262,11 @@ poet_err_t ecall_CreateSignupData(
     return result;
 } // ecall_CreateSignupData
 
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 poet_err_t ecall_VerifySignupInfo(
     const sgx_target_info_t* inTargetInfo,
     const char* inOriginatorPublicKeyHash,
+    size_t inOriginatorPublicKeyHashLen,
     const sgx_ec256_public_t* inPoetPublicKey,
     sgx_report_t* outEnclaveReport
     )
@@ -301,6 +292,7 @@ poet_err_t ecall_VerifySignupInfo(
         sgx_report_data_t expectedReportData = { 0 };
         CreateSignupReportData(
             inOriginatorPublicKeyHash,
+            inOriginatorPublicKeyHashLen,
             inPoetPublicKey,
             &expectedReportData);
 
@@ -328,7 +320,6 @@ poet_err_t ecall_VerifySignupInfo(
 
     return result;
 } // ecall_VerifySignupInfo
-
 
 poet_err_t ecall_InitializeWaitCertificate(
     const char* inPreviousWaitCertificate, 
@@ -506,45 +497,10 @@ poet_err_t ecall_FinalizeWaitCertificate(
         gWaitCertData.waitCert.wait_time = inWaitTime;
         
         // Serialize final wait certificate
-        JsonValue waitCertValue(json_value_init_object());
-        sp::ThrowIf<sp::RuntimeError>(
-            !waitCertValue.value,
-            "WaitCertification serialization failed on creation of JSON "
-            "object.");
 
-        JSON_Object* waitCertObject = json_value_get_object(waitCertValue);
-        sp::ThrowIfNull(
-            waitCertObject,
-            "WaitCertification serialization failed on retrieval of JSON "
-            "object.");
-
-        JSON_Status jret = json_object_dotset_number(waitCertObject, "block_number", gWaitCertData.waitCert.block_num);
-        sp::ThrowIf<sp::RuntimeError>(jret != JSONSuccess, "WaitCertificate serialization failed on BlockNum.");
-
-        jret = json_object_dotset_string(waitCertObject, "duration_id", gWaitCertData.waitCert.duration.c_str());
-        sp::ThrowIf<sp::RuntimeError>( jret != JSONSuccess, "WaitCertificate serialization failed on Duration.");
-
-        jret = json_object_dotset_string(waitCertObject, "prev_wait_cert_sig", gWaitCertData.waitCert.prev_wait_cert_sig.c_str());
-        sp::ThrowIf<sp::RuntimeError>( jret != JSONSuccess, "WaitCertificate serialization failed on Previous wait certificate signautre.");
-
-        jret = json_object_dotset_string(waitCertObject, "prev_block_id", gWaitCertData.waitCert.previous_block_id.c_str());
-        sp::ThrowIf<sp::RuntimeError>( jret != JSONSuccess, "WaitCertificate serialization failed on PreviousBlockId.");
-
-        jret = json_object_dotset_string(waitCertObject, "block_summary", gWaitCertData.waitCert.block_summary.c_str());
-        sp::ThrowIf<sp::RuntimeError>( jret != JSONSuccess, "WaitCertificate serialization failed on BlockSummary.");
-
-        jret = json_object_dotset_string(waitCertObject, "validator_id", gWaitCertData.waitCert.validator_id.c_str());
-        sp::ThrowIf<sp::RuntimeError>( jret != JSONSuccess, "WaitCertificate serialization failed on ValidatorId.");
-
-        jret = json_object_dotset_number(waitCertObject, "wait_time", gWaitCertData.waitCert.wait_time);
-        sp::ThrowIf<sp::RuntimeError>(jret != JSONSuccess, "WaitCertificate serialization failed on WaitTime.");
-
-        // Serialize waitCert object
-        size_t serializedSize = json_serialization_size(waitCertValue);
-        sp::ThrowIf<sp::ValueError>( outSerializedWaitCertificateLen < serializedSize, "WaitCertificate buffer is too small");
-
-        jret = json_serialize_to_buffer( waitCertValue, outSerializedWaitCertificate, outSerializedWaitCertificateLen );
-        sp::ThrowIf<sp::RuntimeError>( jret != JSONSuccess, "WaitCertificate serialization failed.");
+        std::string jSerializedCert = serializeWaitCert(gWaitCertData.waitCert);
+        strncpy_s(outSerializedWaitCertificate, outSerializedWaitCertificateLen,
+                  jSerializedCert.c_str(), strnlen(jSerializedCert.c_str(), outSerializedWaitCertificateLen));
 
         Intel::SgxEcc256StateHandle eccStateHandle;
         
@@ -554,7 +510,7 @@ poet_err_t ecall_FinalizeWaitCertificate(
         // Sign serialized wait certificate
         ret =   sgx_ecdsa_sign(
                 reinterpret_cast<const uint8_t *>(outSerializedWaitCertificate),
-                static_cast<int32_t>(strlen(outSerializedWaitCertificate)),
+                static_cast<int32_t>(strnlen(outSerializedWaitCertificate, outSerializedWaitCertificateLen)),
                 const_cast<sgx_ec256_private_t *>(&gPoetSignupData.privateKey),
                 outWaitCertificateSignature,
                 eccStateHandle);
@@ -575,10 +531,30 @@ poet_err_t ecall_FinalizeWaitCertificate(
     return result;
 } // ecall_FinalizeWaitCertificate
 
+std::string serializeWaitCert(WaitCertificate waitCert) {
+        std::string jSerWaitCert;
+        JSONBuilder jsonBuilder;
 
+        jsonBuilder.jsonStart();
+
+        jsonBuilder.jsonSetUint64("block_number", waitCert.block_num);
+        jsonBuilder.jsonSetString("duration_id", waitCert.duration);
+        jsonBuilder.jsonSetString("prev_wait_cert_sig", waitCert.prev_wait_cert_sig);
+        jsonBuilder.jsonSetString("prev_block_id", waitCert.previous_block_id);
+        jsonBuilder.jsonSetString("block_summary", waitCert.block_summary);
+        jsonBuilder.jsonSetString("validator_id", waitCert.validator_id);
+        jsonBuilder.jsonSetUint64("wait_time", waitCert.wait_time);
+
+        jsonBuilder.jsonEnd();
+
+        jSerWaitCert = jsonBuilder.getJsonString();
+
+        return  jSerWaitCert;
+} // serializeWaitCert
 
 poet_err_t ecall_VerifyWaitCertificateSignature(
     const char* inSerializedWaitCertificate,
+    size_t inSerializedWaitCertificateLen,
     const sgx_ec256_signature_t* inWaitCertificateSignature,
     const sgx_ec256_public_t* inPoetPublicKey
     )
@@ -605,7 +581,7 @@ poet_err_t ecall_VerifyWaitCertificateSignature(
         ret =
             sgx_ecdsa_verify(
                 reinterpret_cast<const uint8_t *>(inSerializedWaitCertificate),
-                static_cast<uint32_t>(strlen(inSerializedWaitCertificate)),
+                static_cast<uint32_t>(strnlen(inSerializedWaitCertificate, inSerializedWaitCertificateLen)),
                 inPoetPublicKey,
                 const_cast<sgx_ec256_signature_t *>(inWaitCertificateSignature),
                 &signatureCheckResult,
@@ -645,7 +621,7 @@ void printf(
     char buf[BUFSIZ] = {'\0'};
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(buf, BUFSIZ, fmt, ap);
+    _vsnprintf_s(buf, BUFSIZ, BUFSIZ-1, fmt, ap);
     va_end(ap);
     ocall_Print(buf);
 } // printf
@@ -660,7 +636,7 @@ void Log(
     char buf[BUFSIZ] = { '\0' };
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(buf, BUFSIZ, fmt, ap);
+    _vsnprintf_s(buf, BUFSIZ, BUFSIZ-1, fmt, ap);
     va_end(ap);
     ocall_Log(level, buf);
 } // Log
@@ -668,6 +644,7 @@ void Log(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void CreateSignupReportData(
     const char*                 pOriginatorPublicKeyHash,
+    size_t                      pOriginatorPublicKeyHashLen,
     const sgx_ec256_public_t*   pPoetPublicKey,
     sgx_report_data_t*          pReportData
     )
@@ -687,7 +664,7 @@ void CreateSignupReportData(
     std::string hashString;
     std::transform(
         pOriginatorPublicKeyHash,
-        pOriginatorPublicKeyHash + strlen(pOriginatorPublicKeyHash),
+        pOriginatorPublicKeyHash + strnlen(pOriginatorPublicKeyHash, pOriginatorPublicKeyHashLen),
         std::back_inserter(hashString),
         [](char c) {
             return std::toupper(c);
@@ -720,7 +697,6 @@ void CreateSignupReportData(
     sp::ThrowSgxError(ret, "Failed to retrieve SHA256 hash of report data");
 } // CreateSignupReportData
 
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void createDuration(uint8_t* duration, size_t inDurationLenBytes) {
     sgx_status_t ret = sgx_read_rand(duration, inDurationLenBytes);
@@ -729,15 +705,17 @@ void createDuration(uint8_t* duration, size_t inDurationLenBytes) {
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 uint64_t getBlockNumFromSerializedWaitCert(const char* waitCert) {
+    uint64_t blockNum;
+    std::string waitCertStr = std::string(waitCert);
 
-    JsonValue parsed(json_parse_string(waitCert));
-    sp::ThrowIf<sp::ValueError>(!parsed.value, "Failed to parse SerializedWaitCertificate");
-    JSON_Object* pObject = json_value_get_object(parsed);
-    sp::ThrowIfNull(
-            pObject,
-            "Got Null JSON Object");
+    size_t pos = waitCertStr.find("block_number");
+    size_t start = waitCertStr.find(":", pos);
+    size_t end = waitCertStr.find(",", start);
 
-    return json_object_dotget_number(pObject, "block_number");
+    sp::ThrowIf<sp::ValueError>( (end <= start+1),
+                    "Failed to fetch block number from wait certificate");
+    blockNum = strtoul(waitCertStr.substr(start+1, end-start-1).c_str(), NULL, 0);
+    return blockNum;
 } // deserializeWaitCert
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

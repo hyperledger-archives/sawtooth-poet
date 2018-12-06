@@ -45,7 +45,7 @@ public:
     std::string enclave_quote;
 
 protected:
-    _SignupData(
+    explicit _SignupData(
         const std::string& originatorPublicKeyHash
         );
 }; // class _SignupData
@@ -76,7 +76,7 @@ public:
     std::string anti_sybil_id;
 
 protected:
-    SignupInfo(
+    explicit SignupInfo(
         const std::string& serializedSignupInfo
         );
 
@@ -129,7 +129,7 @@ class WaitCertificate
     std::string validator_id;
     std::string block_summary;
     uint64_t block_num;
-    uint64_t waitTime;
+    uint64_t wait_time;
     /*
     Json serialization of the WaitCertificate Parameters, this serves as the
     canonical representation of the WaitCertificate. The signature field is
@@ -147,7 +147,7 @@ class WaitCertificate
     std::string signature;
 
 protected:
-    WaitCertificate(
+    explicit WaitCertificate(
         const std::string& prevWaitCertificate,
         const std::string& prevBlockId,
         const std::string& prevWaitCertificateSig,

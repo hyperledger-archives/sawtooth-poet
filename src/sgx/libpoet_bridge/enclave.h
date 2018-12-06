@@ -69,12 +69,14 @@ namespace sawtooth {
 
             void CreateSignupData(
                 const std::string& inOriginatorPublicKeyHash,
+                size_t inOriginatorPublicKeyHashLen,
                 sgx_ec256_public_t* outPoetPublicKey,
                 buffer_t& outEnclaveQuote
                 );
             
             void VerifySignupInfo(
                 const std::string& inOriginatorPublicKeyHash,
+                size_t inOriginatorPublicKeyHashLen,
                 const sgx_ec256_public_t* inPoetPublicKey,
                 const sgx_quote_t* inEnclaveQuote,
                 size_t inEnclaveQuoteSize
@@ -107,6 +109,7 @@ namespace sawtooth {
 
             void VerifyWaitCertificate(
                 const std::string& inSerializedWaitCertificate,
+                size_t inSerializedWaitCertificateLen,
                 const sgx_ec256_signature_t* inWaitCertificateSignature,
                 const sgx_ec256_public_t* inPoetPublicKey
                 );

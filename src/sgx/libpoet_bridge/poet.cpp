@@ -337,6 +337,7 @@ poet_err_t Poet_SetSignatureRevocationList(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 poet_err_t Poet_CreateSignupData(
     const char* inOriginatorPublicKeyHash,
+    size_t inOriginatorPublicKeyHashLen,
     char* outPoetPublicKey,
     size_t inPoetPublicKeySize,
     char* outEnclaveQuote,
@@ -367,6 +368,7 @@ poet_err_t Poet_CreateSignupData(
 
         g_Enclave.CreateSignupData(
             inOriginatorPublicKeyHash,
+            inOriginatorPublicKeyHashLen,
             &poetPublicKey,
             enclaveQuote);            
 
@@ -396,6 +398,7 @@ poet_err_t Poet_CreateSignupData(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 poet_err_t Poet_VerifySignupInfo(
     const char* inOriginatorPublicKeyHash,
+    size_t inOriginatorPublicKeyHashLen,
     const char* inPoetPublicKey,
     const char* inEnclaveQuote
     )
@@ -420,6 +423,7 @@ poet_err_t Poet_VerifySignupInfo(
         // Now let the enclave take over
         g_Enclave.VerifySignupInfo(
             inOriginatorPublicKeyHash,
+            inOriginatorPublicKeyHashLen,
             &poetPublicKey,
             reinterpret_cast<sgx_quote_t *>(&enclaveQuoteBuffer[0]),
             enclaveQuoteBuffer.size());
@@ -558,6 +562,7 @@ poet_err_t Poet_FinalizeWaitCertificate(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 poet_err_t Poet_VerifyWaitCertificate(
     const char* inSerializedWaitCertificate,
+    size_t inSerializedWaitCertificateLen,
     const char* inWaitCertificateSignature,
     const char* inPoetPublicKey
     )
@@ -585,6 +590,7 @@ poet_err_t Poet_VerifyWaitCertificate(
         sp::DecodePublicKey(&poetPublicKey, inPoetPublicKey);
         g_Enclave.VerifyWaitCertificate(
             inSerializedWaitCertificate,
+            inSerializedWaitCertificateLen,
             &waitCertificateSignature,
             &poetPublicKey);
     } catch (sp::PoetError& e) {
