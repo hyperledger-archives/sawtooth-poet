@@ -206,7 +206,8 @@ def validator_cmds(num,
     config_proposal = ' '.join([
         'sawset proposal create',
         '-k {}'.format(priv),
-        'sawtooth.consensus.algorithm=poet',
+        'sawtooth.consensus.algorithm.name=PoET',
+        'sawtooth.consensus.algorithm.version=0.1',
         'sawtooth.poet.report_public_key_pem="{}"'.format(public_key_pem),
         'sawtooth.poet.valid_enclave_measurements={}'.format(
             enclave_measurement),
