@@ -22,11 +22,11 @@ use hyper::{Body,
             Method,
             Request,
             Uri};
-use ias_client::client_utils::{read_body_as_string,
-                               read_response_future};
+use ias_client::client_utils::read_response_future;
 use poet2_util::{read_file_as_string,
                  sha256_from_str,
-                 sha512_from_str};
+                 sha512_from_str,
+                 write_binary_file};
 use poet_config::PoetConfig;
 use protobuf::{Message,
                RepeatedField};
@@ -41,7 +41,9 @@ use sawtooth_sdk::{messages::{batch::{Batch,
                              secp256k1::Secp256k1PrivateKey,
                              Signer}};
 use serde_json;
-use std::str;
+use std::{str,
+          env,
+          path::Path};
 use validator_registry_tp::{validator_registry_signup_info::ValidatorRegistrySignupInfo,
                             validator_registry_payload::ValidatorRegistryPayload};
 
@@ -57,21 +59,21 @@ const SETTINGS_PART_LENGTH: usize = 16;
 const CONFIGSPACE_NAMESPACE: &str = "000000";
 const PUBLIC_KEY_IDENTIFIER_LENGTH: usize = 8;
 const DEFAULT_POET_CLIENT_PRIVATE_KEY: &str = "/etc/sawtooth/keys/validator.priv";
-const BATCHES_REST_API: &str = "batches";
 const APPLICATION_OCTET_STREAM: &str = "application/octet-stream";
 const SETTING_KEY_SEPARATOR: &str = ".";
 const EMPTY_STR: &str = "";
 
-/// Function to compose a registration request and send it to validator over REST API.
+/// Function to compose a registration request and send it to validator over REST API (for non
+/// genesis node) or store in a batch file in case of genesis node.
 /// Accepts validator private key, signup information (AVR or the quote), block_id which can be
 /// used as nonce (there's registration after every K blocks, which needs to send new nonce).
 ///
 /// Returns response from validator REST API as string.
-pub fn do_register(
+pub fn do_create_registration(
     config: &PoetConfig,
     nonce: &str,
     signup_info: &ValidatorRegistrySignupInfo,
-) -> String {
+) -> BatchList {
 
     // Read private key from default path if it's not given as input in config
     let mut key_file = config.get_poet_client_private_key_file();
@@ -98,6 +100,7 @@ pub fn do_register(
     name.push_str(VALIDATOR_NAME_PREFIX);
     name.push_str(&public_key.as_hex()[..PUBLIC_KEY_IDENTIFIER_LENGTH]);
     let id = public_key.as_hex();
+    info!("ID in transaction is {}", id.clone());
     let signup_info_str = serde_json::to_string(signup_info)
         .expect("Error serializing signup info");
     let raw_payload =
@@ -158,14 +161,7 @@ pub fn do_register(
     let batch = create_batch(&signer, transaction);
 
     // Create batch list
-    let batch_list = create_batch_list(batch);
-
-    // Call the batches REST API with composed payload bytes to be sent
-    submit_batchlist_to_rest_api(
-        config.get_rest_api().as_str(),
-        BATCHES_REST_API,
-        batch_list,
-    )
+    create_batch_list(batch)
 }
 
 /// Function to create the ```BatchList``` object, which later is serialized and sent to REST API
@@ -303,7 +299,7 @@ pub fn submit_batchlist_to_rest_api(
     url: &str,
     api: &str,
     batch_list: BatchList,
-) -> String {
+) {
 
     // Create request body, which in this case is batch list
     let raw_bytes = batch_list.write_to_bytes().expect("Unable to write batch list as bytes");
@@ -334,13 +330,24 @@ pub fn submit_batchlist_to_rest_api(
         HeaderValue::from(body_length),
     );
 
-    // Get response as string and return
+    // Call read_response_future to block on reading the response
     let response_future = client.request(request);
-    let read_response = read_response_future(response_future)
-        .expect("Error reading response");
-    let response_body = read_body_as_string(read_response.body)
-        .expect("Error occurred during registration");
-    response_body
+    read_response_future(response_future).expect("Error reading registration response");
+}
+
+/// Saves the ```BatchList``` to a file
+pub fn save_batchlist_to_file(
+    genesis_batch_path: &str,
+    batch_list: BatchList,
+) {
+    let current_working_directory = env::current_dir()
+        .expect("Error reading current working directory");
+    let mut file_path = current_working_directory.as_path();
+    if genesis_batch_path.len() > 0 {
+        file_path = Path::new(genesis_batch_path);
+    }
+    let raw_bytes = batch_list.write_to_bytes().expect("Unable to write batch list as bytes");
+    write_binary_file(&raw_bytes, file_path.to_str().expect("Unexpected filename"));
 }
 
 #[cfg(test)]

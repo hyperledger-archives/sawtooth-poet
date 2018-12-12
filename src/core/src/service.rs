@@ -18,6 +18,7 @@
 use sawtooth_sdk::consensus::{engine::*,service::Service};
 use std::thread::sleep;
 use std::time;
+use std::str;
 use std::time::Instant;
 use poet2_util;
 use std::collections::HashMap;
@@ -32,13 +33,16 @@ pub struct Poet2Service {
 }
 
 impl Poet2Service {
-    pub fn new(service_: Box<Service>) -> Self {
+    pub fn new(
+        service_: Box<Service>,
+        enclave_config: EnclaveConfig,
+    ) -> Self {
         let now = Instant::now();
         Poet2Service { 
             service : service_,
             init_wall_clock : now,
             chain_clock : 0,
-            enclave : EnclaveConfig::default(),
+            enclave: enclave_config,
         }
     }
 
@@ -172,7 +176,7 @@ impl Poet2Service {
             .expect("Failed to send block ack");
     }
 
-    pub fn get_wait_time(&mut self, pre_chain_head: &Block, validator_id: &Vec<u8>,
+    pub fn get_wait_time(&mut self, pre_chain_head: &Block, validator_id: &str,
                         poet_pub_key: &String) -> u64
     {
         let mut prev_wait_certificate = String::new();
@@ -192,7 +196,7 @@ impl Poet2Service {
                               self.enclave.enclave_id,
                               prev_wait_certificate,
                               prev_wait_certificate_sig,
-                              &validator_id,
+                              validator_id,
                               &poet_pub_key);
 
         let minimum_duration : f64 = 1.0_f64;
@@ -240,9 +244,9 @@ impl Poet2Service {
         self.service.get_state(
             block_id,
             vec![
-                     key.clone(),
-                ]);
-       Ok(HashMap::new())
+                key.clone(),
+            ]
+        )
     }
 
     pub fn create_consensus(&mut self, summary: Vec<u8>, chain_head: Block, wait_time : u64) -> String {
@@ -279,6 +283,7 @@ impl Poet2Service {
         let (wait_cert, wait_cert_sign) = get_wait_cert_and_signature(&block);
         debug!("Serialized wait_cert : {:?}", &wait_cert);
         let deser_wait_cert:WaitCertificate = serde_json::from_str(&wait_cert).unwrap();
+        debug!("Deserialized wait cert : {:?}", deser_wait_cert.clone());
 
         let sig_verify_status = EnclaveConfig::verify_wait_certificate(self.enclave.enclave_id,
                                                             &poet_pub_key,
@@ -287,9 +292,13 @@ impl Poet2Service {
         debug!("sig_verify_status={:?}", sig_verify_status);
 
         let prev_id = poet2_util::blockid_to_hex_string(block.previous_id);
-        let signer_id =poet2_util::to_hex_string(&block.signer_id.to_vec());
+        let signer_id = poet2_util::to_hex_string(&block.signer_id);
         let summary = poet2_util::to_hex_string(&block.summary);
-        
+        let validator_id = deser_wait_cert.validator_id.clone();
+
+        debug!("Prev ID {}, Block Num {}, Block Summary {}, Validator ID {:?} from WC {:?}", prev_id
+            .clone(), block.block_num, summary.clone(), signer_id.clone(), validator_id.clone());
+
         if (deser_wait_cert.prev_block_id == prev_id) &&
             (deser_wait_cert.block_number == block.block_num) &&
             (deser_wait_cert.block_summary == summary) &&

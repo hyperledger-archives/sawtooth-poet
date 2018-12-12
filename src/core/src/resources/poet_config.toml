@@ -52,4 +52,20 @@ ias_report_key_file = ''
 # If the field is empty, validator's private key file will be used from
 # /etc/sawtooth/keys/validator.priv for signing the keys.
 
-poet_client_private_key_file = '/poet_keys/validator.priv'
+poet_client_private_key_file = '/etc/sawtooth/keys/validator.priv'
+
+# is_genesis_node is a boolean flag to be set to true, when running on a genesis
+# node. This is required for PoET engine to decide if need to send registration
+# request or not.
+
+is_genesis_node = false
+
+# genesis_batch_path is applicable for genesis node. The path where batch file
+# will be stored, default being current working directory.
+
+genesis_batch_path = ''
+
+# validator_pub_key used in wait certificate. This links validator with the PoET
+# engine.
+
+validator_pub_key = '/etc/sawtooth/keys/validator.pub'

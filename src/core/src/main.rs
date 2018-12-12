@@ -59,19 +59,7 @@ pub mod poet2_util;
 pub mod settings_view;
 mod registration;
 mod poet_config;
-pub mod validator_registry_validator_info;
-pub mod validator_registry_signup_info;
-pub mod validator_registry_view;
-
-use engine::Poet2Engine;
-use sawtooth_sdk::consensus::zmq_driver::ZmqDriver;
-
-use std::process;
-use log::LevelFilter;
-use log4rs::append::file::FileAppender;
-use log4rs::append::console::ConsoleAppender;
-use log4rs::config::{Appender, Config, Root};
-use log4rs::encode::pattern::PatternEncoder;
+mod validator_registry_view;
 
 /*
  *
@@ -95,9 +83,11 @@ fn main() {
         (@arg config: --config +takes_value
         "PoET toml config file")
         (@arg connect: -C --connect +takes_value
-         "connection endpoint url for validator")
+        "connection endpoint url for validator")
         (@arg verbose: -v --verbose +multiple
-         "increase output verbosity"))
+        "increase output verbosity")
+        (@arg is_genesis: -g --genesis + takes_value
+        "Makes the engine start in genesis node, pass PoET registration batch file path"))
         .get_matches();
 
     let endpoint = matches
@@ -145,13 +135,20 @@ fn main() {
 
     let file_contents = read_file_as_string(config_file);
     info!("Read file contents: {}", file_contents);
-    let config: PoetConfig = toml_converter::from_str(file_contents.as_str())
+    let mut config: PoetConfig = toml_converter::from_str(file_contents.as_str())
         .expect("Error reading toml config file");
+
+    let genesis_arg = matches.value_of("is_genesis");
+    if genesis_arg.is_some() {
+        config.set_is_genesis(true);
+        config.set_genesis_batch_path(genesis_arg.unwrap().to_string());
+    }
 
     let (driver, _stop_handle) = ZmqDriver::new();
     info!("Starting the ZMQ Driver...");
 
-    driver.start(&endpoint, Poet2Engine::new(config)).unwrap_or_else(|_err| {
+    let consensus_engine = Poet2Engine::new(config);
+    driver.start(&endpoint, consensus_engine).unwrap_or_else(|_err| {
         process::exit(1);
     });
 }

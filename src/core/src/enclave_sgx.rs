@@ -21,7 +21,7 @@ extern crate base64;
 use ias_client::{client_utils::read_body_as_string, ias_client::IasClient};
 use openssl::pkey::PKey;
 use poet2_util;
-use poet2_util::{read_binary_file, read_file_as_string, verify_message_signature};
+use poet2_util::{read_binary_file, read_file_as_string, verify_message_signature, sha512_from_str};
 use poet_config::PoetConfig;
 use serde_json::{from_str, Value};
 use serde_json;
@@ -65,6 +65,7 @@ impl Default for WaitCertificate {
     }
 }
 
+#[derive(Clone)]
 pub struct EnclaveConfig {
     pub enclave_id: r_sgx_enclave_id_t,
     pub signup_info: r_sgx_signup_info_t,
@@ -73,6 +74,7 @@ pub struct EnclaveConfig {
 
 const DEFAULT_IAS_REPORT_KEY_FILE: &str = "src/resources/ias_report_key.pem";
 const IAS_REPORT_SIGNATURE: &str = "x-iasreport-signature";
+const MAXIMUM_NONCE_LENGTH: usize = 32;
 
 impl EnclaveConfig {
     pub fn default() -> Self {
@@ -145,8 +147,7 @@ impl EnclaveConfig {
 
     pub fn create_signup_info(
         &mut self,
-        pub_key_hash: &Vec<u8>,
-        nonce: String,
+        pub_key_hash: &str,
         config: &PoetConfig,
     ) -> ValidatorRegistrySignupInfo {
 
@@ -157,7 +158,7 @@ impl EnclaveConfig {
         info!("creating signup_info");
 
         ffi::create_signup_info(&mut eid,
-                                &(poet2_util::to_hex_string(&pub_key_hash.to_vec())),
+                                pub_key_hash,
                                 &mut signup).expect("Failed to create signup info");
 
         self.signup_info.handle = signup.handle;
@@ -166,13 +167,14 @@ impl EnclaveConfig {
         self.signup_info.enclave_quote = signup.enclave_quote;
 
         let (poet_public_key, quote) = self.get_signup_parameters();
+        let nonce = &sha512_from_str(poet_public_key.as_str())[..MAXIMUM_NONCE_LENGTH];
         let mut proof_data_string = String::new();
-        let mut epid_pseudonym = String::new();
+        let mut epid_pseudonym = poet_public_key.clone(); // String::new();
         if self.check_if_sgx_simulator() == false {
             let raw_response = self.ias_client.post_verify_attestation(
                 quote.as_ref(),
                 None,
-                Option::from(nonce.as_str()),
+                Option::from(nonce),
             ).expect("Error getting AVR");
             // Response body is the AVR or Verification Report
             let verification_report = read_body_as_string(raw_response.body)
@@ -213,7 +215,7 @@ impl EnclaveConfig {
             poet_public_key,
             proof_data_string,
             epid_pseudonym,
-            nonce,
+            nonce.to_string(),
         )
     }
 
@@ -221,7 +223,7 @@ impl EnclaveConfig {
         eid: r_sgx_enclave_id_t,
         in_prev_wait_cert: String,
         in_prev_wait_cert_sig: String,
-        in_validator_id: &Vec<u8>,
+        in_validator_id: &str,
         in_poet_pub_key: &String,
     ) -> u64 { // duration
         let mut duration: u64 = 0_u64;
@@ -229,7 +231,7 @@ impl EnclaveConfig {
         // initialize wait certificate - to get duration from enclave
         ffi::initialize_wait_cert(&mut eid, &mut duration,
                                   &in_prev_wait_cert, &in_prev_wait_cert_sig,
-                                  &poet2_util::to_hex_string(&in_validator_id.to_vec()),
+                                  in_validator_id,
                                   &in_poet_pub_key)
             .expect("Failed to initialize Wait certificate");
 

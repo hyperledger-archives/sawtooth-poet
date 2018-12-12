@@ -23,6 +23,12 @@ use sawtooth_sdk::consensus::{engine::*};
 use service::Poet2Service;
 use std::cmp;
 use poet2_util;
+use database::config;
+use database::lmdb;
+use database::{DatabaseError, CliError};
+use settings_view::Poet2SettingsView;
+use engine::fork_resolver;
+use validator_registry_view;
 
 const DEFAULT_BLOCK_CLAIM_LIMIT:i32 = 250;
 
@@ -36,21 +42,30 @@ const DEFAULT_BLOCK_CLAIM_LIMIT:i32 = 250;
 
 pub fn check_consensus(
     block: &Block,
-    service: &mut Poet2Service, validator_id: &Vec<u8>, 
-    own_poet_pub_key: &String)
-    -> bool {
+    service: &mut Poet2Service, validator_id: &str,
+    own_poet_pub_key: &String
+) -> bool {
     // 1. Validator registry check
     // 4. Match Local Mean against the locally computed
     // 5. Verfidy BlockDigest is a valid ECDSA of
     //    SHA256 hash of block using OPK
 
     //\\ 2. Signature validation using sender's PPK
-    let block_signer = poet2_util::to_hex_string(&Vec::from(block.signer_id.clone()));
-    let validator = poet2_util::to_hex_string(&validator_id.to_vec());
-    let poet_pub_key = validator_registry_view::get_poet_pubkey_for_validator_id(
-                           &block_signer,
-                           &block.block_id,
-                           service).unwrap();
+    let block_signer = poet2_util::to_hex_string(&block.signer_id.clone());
+    let validator = validator_id;
+    info!("Signer ID {}, Validator ID {}", block_signer.clone(), validator.clone());
+
+    let poet_pub_key =
+        match validator_registry_view::get_poet_pubkey_for_validator_id(
+            block_signer.as_str(),
+            &block.block_id,
+            service) {
+            Ok(registered_public_key) => registered_public_key,
+            Err(error) => {
+                info!("PoET public key is not found {}", error);
+                return false;
+            }
+        };
 
     if !verify_wait_certificate(block, service, &poet_pub_key) {
         return false;
@@ -67,7 +82,7 @@ pub fn check_consensus(
     }*/
 
     // 7. c-test
-    
+
     if validator == block_signer && validator_is_claiming_too_early( block, service){
         return false;
     }

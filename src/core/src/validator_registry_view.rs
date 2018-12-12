@@ -15,15 +15,13 @@
  * -----------------------------------------------------------------------------
  */
 
-use crypto::sha2::Sha512;
-use crypto::digest::Digest;
-use validator_registry_tp::validator_registry_validator_info::ValidatorRegistryValidatorInfo;
-use service::Poet2Service;
-use std::error;
-use std::fmt;
+use crypto::{digest::Digest,
+             sha2::Sha256};
 use sawtooth_sdk::consensus::engine::BlockId;
-use validator_registry_validator_info;
-use validator_registry_signup_info::*;
+use service::Poet2Service;
+use std::{error,
+          fmt};
+use validator_registry_tp::validator_registry_validator_info::ValidatorRegistryValidatorInfo;
 
 #[derive(Debug, Clone)]
 pub struct VRVStateError;
@@ -41,54 +39,51 @@ impl error::Error for VRVStateError {
 }
 
 fn _vr_namespace_prefix() -> String {
-        let mut sha = Sha512::new();
-        sha.input_str("validator_registry");
-        sha.result_str()[..6].to_string()
+    let mut sha = Sha256::new();
+    sha.input_str("validator_registry");
+    sha.result_str()[..6].to_string()
 }
 
-fn _to_address(addressable_key: &String) -> String {
-    let mut sha = Sha512::new();
+fn _to_address(addressable_key: &str) -> String {
+    let mut sha = Sha256::new();
     sha.input_str(addressable_key);
     _vr_namespace_prefix() + &sha.result_str()[..64].to_string()
 }
 
 fn _as_validatorInfo(validatorInfoStr: String) -> ValidatorRegistryValidatorInfo {
-    let validator_info : ValidatorRegistryValidatorInfo = serde_json::from_str(&validatorInfoStr).unwrap();
+    let validator_info: ValidatorRegistryValidatorInfo = serde_json::from_str(&validatorInfoStr).unwrap();
     return validator_info;
 }
 
 pub fn get_validator_info_for_validator_id(
-    validator_id: &String,
+    validator_id: &str,
     block_id: &BlockId,
     service: &mut Poet2Service)
-    -> Result<validator_registry_validator_info::ValidatorRegistryValidatorInfo, VRVStateError> {
-
+    -> Result<ValidatorRegistryValidatorInfo, VRVStateError> {
     let validator_id_addr = _to_address(validator_id);
+    info!("{}", validator_id_addr.clone());
     let state_data = service.get_state(block_id.clone(), &validator_id_addr)
-                            .expect("Failed to get state for validator id key");
-    if let Some(raw_value) = state_data.get(&validator_id_addr) {
-        let parsed: Result<String, _> = String::from_utf8(raw_value.to_vec());
-        if let Ok(parsed_value) = parsed {
-            return Ok(_as_validatorInfo(parsed_value));
-       }
-   }
-
+        .expect("Failed to get state for validator id key");
+    let raw_value = state_data.get(&validator_id_addr);
+    info!("State data while reading {:?}", state_data);
+    if raw_value.is_some() {
+        let parsed: Result<String, _> = String::from_utf8(raw_value.unwrap().to_vec());
+        if parsed.is_ok() {
+            return Ok(_as_validatorInfo(parsed.unwrap()));
+        }
+    }
     Err(VRVStateError)
 }
 
 pub fn get_poet_pubkey_for_validator_id(
-    validator_id: &String,
+    validator_id: &str,
     block_id: &BlockId,
     service: &mut Poet2Service)
     -> Result<String, VRVStateError> {
-
-    let validator_info = get_validator_info_for_validator_id(&validator_id, &block_id.clone(), service);
-
+    let validator_info = get_validator_info_for_validator_id(validator_id, &block_id.clone(), service);
     if validator_info.is_ok() {
-       let validator_info_parsed = validator_info.unwrap();
-       return Ok(validator_info_parsed.signup_info.poet_public_key);
+        let validator_info_parsed = validator_info.unwrap();
+        return Ok(validator_info_parsed.signup_info.poet_public_key);
     }
-
     Err(VRVStateError)
 }
-

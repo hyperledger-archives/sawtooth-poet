@@ -21,6 +21,7 @@ use openssl::{hash::MessageDigest, pkey::{PKey, Public}, sign::Verifier};
 use sawtooth_sdk::consensus::{engine::*};
 use std::fs::File;
 use std::io::Read;
+use std::io::Write;
 
 const WC_DELIM_CHAR: u8 = '#' as u8; //0x23
 
@@ -70,7 +71,17 @@ pub fn read_binary_file(
     let mut file = File::open(filename).expect("File not found");
     let mut buffer = vec![];
     file.read_to_end(&mut buffer).expect("Read failed!");
+    info!("{:?}", buffer);
     buffer
+}
+
+/// Write binary data to a file
+pub fn write_binary_file(
+    data: &[u8],
+    filename: &str,
+) {
+    let mut file = File::create(filename).expect("File not found");
+    file.write(data);
 }
 
 /// Returns SHA256 of input &str in String
