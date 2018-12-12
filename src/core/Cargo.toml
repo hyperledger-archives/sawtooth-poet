@@ -20,7 +20,7 @@ authors = ["Intel Corporation"]
 description = "PoET2 consensus algorithm for Sawtooth"
 
 [dependencies]
-sawtooth-sdk = { git = "https://github.com/hyperledger/sawtooth-core.git" }
+sawtooth-sdk = { git = "https://github.com/hyperledger/sawtooth-core.git", rev="279d5b6" }
 rand = "0.4.2"
 log = "0.4.5"
 log4rs = "0.8.1"

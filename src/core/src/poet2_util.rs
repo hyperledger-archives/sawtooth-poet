@@ -62,6 +62,17 @@ pub fn read_file_as_string(
     read_contents
 }
 
+/// Reads the given file as string, ignore the new line character at end
+///
+/// Note: This method will panic if file is not found or error occurs when reading file as string.
+pub fn read_file_as_string_ignore_line_end(
+    filename: &str
+) -> String {
+    let mut read_contents = read_file_as_string(filename);
+    read_contents.pop();
+    read_contents
+}
+
 /// Reads binary file and returns vector of u8
 ///
 /// Note: This method will panic if file is not found or error occurs when reading file as binary.
@@ -81,7 +92,7 @@ pub fn write_binary_file(
     filename: &str,
 ) {
     let mut file = File::create(filename).expect("File not found");
-    file.write(data);
+    file.write(data).expect("Write binary file failed");
 }
 
 /// Returns SHA256 of input &str in String

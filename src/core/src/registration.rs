@@ -23,7 +23,7 @@ use hyper::{Body,
             Request,
             Uri};
 use ias_client::client_utils::read_response_future;
-use poet2_util::{read_file_as_string,
+use poet2_util::{read_file_as_string_ignore_line_end,
                  sha256_from_str,
                  sha512_from_str,
                  write_binary_file};
@@ -80,9 +80,7 @@ pub fn do_create_registration(
     if key_file.len() == 0 {
         key_file = DEFAULT_POET_CLIENT_PRIVATE_KEY.to_string();
     }
-    let mut read_key = read_file_as_string(key_file.as_str());
-    // TODO: Refactor this, PrivateKey object fails without trim operation on file
-    read_key.pop();
+    let read_key = read_file_as_string_ignore_line_end(key_file.as_str());
 
     let private_key: Box<PrivateKey> =
         Box::new(

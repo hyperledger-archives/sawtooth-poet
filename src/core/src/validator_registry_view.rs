@@ -50,8 +50,8 @@ fn _to_address(addressable_key: &str) -> String {
     _vr_namespace_prefix() + &sha.result_str()[..64].to_string()
 }
 
-fn _as_validatorInfo(validatorInfoStr: String) -> ValidatorRegistryValidatorInfo {
-    let validator_info: ValidatorRegistryValidatorInfo = serde_json::from_str(&validatorInfoStr).unwrap();
+fn _as_validator_info(validator_info_str: String) -> ValidatorRegistryValidatorInfo {
+    let validator_info: ValidatorRegistryValidatorInfo = serde_json::from_str(&validator_info_str).unwrap();
     return validator_info;
 }
 
@@ -69,7 +69,7 @@ pub fn get_validator_info_for_validator_id(
     if raw_value.is_some() {
         let parsed: Result<String, _> = String::from_utf8(raw_value.unwrap().to_vec());
         if parsed.is_ok() {
-            return Ok(_as_validatorInfo(parsed.unwrap()));
+            return Ok(_as_validator_info(parsed.unwrap()));
         }
     }
     Err(VRVStateError)

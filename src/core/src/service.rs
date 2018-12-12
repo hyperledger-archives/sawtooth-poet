@@ -429,8 +429,8 @@ mod tests {
                 ::std::time::Duration::from_secs(10),
             );
             
-                
-            let mut svc = Poet2Service::new( Box::new(zmq_svc) );
+            let enclave = EnclaveConfig::default();
+            let mut svc = Poet2Service::new( Box::new(zmq_svc), enclave);
             
             svc.initialize_block(Some(Default::default()));
         });

@@ -23,11 +23,6 @@ use sawtooth_sdk::consensus::{engine::*};
 use service::Poet2Service;
 use std::cmp;
 use poet2_util;
-use database::config;
-use database::lmdb;
-use database::{DatabaseError, CliError};
-use settings_view::Poet2SettingsView;
-use engine::fork_resolver;
 use validator_registry_view;
 
 const DEFAULT_BLOCK_CLAIM_LIMIT:i32 = 250;
@@ -43,7 +38,6 @@ const DEFAULT_BLOCK_CLAIM_LIMIT:i32 = 250;
 pub fn check_consensus(
     block: &Block,
     service: &mut Poet2Service, validator_id: &str,
-    own_poet_pub_key: &String
 ) -> bool {
     // 1. Validator registry check
     // 4. Match Local Mean against the locally computed
@@ -53,7 +47,7 @@ pub fn check_consensus(
     //\\ 2. Signature validation using sender's PPK
     let block_signer = poet2_util::to_hex_string(&block.signer_id.clone());
     let validator = validator_id;
-    info!("Signer ID {}, Validator ID {}", block_signer.clone(), validator.clone());
+    debug!("Signer ID {}, Validator ID {}", block_signer.clone(), validator.clone());
 
     let poet_pub_key =
         match validator_registry_view::get_poet_pubkey_for_validator_id(
@@ -255,6 +249,7 @@ mod tests {
     use std::default::Default;
     use std::collections::HashMap;
     use sawtooth_sdk::consensus::{service::Service};
+    use enclave_sgx::EnclaveConfig;
 
     pub struct MockService {}
 
@@ -337,7 +332,7 @@ mod tests {
             block_id: c_blockid,
             previous_id: p_blockid,
             signer_id: PeerId::from(vec![1]),
-            block_num: block_num,
+            block_num,
             payload: vec![],
             summary: vec![],
         }
@@ -356,13 +351,14 @@ mod tests {
 
     #[test]
     fn c_test_block_claim_delay_gt_block_num() {
-         let mut svc = Poet2Service::new(Box::new(MockService::new()));
+        let enclave = EnclaveConfig::default();
+        let mut svc = Poet2Service::new(Box::new(MockService::new()), enclave);
 
-         let b = create_block(BlockId::from(vec![2]), BlockId::from(vec![1]), 2);
+        let b = create_block(BlockId::from(vec![2]), BlockId::from(vec![1]), 2);
 
-         let c_test1:bool = false;
+        let c_test1:bool = false;
 
-         assert_validator_is_claiming_too_early(c_test1, b, &mut svc);
+        assert_validator_is_claiming_too_early(c_test1, b, &mut svc);
     }
 
     // This case would fail once commit_block is extracted from 
@@ -456,7 +452,9 @@ mod tests {
             }
         }
 
-        let mut svc = Poet2Service::new(Box::new(PanicMockService::new()));
+        let enclave = EnclaveConfig::default();
+
+        let mut svc = Poet2Service::new(Box::new(PanicMockService::new()), enclave);
 
         let b = create_block(BlockId::from(vec![2]), BlockId::from(vec![1]), 2);
 

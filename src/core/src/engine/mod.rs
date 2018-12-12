@@ -20,9 +20,15 @@ extern crate sawtooth_sdk;
 use database::CliError;
 use database::config;
 use database::lmdb;
+use enclave_sgx::EnclaveConfig;
 use poet2_util;
+use poet2_util::read_file_as_string_ignore_line_end;
 use poet_config::PoetConfig;
+use registration::do_create_registration;
+use registration::save_batchlist_to_file;
+use registration::submit_batchlist_to_rest_api;
 use sawtooth_sdk::consensus::{engine::*, service::Service};
+use sawtooth_sdk::messages::batch::BatchList;
 use self::check_consensus as czk;
 use self::consensus_state_store::ConsensusStateStore;
 use service::Poet2Service;
@@ -30,13 +36,6 @@ use settings_view::Poet2SettingsView;
 use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::time::Duration;
 use std::time::Instant;
-use enclave_sgx::EnclaveConfig;
-use poet2_util::read_file_as_string;
-use registration::do_create_registration;
-use registration::save_batchlist_to_file;
-use sawtooth_sdk::messages::batch::BatchList;
-use registration::submit_batchlist_to_rest_api;
-use poet2_util::to_hex_string;
 
 pub mod check_consensus;
 pub mod consensus_state_store;
@@ -55,20 +54,24 @@ pub struct Poet2Engine {
 
 impl Poet2Engine {
     pub fn new(config: PoetConfig) -> Self {
-        // TODO: pop is used here to remove newline character
-        let mut validator_id = read_file_as_string(config.get_validator_pub_key().as_str());
-        validator_id.pop();
+        Self::create_poet_engine(&config)
+    }
 
-        let mut enclave =
-            EnclaveConfig::default();
-        enclave.initialize_enclave(&config);
-        enclave.initialize_remote_attestation(&config);
+    fn create_poet_engine(config: &PoetConfig) -> Self {
+        // Read validator ID, validator's public key is used as identifier
+        let validator_id = read_file_as_string_ignore_line_end(config.get_validator_pub_key().as_str());
 
+        // Initialize enclave
+        let mut enclave = Self::initialize_enclave(config);
+
+        // Create signup information
         let signup_info = enclave.create_signup_info(
             validator_id.as_str(),
-            &config
+            config,
         );
 
+        // Generate nonce, PoET public key is unique every time enclave is initialized. Take hash
+        // of it upto maximum nonce length for nonce.
         let (poet_public_key, _) = enclave.get_signup_parameters();
         let nonce = &poet2_util::sha512_from_str(poet_public_key.as_str())[..MAXIMUM_NONCE_LENGTH];
 
@@ -76,21 +79,30 @@ impl Poet2Engine {
         // It does send registration request to rest-api if not a genesis node
         // In case of genesis node, creates a batch file in the specified location, defaulting to
         // current working directory from where PoET engine is run.
-        let batch_list = do_create_registration(&config, nonce, &signup_info);
+        let batch_list = do_create_registration(config, nonce, &signup_info);
 
         // Call the batches REST API with composed payload bytes to be sent
         if config.is_genesis() {
             save_batchlist_to_file(
                 config.get_genesis_batch_path().as_str(),
-                batch_list.clone()
+                batch_list.clone(),
             )
         }
+
+        // Create a PoET engine object and return
         Poet2Engine {
             enclave,
-            config,
+            config: config.clone(),
             validator_id,
             batch_list,
         }
+    }
+
+    fn initialize_enclave(config: &PoetConfig) -> EnclaveConfig {
+        let mut enclave = EnclaveConfig::default();
+        enclave.initialize_enclave(config);
+        enclave.initialize_remote_attestation(config);
+        enclave
     }
 }
 
@@ -116,6 +128,7 @@ impl Engine for Poet2Engine {
 
         let chain_head = startup_state.chain_head;
 
+        // TODO: Refactor service code and avoid cloning enclave object.
         let mut service = Poet2Service::new(service, self.enclave.clone());
 
         let lmdb_ctx = create_lmdb_context()
@@ -158,8 +171,7 @@ impl Engine for Poet2Engine {
                             info!("BlockNew :: Checking consensus data for block_id : {}",
                                   poet2_util::to_hex_string(&block.block_id));
 
-                            if czk::check_consensus(&block, &mut service, validator_id.as_str(),
-                                                    &poet_pub_key) {
+                            if czk::check_consensus(&block, &mut service, validator_id.as_str()) {
                                 debug!("Passed consensus check for block_id : {}",
                                        poet2_util::to_hex_string(&block.block_id));
                                 service.check_block(block.block_id);

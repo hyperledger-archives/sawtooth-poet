@@ -20,7 +20,6 @@ extern crate base64;
 
 use ias_client::{client_utils::read_body_as_string, ias_client::IasClient};
 use openssl::pkey::PKey;
-use poet2_util;
 use poet2_util::{read_binary_file, read_file_as_string, verify_message_signature, sha512_from_str};
 use poet_config::PoetConfig;
 use serde_json::{from_str, Value};
@@ -36,7 +35,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::str;
 use std::string::String;
-use std::vec::Vec;
 use validator_registry_tp::validator_registry_signup_info::{SignupInfoProofData,
                                                             ValidatorRegistrySignupInfo};
 
@@ -157,9 +155,11 @@ impl EnclaveConfig {
         let mut signup: r_sgx_signup_info_t = self.signup_info;
         info!("creating signup_info");
 
-        ffi::create_signup_info(&mut eid,
-                                pub_key_hash,
-                                &mut signup).expect("Failed to create signup info");
+        ffi::create_signup_info(
+            &mut eid,
+            pub_key_hash,
+            &mut signup
+        ).expect("Failed to create signup info");
 
         self.signup_info.handle = signup.handle;
         self.signup_info.poet_public_key = signup.poet_public_key;
@@ -169,7 +169,10 @@ impl EnclaveConfig {
         let (poet_public_key, quote) = self.get_signup_parameters();
         let nonce = &sha512_from_str(poet_public_key.as_str())[..MAXIMUM_NONCE_LENGTH];
         let mut proof_data_string = String::new();
-        let mut epid_pseudonym = poet_public_key.clone(); // String::new();
+        // TODO: Using poet_public_key as a random string for each registration request, this has
+        // to be replaced by anti_sybil_id from AVR. Waiting for mock client for simulator be
+        // ready.
+        let mut epid_pseudonym = poet_public_key.clone();
         if self.check_if_sgx_simulator() == false {
             let raw_response = self.ias_client.post_verify_attestation(
                 quote.as_ref(),
