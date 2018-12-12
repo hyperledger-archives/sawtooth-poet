@@ -33,7 +33,6 @@ class SgxStruct(metaclass=ABCMeta):
         Returns:
             bytes: The C/C++ representation of the object as a struct
         """
-        pass
 
     @abstractmethod
     def parse_from_bytes(self, raw_buffer):
@@ -54,4 +53,3 @@ class SgxStruct(metaclass=ABCMeta):
             TypeError: raw_buffer is not a byte array (aka, bytes)
             ValueError: raw_buffer is not a valid C/C++ struct layout
         """
-        pass

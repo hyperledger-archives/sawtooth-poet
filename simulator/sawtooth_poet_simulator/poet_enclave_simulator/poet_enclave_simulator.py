@@ -309,7 +309,6 @@ class _PoetEnclaveSimulator:
         # This is a standin method to release enclave resources associated
         # with this signup. This is not currently relevant to the simulator
         # but it must match the interface with the HW enclave.
-        pass
 
     @classmethod
     def create_wait_timer(cls,
