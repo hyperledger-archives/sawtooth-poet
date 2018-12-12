@@ -18,7 +18,6 @@ version: '3.6'
 volumes:
   cargo-registry:
   cargo-registry-tp:
-  keys:
   poet-share:
 
 services:
@@ -37,14 +36,12 @@ services:
       - 8800
       - 5050
     volumes:
-      - keys:/shared_keys
       - ./logs1/validator:/var/log/sawtooth
       - poet-share:/poet_keys
     # start the validator with an empty genesis batch
     working_dir: /root
     command: "bash -c \"\
-        sawadm keygen validator-2 && \
-        sawadm keygen validator-3 && \
+        rm -f /poet_keys/poet-config.batch && \
         sawadm keygen && \
         sawset genesis \
           -k /etc/sawtooth/keys/validator.priv \
@@ -54,10 +51,11 @@ services:
           sawtooth.consensus.algorithm=poet2 \
           sawtooth.poet.block_claim_delay=0 \
           -o config.batch && \
+        cp /etc/sawtooth/keys/validator.priv /poet_keys/validator-1.priv && \
+        cp /etc/sawtooth/keys/validator.pub /poet_keys/validator-1.pub && \
+        while [ ! -f /poet_keys/poet-config.batch ]; do sleep 1; done && \
         sawadm genesis \
-          config-genesis.batch config.batch && \
-        mv /etc/sawtooth/keys/validator-* /shared_keys && \
-        cp /etc/sawtooth/keys/validator.priv /poet_keys/ && \
+          config-genesis.batch config.batch /poet_keys/poet-config.batch && \
         echo $$(cat /etc/sawtooth/keys/validator.pub); \
         sawtooth-validator -v \
             --endpoint tcp://validator-1:8800 \
@@ -85,13 +83,14 @@ services:
       - 8800
       - 5050
     volumes:
-      - keys:/shared_keys
       - ./logs2/validator:/var/log/sawtooth
       - poet-share:/poet_keys
     # start the validator with an empty genesis batch
     working_dir: /root
     command: "bash -c \"\
-        while true; do if [ -e /shared_keys/validator-2.pub ]; then mv /shared_keys/validator-2.priv /etc/sawtooth/keys/validator.priv && mv /shared_keys/validator-2.pub /etc/sawtooth/keys/validator.pub; break; fi; sleep 0.5; done; \
+        sawadm keygen && \
+        cp /etc/sawtooth/keys/validator.priv /poet_keys/validator-2.priv && \
+        cp /etc/sawtooth/keys/validator.pub /poet_keys/validator-2.pub && \
         echo $$(cat /etc/sawtooth/keys/validator.pub); \
         sawtooth-validator -v \
             --endpoint tcp://validator-2:8800 \
@@ -120,13 +119,14 @@ services:
       - 8800
       - 5050
     volumes:
-      - keys:/shared_keys
       - ./logs3/validator:/var/log/sawtooth
       - poet-share:/poet_keys
     # start the validator with an empty genesis batch
     working_dir: /root
     command: "bash -c \"\
-        while true; do if [ -e /shared_keys/validator-3.pub ]; then mv /shared_keys/validator-3.priv /etc/sawtooth/keys/validator.priv && mv /shared_keys/validator-3.pub /etc/sawtooth/keys/validator.pub; break; fi; sleep 0.5; done; \
+        sawadm keygen && \
+        cp /etc/sawtooth/keys/validator.priv /poet_keys/validator-3.priv && \
+        cp /etc/sawtooth/keys/validator.pub /poet_keys/validator-3.pub && \
         echo $$(cat /etc/sawtooth/keys/validator.pub); \
         sawtooth-validator -v \
             --endpoint tcp://validator-3:8800 \
@@ -159,10 +159,18 @@ services:
       - validator-1
       - validator-registry-tp-1
     entrypoint: "bash -c \"\
-        source /project/sawtooth-poet/build_sgx_binary.sh \
+        rm -f /etc/sawtooth/keys/validator.* \
+        && rm -f /poet_keys/poet-config.batch \
+        && while [ ! -f /poet_keys/validator-1.priv ]; do sleep 1; done \
+        && while [ ! -f /poet_keys/validator-1.pub ]; do sleep 1; done \
+        && mkdir -p /etc/sawtooth/keys/ \
+        && cp /poet_keys/validator-1.priv /etc/sawtooth/keys/validator.priv \
+        && cp /poet_keys/validator-1.pub /etc/sawtooth/keys/validator.pub \
+        && cat /etc/sawtooth/keys/validator.pub \
+        && source /project/sawtooth-poet/build_sgx_binary.sh \
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- \
         --config /project/sawtooth-poet/src/core/src/resources/poet_config.toml \
-        -C tcp://validator-1:5050 -vv \""
+        -C tcp://validator-1:5050 -vv --genesis /poet_keys/poet-config.batch\""
     stop_signal: SIGKILL
 
   poet-2-engine-2:
@@ -184,7 +192,14 @@ services:
       - validator-registry-tp-2
       - poet-2-engine-1
     entrypoint: "bash -c \"\
-        source /project/sawtooth-poet/build_sgx_binary.sh \
+        rm -f /etc/sawtooth/keys/validator.* \
+        && while [ ! -f /poet_keys/validator-2.priv ]; do sleep 1; done \
+        && while [ ! -f /poet_keys/validator-2.pub ]; do sleep 1; done \
+        && mkdir -p /etc/sawtooth/keys/ \
+        && cp /poet_keys/validator-2.priv /etc/sawtooth/keys/validator.priv \
+        && cp /poet_keys/validator-2.pub /etc/sawtooth/keys/validator.pub \
+        && cat /etc/sawtooth/keys/validator.pub \
+        && source /project/sawtooth-poet/build_sgx_binary.sh \
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- \
         --config /project/sawtooth-poet/src/core/src/resources/poet_config.toml \
         -C tcp://validator-2:5050 -vv \""
@@ -209,7 +224,14 @@ services:
       - validator-registry-tp-3
       - poet-2-engine-1
     entrypoint: "bash -c \"\
-        source /project/sawtooth-poet/build_sgx_binary.sh \
+        rm -f /etc/sawtooth/keys/validator.* \
+        && while [ ! -f /poet_keys/validator-3.priv ]; do sleep 1; done \
+        && while [ ! -f /poet_keys/validator-3.pub ]; do sleep 1; done \
+        && mkdir -p /etc/sawtooth/keys/ \
+        && cp /poet_keys/validator-3.priv /etc/sawtooth/keys/validator.priv \
+        && cp /poet_keys/validator-3.pub /etc/sawtooth/keys/validator.pub \
+        && cat /etc/sawtooth/keys/validator.pub \
+        && source /project/sawtooth-poet/build_sgx_binary.sh \
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- \
         --config /project/sawtooth-poet/src/core/src/resources/poet_config.toml \
         -C tcp://validator-3:5050 -vv \""
