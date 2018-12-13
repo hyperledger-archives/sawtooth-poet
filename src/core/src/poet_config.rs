@@ -33,43 +33,43 @@ pub struct PoetConfig {
 impl PoetConfig {
     /// Getters fot the members
     pub fn get_spid(&self) -> String {
-        return self.spid.clone();
+        self.spid.clone()
     }
 
     pub fn get_ias_url(&self) -> String {
-        return self.ias_url.clone();
+        self.ias_url.clone()
     }
 
     pub fn get_spid_cert_file(&self) -> String {
-        return self.spid_cert_file.clone();
+        self.spid_cert_file.clone()
     }
 
     pub fn get_password(&self) -> String {
-        return self.password.clone();
+        self.password.clone()
     }
 
     pub fn get_rest_api(&self) -> String {
-        return self.rest_api.clone();
+        self.rest_api.clone()
     }
 
     pub fn get_ias_report_key_file(&self) -> String {
-        return self.ias_report_key_file.clone();
+        self.ias_report_key_file.clone()
     }
 
     pub fn get_poet_client_private_key_file(&self) -> String {
-        return self.poet_client_private_key_file.clone();
+        self.poet_client_private_key_file.clone()
     }
 
     pub fn is_genesis(&self) -> bool {
-        return self.is_genesis_node;
+        self.is_genesis_node
     }
 
     pub fn get_genesis_batch_path(&self) -> String {
-        return self.genesis_batch_path.clone();
+        self.genesis_batch_path.clone()
     }
 
     pub fn get_validator_pub_key(&self) -> String {
-        return self.validator_pub_key.clone();
+        self.validator_pub_key.clone()
     }
 
     pub fn set_is_genesis(&mut self, is_genesis: bool) {

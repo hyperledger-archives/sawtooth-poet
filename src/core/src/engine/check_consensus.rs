@@ -47,7 +47,7 @@ pub fn check_consensus(
     //\\ 2. Signature validation using sender's PPK
     let block_signer = poet2_util::to_hex_string(&block.signer_id.clone());
     let validator = validator_id;
-    debug!("Signer ID {}, Validator ID {}", block_signer.clone(), validator.clone());
+    debug!("Signer ID {}, Validator ID {}", block_signer.clone(), validator);
 
     let poet_pub_key =
         match validator_registry_view::get_poet_pubkey_for_validator_id(
@@ -112,7 +112,7 @@ fn validtor_has_claimed_block_limit( service: &mut Poet2Service ) -> bool {
     //  let mut key_block_claim_limit = poet_settings_view.key_block_claim_limit ;     //key
     // need to use get_settings from service
     let key_block_claim_limit = service.get_setting_from_head(
-        String::from("sawtooth.poet.key_block_claim_limit"));
+        "sawtooth.poet.key_block_claim_limit");
 
     if key_block_claim_limit != "" {
         block_claim_limit = key_block_claim_limit.parse::<i32>().unwrap();
@@ -144,7 +144,7 @@ fn validator_is_claiming_too_early( block: &Block, service: &mut Poet2Service )-
     let block_number = block.block_num;
 
     let block_claim_delay_from_settings = service.get_setting_from_head(
-        String::from("sawtooth.poet.block_claim_delay"));
+        "sawtooth.poet.block_claim_delay");
 
     let key_block_claim_delay = if block_claim_delay_from_settings.parse::<u64>().is_ok() {  
                                     block_claim_delay_from_settings.parse::<u64>().unwrap()

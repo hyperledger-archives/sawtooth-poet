@@ -37,6 +37,7 @@ use std::str;
 use std::string::String;
 use validator_registry_tp::validator_registry_signup_info::{SignupInfoProofData,
                                                             ValidatorRegistrySignupInfo};
+use std::ptr;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct WaitCertificate {
@@ -78,14 +79,14 @@ impl EnclaveConfig {
     pub fn default() -> Self {
         let enclave_id = r_sgx_enclave_id_t {
             handle: 0,
-            mr_enclave: 0 as *mut c_char,
-            basename: 0 as *mut c_char,
+            mr_enclave: ptr::null_mut(),
+            basename: ptr::null_mut(),
         };
         let signup_info = r_sgx_signup_info_t {
             handle: 0,
-            poet_public_key: 0 as *mut c_char,
+            poet_public_key: ptr::null_mut(),
             poet_public_key_len: 0,
-            enclave_quote: 0 as *mut c_char, //Used for IAS operations
+            enclave_quote: ptr::null_mut(), // Used for IAS operations
         };
 
         EnclaveConfig {
@@ -101,8 +102,8 @@ impl EnclaveConfig {
     ) {
         let mut eid: r_sgx_enclave_id_t = r_sgx_enclave_id_t {
             handle: 0,
-            mr_enclave: 0 as *mut c_char,
-            basename: 0 as *mut c_char,
+            mr_enclave: ptr::null_mut(),
+            basename: ptr::null_mut(),
         };
 
         // Always fetch SPID from config file, dummy values are accepted when running in
@@ -135,7 +136,7 @@ impl EnclaveConfig {
         &mut self,
         config: &PoetConfig,
     ) {
-        if self.check_if_sgx_simulator() == false {
+        if !self.check_if_sgx_simulator() {
             self.ias_client.set_ias_url(config.get_ias_url());
             self.ias_client.set_spid_cert(read_binary_file(config.get_spid_cert_file().as_str()));
             self.ias_client.set_password(config.get_password());
@@ -173,7 +174,7 @@ impl EnclaveConfig {
         // to be replaced by anti_sybil_id from AVR. Waiting for mock client for simulator be
         // ready.
         let mut epid_pseudonym = poet_public_key.clone();
-        if self.check_if_sgx_simulator() == false {
+        if !self.check_if_sgx_simulator() {
             let raw_response = self.ias_client.post_verify_attestation(
                 quote.as_ref(),
                 None,
@@ -224,18 +225,18 @@ impl EnclaveConfig {
 
     pub fn initialize_wait_certificate(
         eid: r_sgx_enclave_id_t,
-        in_prev_wait_cert: String,
-        in_prev_wait_cert_sig: String,
+        in_prev_wait_cert: &str,
+        in_prev_wait_cert_sig: &str,
         in_validator_id: &str,
-        in_poet_pub_key: &String,
+        in_poet_pub_key: &str,
     ) -> u64 { // duration
         let mut duration: u64 = 0_u64;
         let mut eid: r_sgx_enclave_id_t = eid;
         // initialize wait certificate - to get duration from enclave
         ffi::initialize_wait_cert(&mut eid, &mut duration,
-                                  &in_prev_wait_cert, &in_prev_wait_cert_sig,
+                                  in_prev_wait_cert, in_prev_wait_cert_sig,
                                   in_validator_id,
-                                  &in_poet_pub_key)
+                                  in_poet_pub_key)
             .expect("Failed to initialize Wait certificate");
 
         debug!("Duration fetched from enclave = {:x?}", duration);
@@ -245,10 +246,10 @@ impl EnclaveConfig {
 
     pub fn finalize_wait_certificate(
         eid: r_sgx_enclave_id_t,
-        in_wait_cert: String,
-        in_prev_block_id: String,
-        in_prev_wait_cert_sig: String,
-        in_block_summary: String,
+        in_wait_cert: &str,
+        in_prev_block_id: &str,
+        in_prev_wait_cert_sig: &str,
+        in_block_summary: &str,
         in_wait_time: u64,
     ) -> (String, String) {
         let mut eid: r_sgx_enclave_id_t = eid;
@@ -256,23 +257,23 @@ impl EnclaveConfig {
         let mut wait_cert_info: r_sgx_wait_certificate_t
         = r_sgx_wait_certificate_t {
             handle: 0,
-            ser_wait_cert: 0 as *mut c_char,
-            ser_wait_cert_sign: 0 as *mut c_char,
+            ser_wait_cert: ptr::null_mut(),
+            ser_wait_cert_sign: ptr::null_mut(),
         };
 
         ffi::finalize_wait_cert(
             &mut eid,
             &mut wait_cert_info,
-            &in_wait_cert, &in_prev_block_id,
-            &in_prev_wait_cert_sig,
-            &in_block_summary, &in_wait_time,
+            in_wait_cert, in_prev_block_id,
+            in_prev_wait_cert_sig,
+            in_block_summary, in_wait_time,
         ).expect("Failed to finalize Wait certificate");
 
-        let wait_cert = ffi::create_string_from_char_ptr(
-            wait_cert_info.ser_wait_cert as *mut c_char);
+        let wait_cert = unsafe { ffi::create_string_from_char_ptr(
+            wait_cert_info.ser_wait_cert as *mut c_char) };
 
-        let wait_cert_sign = ffi::create_string_from_char_ptr(
-            wait_cert_info.ser_wait_cert_sign as *mut c_char);
+        let wait_cert_sign = unsafe { ffi::create_string_from_char_ptr(
+            wait_cert_info.ser_wait_cert_sign as *mut c_char) };
 
         info!("wait certificate generated is {:?}", wait_cert);
 
@@ -285,17 +286,17 @@ impl EnclaveConfig {
 
     pub fn verify_wait_certificate(
         eid: r_sgx_enclave_id_t,
-        poet_pub_key: &String,
-        wait_cert: &String,
-        wait_cert_sign: &String,
+        poet_pub_key: &str,
+        wait_cert: &str,
+        wait_cert_sign: &str,
     ) -> bool {
         let mut eid: r_sgx_enclave_id_t = eid;
         let mut verify_wait_cert_status: bool = false;
         ffi::verify_wait_certificate(
             &mut eid,
-            &wait_cert.as_str(),
-            &wait_cert_sign.as_str(),
-            &poet_pub_key.as_str(),
+            wait_cert,
+            wait_cert_sign,
+            poet_pub_key,
             &mut verify_wait_cert_status,
         ).expect("Failed to verify wait certificate");
         verify_wait_cert_status
@@ -306,11 +307,11 @@ impl EnclaveConfig {
     ) -> String {
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
         let mut epid_info: r_sgx_epid_group_t = r_sgx_epid_group_t {
-            epid: 0 as *mut c_char
+            epid: ptr::null_mut()
         };
         ffi::get_epid_group(&mut eid, &mut epid_info)
             .expect("Failed to get EPID group");
-        let epid = ffi::create_string_from_char_ptr(epid_info.epid);
+        let epid = unsafe { ffi::create_string_from_char_ptr(epid_info.epid) };
         debug!("EPID group = {:?}", epid);
         epid
     }
@@ -329,10 +330,10 @@ impl EnclaveConfig {
 
     pub fn set_sig_revocation_list(
         &mut self,
-        sig_rev_list: &String,
+        sig_rev_list: &str,
     ) {
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
-        ffi::set_sig_revocation_list(&mut eid, &sig_rev_list.as_str())
+        ffi::set_sig_revocation_list(&mut eid, sig_rev_list)
             .expect("Failed to set sig revocation list");
         debug!("Signature revocation list has been updated");
     }
@@ -341,10 +342,10 @@ impl EnclaveConfig {
         &mut self
     ) -> (String, String) {
         let signup_data: r_sgx_signup_info_t = self.signup_info;
-        let poet_pub_key = ffi::create_string_from_char_ptr(
-            signup_data.poet_public_key as *mut c_char);
-        let enclave_quote = ffi::create_string_from_char_ptr(
-            signup_data.enclave_quote as *mut c_char);
+        let poet_pub_key = unsafe { ffi::create_string_from_char_ptr(
+            signup_data.poet_public_key as *mut c_char) };
+        let enclave_quote = unsafe { ffi::create_string_from_char_ptr(
+            signup_data.enclave_quote as *mut c_char) };
         (poet_pub_key, enclave_quote)
     }
 
@@ -383,7 +384,7 @@ fn check_verification_report(
     // First thing we will do is verify the signature over the verification report. The signature
     // over the verification report uses RSA-SHA256.
     let mut ias_report_key_file = config.get_ias_report_key_file();
-    if ias_report_key_file.len() == 0 {
+    if ias_report_key_file.is_empty() {
         ias_report_key_file = DEFAULT_IAS_REPORT_KEY_FILE.to_string();
     }
     let ias_report_key_contents = read_file_as_string(ias_report_key_file.as_str());
@@ -418,7 +419,7 @@ fn check_verification_report(
     }
     // 3. Includes an enclave quote status
     let enclave_status = verification_report_dict.get("isvEnclaveQuoteStatus");
-    if !enclave_status.is_some() {
+    if enclave_status.is_none() {
         error!("AVR does not include an enclave quote status");
         return Err(());
     }

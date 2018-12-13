@@ -147,7 +147,7 @@ fn main() {
     let (driver, _stop_handle) = ZmqDriver::new();
     info!("Starting the ZMQ Driver...");
 
-    let consensus_engine = Poet2Engine::new(config);
+    let consensus_engine = Poet2Engine::new(&config);
     driver.start(&endpoint, consensus_engine).unwrap_or_else(|_err| {
         process::exit(1);
     });

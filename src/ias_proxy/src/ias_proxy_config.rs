@@ -49,22 +49,22 @@ impl IasProxyConfig {
 
     /// Getters fot the members
     pub fn get_proxy_ip(&self) -> String {
-        return self.proxy_ip.clone();
+        self.proxy_ip.clone()
     }
 
     pub fn get_proxy_port(&self) -> String {
-        return self.proxy_port.clone();
+        self.proxy_port.clone()
     }
 
     pub fn get_ias_url(&self) -> String {
-        return self.ias_url.clone();
+        self.ias_url.clone()
     }
 
     pub fn get_spid_cert_file(&self) -> String {
-        return self.spid_cert_file.clone();
+        self.spid_cert_file.clone()
     }
 
     pub fn get_password(&self) -> String {
-        return self.password.clone();
+        self.password.clone()
     }
 }

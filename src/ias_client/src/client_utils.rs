@@ -136,11 +136,11 @@ pub fn read_response_future(
                         body,
                         header_map,
                     };
-                    return Ok(client_response);
+                    Ok(client_response)
                 }
                 Err(error) => {
                     error!("Error occurred while waiting for the ResponseFuture {}", error);
-                    return Err(ClientError);
+                    Err(ClientError)
                 }
             }
         });
@@ -162,7 +162,7 @@ pub fn read_response_future(
 pub fn read_body_as_string(
     body: Body
 ) -> Result<String, ClientError> {
-    return body.fold(Vec::new(), |mut vector, chunk| {
+    body.fold(Vec::new(), |mut vector, chunk| {
         vector.extend_from_slice(&chunk[..]);
         future::ok::<_, Error>(vector)
     })
@@ -173,16 +173,16 @@ pub fn read_body_as_string(
                 Ok(byte_vector) => {
                     let body = String::from_utf8(byte_vector)
                         .expect("Error reading body byte stream as string");
-                    return Ok(body);
+                    Ok(body)
                 }
                 Err(error) => {
                     error!("Error reading body as string {}", error);
-                    return Err(ClientError);
+                    Err(ClientError)
                 }
             }
         })
         // Wait for completion of task assigned to then
-        .wait();
+        .wait()
 }
 
 #[cfg(test)]
@@ -316,7 +316,7 @@ mod tests {
         let body = what_is_read_from_response.body;
         let what_is_read_from_body = read_body_as_string(body)
             .expect("Error reading body as string");
-        assert!(what_is_read_from_body.len() != 0)
+        assert_ne!(what_is_read_from_body.len(), 0)
     }
 
     #[test]

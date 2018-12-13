@@ -53,8 +53,8 @@ pub struct Poet2Engine {
 }
 
 impl Poet2Engine {
-    pub fn new(config: PoetConfig) -> Self {
-        Self::create_poet_engine(&config)
+    pub fn new(config: &PoetConfig) -> Self {
+        Self::create_poet_engine(config)
     }
 
     fn create_poet_engine(config: &PoetConfig) -> Self {
@@ -85,7 +85,7 @@ impl Poet2Engine {
         if config.is_genesis() {
             save_batchlist_to_file(
                 config.get_genesis_batch_path().as_str(),
-                batch_list.clone(),
+                &batch_list,
             )
         }
 
@@ -116,7 +116,7 @@ impl Engine for Poet2Engine {
         info!("Started PoET 2 Engine...");
 
         // Register if it's not genesis node
-        if self.config.is_genesis() == false {
+        if !self.config.is_genesis() {
             submit_batchlist_to_rest_api(
                 self.config.get_rest_api().as_str(),
                 BATCHES_REST_API,
@@ -226,7 +226,7 @@ impl Engine for Poet2Engine {
 
                 Err(RecvTimeoutError::Disconnected) => {
                     error!("Disconnected from validator");
-                    return Err(Error::UnknownPeer(format!("Validator got disconnected.")));
+                    return Err(Error::UnknownPeer("Validator got disconnected.".to_string()));
                 }
 
                 Err(RecvTimeoutError::Timeout) => {}
@@ -239,11 +239,11 @@ impl Engine for Poet2Engine {
                        poet2_util::to_hex_string(&cur_chain_head.block_id));
 
                 let summary = service.summarize_block();
-                let consensus: String = service.create_consensus(summary,
+                let consensus: String = service.create_consensus(&summary,
                                                                  cur_chain_head,
                                                                  wait_time.as_secs());
 
-                service.finalize_block(consensus.as_bytes().to_vec());
+                service.finalize_block(consensus.as_bytes());
                 is_published_at_height = true;
             }
         }

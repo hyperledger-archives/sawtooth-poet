@@ -77,7 +77,7 @@ pub fn do_create_registration(
 
     // Read private key from default path if it's not given as input in config
     let mut key_file = config.get_poet_client_private_key_file();
-    if key_file.len() == 0 {
+    if key_file.is_empty() {
         key_file = DEFAULT_POET_CLIENT_PRIVATE_KEY.to_string();
     }
     let read_key = read_file_as_string_ignore_line_end(key_file.as_str());
@@ -102,7 +102,7 @@ pub fn do_create_registration(
     let signup_info_str = serde_json::to_string(signup_info)
         .expect("Error serializing signup info");
     let raw_payload =
-        ValidatorRegistryPayload::create(
+        ValidatorRegistryPayload::new(
             verb,
             name,
             id,
@@ -143,7 +143,7 @@ pub fn do_create_registration(
     let transaction_header =
         create_transaction_header(&input_addresses,
                                   &output_addresses,
-                                  payload.clone(),
+                                  payload.as_str(),
                                   &public_key,
                                   nonce.to_string(),
         );
@@ -151,7 +151,7 @@ pub fn do_create_registration(
     // Create transaction
     let transaction =
         create_transaction(&signer,
-                           transaction_header,
+                           &transaction_header,
                            payload,
         );
 
@@ -210,7 +210,7 @@ fn create_batch(
 /// ```Signer```.
 fn create_transaction(
     signer: &Signer,
-    transaction_header: TransactionHeader,
+    transaction_header: &TransactionHeader,
     payload: String,
 ) -> Transaction {
 
@@ -231,7 +231,7 @@ fn create_transaction(
 fn create_transaction_header(
     input_addresses: &[String],
     output_addresses: &[String],
-    payload: String,
+    payload: &str,
     public_key: &Box<PublicKey>,
     nonce: String,
 ) -> TransactionHeader {
@@ -241,7 +241,7 @@ fn create_transaction_header(
     transaction_header.set_family_name(VALIDATOR_REGISTRY.to_string());
     transaction_header.set_family_version(VALIDATOR_REGISTRY_VERSION.to_string());
     transaction_header.set_nonce(nonce);
-    transaction_header.set_payload_sha512(sha512_from_str(payload.as_str()));
+    transaction_header.set_payload_sha512(sha512_from_str(payload));
     transaction_header.set_signer_public_key(public_key.as_hex());
     transaction_header.set_batcher_public_key(public_key.as_hex());
     transaction_header.set_inputs(RepeatedField::from_vec(input_addresses.to_vec()));
@@ -336,14 +336,15 @@ pub fn submit_batchlist_to_rest_api(
 /// Saves the ```BatchList``` to a file
 pub fn save_batchlist_to_file(
     genesis_batch_path: &str,
-    batch_list: BatchList,
+    batch_list: &BatchList,
 ) {
     let current_working_directory = env::current_dir()
         .expect("Error reading current working directory");
-    let mut file_path = current_working_directory.as_path();
-    if genesis_batch_path.len() > 0 {
-        file_path = Path::new(genesis_batch_path);
-    }
+    let file_path = if genesis_batch_path.is_empty() {
+        current_working_directory.as_path()
+    } else {
+        Path::new(genesis_batch_path)
+    };
     let raw_bytes = batch_list.write_to_bytes().expect("Unable to write batch list as bytes");
     write_binary_file(&raw_bytes, file_path.to_str().expect("Unexpected filename"));
 }
@@ -381,7 +382,7 @@ mod tests {
         let random_transaction_header = create_transaction_header(
             &random_input_addresses,
             &random_output_addresses,
-            random_payload.clone(),
+            random_payload.as_str(),
             &random_public_key,
             random_nonce.clone(),
         );
@@ -393,7 +394,7 @@ mod tests {
             .expect("Error signing the transaction header");
         let transaction = create_transaction(
             &signer,
-            random_transaction_header,
+            &random_transaction_header,
             random_payload.to_string());
 
         // Verify if transaction is properly composed
@@ -418,7 +419,7 @@ mod tests {
         let random_transaction_header = create_transaction_header(
             &random_input_addresses,
             &random_output_addresses,
-            random_payload.clone(),
+            random_payload.as_str(),
             &random_public_key,
             random_nonce.clone(),
         );
@@ -445,7 +446,7 @@ mod tests {
         let random_transaction_header = create_transaction_header(
             &random_input_addresses,
             &random_output_addresses,
-            random_payload.clone(),
+            random_payload.as_str(),
             &random_public_key,
             random_nonce.clone(),
         );
@@ -453,7 +454,7 @@ mod tests {
         // Get bytes and construct transaction
         let transaction = create_transaction(
             &signer,
-            random_transaction_header,
+            &random_transaction_header,
             random_payload.to_string());
 
         let signer1 = Signer::new(&context, random_private_key.as_ref());
@@ -491,7 +492,7 @@ mod tests {
         let random_transaction_header = create_transaction_header(
             &random_input_addresses,
             &random_output_addresses,
-            random_payload.clone(),
+            random_payload.as_str(),
             &random_public_key,
             random_nonce.clone(),
         );
@@ -499,7 +500,7 @@ mod tests {
         // Get bytes and construct transaction
         let transaction = create_transaction(
             &signer,
-            random_transaction_header,
+            &random_transaction_header,
             random_payload.to_string());
 
         let signer1 = Signer::new(&context, random_private_key.as_ref());

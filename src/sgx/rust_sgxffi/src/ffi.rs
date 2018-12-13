@@ -158,7 +158,7 @@ pub fn finalize_wait_cert(eid: &mut r_sgx_enclave_id_t,
                           prev_wait_cert: &str,
                           prev_block_id: &str, prev_wait_cert_sig: &str,
                           block_summary: &str, 
-                          wait_time: &u64) -> Result<String, String> {
+                          wait_time: u64) -> Result<String, String> {
     unsafe {
         let eid_ptr = eid as *mut r_sgx_enclave_id_t;
         let wait_cert_ptr = wait_cert_info  as *mut r_sgx_wait_certificate_t;
@@ -174,7 +174,7 @@ pub fn finalize_wait_cert(eid: &mut r_sgx_enclave_id_t,
                                                 prev_block_id_cstring.as_ptr(),
                                                 prev_wait_cert_sig_cstring.as_ptr(),
                                                 block_summary_cstring.as_ptr(),
-                                                *wait_time);
+                                                wait_time);
  
         match wait_cert_final_status {
             R_SUCCESS => Ok("Success".to_string()),
@@ -211,10 +211,11 @@ pub fn verify_wait_certificate(eid: &mut r_sgx_enclave_id_t,
     }
 }
 
-pub fn create_string_from_char_ptr(cchar_ptr : *mut ::std::os::raw::c_char)
-                                   -> String {
-    let c_str: &CStr = unsafe { CStr::from_ptr(cchar_ptr) };
-    let str_slice: &str = c_str.to_str().unwrap();
+pub unsafe fn create_string_from_char_ptr(
+    cchar_ptr : *mut ::std::os::raw::c_char
+) -> String {
+    let c_str: &CStr = CStr::from_ptr(cchar_ptr);
+    let str_slice: &str = c_str.to_str().expect("Unable to read string from cchar ptr");
     let string_buf: String = str_slice.to_owned();
 
     string_buf

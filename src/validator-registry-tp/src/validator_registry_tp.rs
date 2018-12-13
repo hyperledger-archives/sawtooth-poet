@@ -59,7 +59,7 @@ impl ValidatorRegistryTransactionHandler {
         ValidatorRegistryTransactionHandler {
             family_name: String::from("validator_registry"),
             family_versions: vec![String::from("2.0")],
-            namespaces: vec![String::from(get_validator_registry_prefix().to_string())],
+            namespaces: vec![get_validator_registry_prefix().to_string()],
         }
     }
 }
@@ -95,7 +95,7 @@ impl TransactionHandler for ValidatorRegistryTransactionHandler {
 
         // Extract the validator registry payload from txn request payload
         let val_reg_payload: ValidatorRegistryPayload =
-            ValidatorRegistryPayload::new(request.payload.clone(), txn_public_key)
+            ValidatorRegistryPayload::parse_from(&request.payload, txn_public_key)
                 .expect("Error constructing Validator Registry payload");
 
         // Create the txn public key's hash
@@ -136,14 +136,13 @@ impl ValidatorRegistryTransactionHandler {
     fn _update_validator_state(
         &self,
         context: &mut TransactionContext,
-        validator_id: &String,
-        anti_sybil_id: &String,
+        validator_id: &str,
+        anti_sybil_id: &str,
         validator_info: &ValidatorRegistryValidatorInfo,
     ) -> Result<(), ValueError> {
         let mut validator_map = self._get_validator_map(context);
 
         // Clean out old entries in ValidatorInfo and ValidatorMap
-        // Protobuf doesn't offer delete item for ValidatorMap so create a new list
         // Use the validator map to find all occurrences of an anti_sybil_id
         // Use any such entry to find the associated validator id.
         // Use that validator id as the key to remove the ValidatorInfo from the
@@ -155,7 +154,7 @@ impl ValidatorRegistryTransactionHandler {
             let mut entry: ValidatorRegistryValidatorMapEntry =
                 serde_json::from_str(&entry_str)
                     .expect("Error when reading Validator Registry Map Entry");
-            if anti_sybil_id == &entry.key && anti_sybil_id.len() > 0 {
+            if anti_sybil_id == entry.key && !anti_sybil_id.is_empty() {
                 // remove the old validator_info data from state
                 validator_info_address = _get_address(&entry.value);
                 self._delete_address(context, &validator_info_address);
@@ -198,8 +197,8 @@ impl ValidatorRegistryTransactionHandler {
     fn _set_data(
         &self,
         context: &mut TransactionContext,
-        address: &String,
-        data: &String,
+        address: &str,
+        data: &str,
     ) {
         let mut map: HashMap<String, Vec<u8>> = HashMap::new();
         map.insert(address.to_string(), data.as_bytes().to_vec());
@@ -212,7 +211,7 @@ impl ValidatorRegistryTransactionHandler {
     fn _get_state(
         &self,
         context: &mut TransactionContext,
-        address: &String,
+        address: &str,
     ) -> Result<String, String> {
         let entries_ = context.get_state(vec![address.to_string()]); // this return Option<Vec<u8>>
         let entries = if entries_.is_ok() {
@@ -257,14 +256,12 @@ impl ValidatorRegistryTransactionHandler {
     fn _delete_address(
         &self,
         context: &mut TransactionContext,
-        address: &String,
+        address: &str,
     ) {
         let remove_addresses = vec![address.to_string()];
         let addresses = context.delete_state(remove_addresses);
 
-        if addresses.is_ok() && addresses.expect("Error reading addresses").is_some() {
-            ()
-        } else {
+        if addresses.is_err() || addresses.expect("Error reading addresses").is_none() {
             panic!("Error deleting value at address {}.", address.to_string());
         }
     }
@@ -276,7 +273,9 @@ fn get_validator_registry_prefix() -> String {
     hasher.result_str()[0..6].to_string()
 }
 
-fn _get_address(key: &String) -> String {
+fn _get_address(
+    key: &str
+) -> String {
     let mut hasher = Sha256::new();
     hasher.input_str(&key.to_string().as_str());
     get_validator_registry_prefix() + &hasher.result_str()

@@ -128,7 +128,7 @@ fn main() {
     };
 
     // Get a proxy server instance and run it
-    let proxy_server = ias_proxy_server::get_proxy_server(config);
+    let proxy_server = ias_proxy_server::get_proxy_server(&config);
     proxy_server.run();
 }
 

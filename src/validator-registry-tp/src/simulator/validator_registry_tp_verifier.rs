@@ -21,7 +21,7 @@ use validator_registry_tp::ValueError;
 
 pub fn verify_signup_info(
     _context: &mut TransactionContext,
-    _originator_public_key_hash: &String,
+    _originator_public_key_hash: &str,
     _val_reg_payload: &ValidatorRegistryPayload,
 ) -> Result<(), ValueError> {
 

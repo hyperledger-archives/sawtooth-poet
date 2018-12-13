@@ -88,7 +88,7 @@ const UNKNOWN_ERROR_STATUS_CODE: u16 = 520;
 impl IasProxyServer {
     /// Create new instance of IasProxyServer
     fn new(
-        config: IasProxyConfig
+        config: &IasProxyConfig
     ) -> Self {
         IasProxyServer {
             ias_proxy_ip: config.get_proxy_ip(),
@@ -170,42 +170,42 @@ fn respond_to_request(
     // Get response parsing request parameters
     match *req.method() {
         Method::GET => {
-            return handle_get_request(
-                req,
+            handle_get_request(
+                &req,
                 ias_client_obj,
-            );
+            )
         }
 
         Method::POST => {
-            return handle_post_request(
+            handle_post_request(
                 req,
                 ias_client_obj,
-            );
+            )
         }
 
         // Proxy server doesn't support any other request types other than GET and POST.
         _ => {
-            return send_response(
+            send_response(
                 StatusCode::NOT_FOUND,
                 None,
                 None,
-            );
+            )
         }
-    };
+    }
 }
 
 /// Handle get request from the proxy, this should only be valid for getting signature revocation
 /// list. Proxy server doesn't support other GET requests. See ```response_to_request()``` for
 /// detailed description.
 fn handle_get_request(
-    req: Request<Body>,
+    req: &Request<Body>,
     ias_client_obj: &IasClient,
 ) -> ResponseBox {
 
     // Get path from request
     let path = req.uri().path().to_owned();
 
-    if path.contains(SIG_RL_LINK) == false {
+    if !path.contains(SIG_RL_LINK) {
         return send_response(
             StatusCode::NOT_FOUND,
             None,
@@ -243,24 +243,24 @@ fn handle_get_request(
             // Send the response to requester
             let mut headers = ias_response.header_map;
             let body = Body::from(ias_response.body_string);
-            return send_response(
+            send_response(
                 StatusCode::OK,
                 Option::from(headers),
                 Option::from(body),
-            );
+            )
         }
         Err(error) => {
             error!("Error occurred {}", error);
             // Unknown error, ideally this case should not occur. Cache must be corrupted or
             // IAS returned error.
-            return send_response(
+            send_response(
                 StatusCode::from_u16(UNKNOWN_ERROR_STATUS_CODE)
                     .expect("Error converting status code"),
                 None,
                 None,
-            );
+            )
         }
-    };
+    }
 }
 
 /// Handle post request from the proxy, this should only be valid for getting attestation
@@ -274,7 +274,7 @@ fn handle_post_request(
     // Get path from request
     let path = req.uri().path().to_owned();
 
-    if path.contains(AVR_LINK) == false {
+    if !path.contains(AVR_LINK) {
         return send_response(
             StatusCode::NOT_FOUND,
             None,
@@ -337,22 +337,22 @@ fn handle_post_request(
             // AVR is read, send it to the requester
             let body = Body::from(avr_content.body_string);
             let mut headers = avr_content.header_map;
-            return send_response(
+            send_response(
                 StatusCode::OK,
                 Option::from(headers),
                 Option::from(body),
-            );
+            )
         }
         Err(error) => {
             error!("Error occurred {}", error);
             // Unknown error, ideally this case should not occur. Cache must be corrupted or
             // IAS returned error.
-            return send_response(
+            send_response(
                 StatusCode::from_u16(UNKNOWN_ERROR_STATUS_CODE)
                     .expect("Error converting status code"),
                 None,
                 None,
-            );
+            )
         }
     }
 }
@@ -396,7 +396,7 @@ fn ias_response_from_client_response(
             let body_string_result = client_utils::read_body_as_string(successful_response.body);
 
             // If reading body as string is successful then construct IasResponse
-            return match body_string_result {
+            match body_string_result {
                 Ok(body_read_successfully) => {
                     Ok(IasResponse {
                         body_string: body_read_successfully,
@@ -408,12 +408,12 @@ fn ias_response_from_client_response(
                 Err(body_read_failed) => {
                     Err(body_read_failed)
                 }
-            };
+            }
         }
 
         // ClientError occurred, there's no valid response to convert
         Err(error_response) => {
-            return Err(error_response);
+            Err(error_response)
         }
     }
 }
@@ -423,14 +423,13 @@ fn ias_response_from_client_response(
 ///
 /// return: A ```IasProxyServer``` object
 pub fn get_proxy_server(
-    proxy_config: IasProxyConfig
+    proxy_config: &IasProxyConfig
 ) -> IasProxyServer {
 
     // Read toml config file as input.
     // Conversion to struct would have failed if fields in file doesn't match expectation
     // So the config map here has all required values set in it.
-    let ias_server = IasProxyServer::new(proxy_config);
-    ias_server
+    IasProxyServer::new(proxy_config)
 }
 
 #[cfg(test)]
@@ -448,7 +447,7 @@ mod tests {
             "".to_string(),
         );
         // This would also test new function of IasProxyServer
-        let ias_server = get_proxy_server(ias_proxy_config);
+        let ias_server = get_proxy_server(&ias_proxy_config);
         assert_eq!(ias_server.ias_proxy_ip, "127.0.0.1");
         assert_eq!(ias_server.ias_proxy_port, "8000");
     }

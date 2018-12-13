@@ -63,7 +63,7 @@ impl<K, V> LruCache<K, V>
         let ordered_keys = self.order.borrow_mut();
         let modified_values = self.values.borrow_mut();
         // Key not present, so add it
-        if modified_values.contains_key(&key) == false {
+        if !modified_values.contains_key(&key) {
             // Remove least accessed element from the LRU cache if there's no more space
             while ordered_keys.len() >= self.max_size {
                 let popped = ordered_keys.pop_back();

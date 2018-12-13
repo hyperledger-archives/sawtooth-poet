@@ -40,7 +40,7 @@ pub struct ValidatorRegistryPayload {
 }
 
 impl ValidatorRegistryPayload {
-    pub fn create(
+    pub fn new(
         verb: String,
         name: String,
         id: String,
@@ -54,12 +54,12 @@ impl ValidatorRegistryPayload {
         }
     }
 
-    pub fn new(
-        payload_data: Vec<u8>,
+    pub fn parse_from(
+        payload_data: &[u8],
         public_key: &str,
     ) -> Result<ValidatorRegistryPayload, ApplyError> {
         let payload: ValidatorRegistryPayload;
-        let payload_string = match from_utf8(&payload_data) {
+        let payload_string = match from_utf8(payload_data) {
             Ok(s) => s,
             Err(error) => {
                 return Err(ApplyError::InvalidTransaction(format!(
@@ -78,18 +78,18 @@ impl ValidatorRegistryPayload {
             }
         };
 
-        if payload.name.len() <= 0 || payload.name.len() > VALIDATOR_NAME_LEN {
-            return Err(ApplyError::InvalidTransaction(String::from(
+        if payload.name.is_empty() || payload.name.len() > VALIDATOR_NAME_LEN {
+            return Err(ApplyError::InvalidTransaction(
                 format!("Invalid validator name length {}", payload.name.len()),
-            )));
+            ));
         }
 
-        if payload.id != public_key.to_string() {
-            return Err(ApplyError::InvalidTransaction(String::from(
+        if payload.id != public_key {
+            return Err(ApplyError::InvalidTransaction(
                 format!("Signature mismatch on validator registration with validator {} signed by {}",
                         &payload.id,
                         &public_key),
-            )));
+            ));
         }
 
         Ok(payload)

@@ -99,8 +99,8 @@ mod tests {
                                     .expect("Failed to create signup info");
         assert_eq!(ret, "Success");
 
-        let ppk_str: String = ffi::create_string_from_char_ptr(
-                                signup_info.poet_public_key as *mut c_char);
+        let ppk_str: String = unsafe { ffi::create_string_from_char_ptr(
+                                signup_info.poet_public_key as *mut c_char) };
         println!("Poet Public Key : {}", ppk_str);
 
         //Create wait certificate
@@ -132,14 +132,14 @@ mod tests {
         let ret = ffi::finalize_wait_cert(&mut eid, &mut wait_cert_info,
                                           &prev_cert, &prev_block_id,
                                           &prev_wait_cert_sig,
-                                          &block_summary, &wait_time)
+                                          &block_summary, wait_time)
                                 .expect("Failed to finalize wait certificate");
         assert_eq!(ret, "Success");
 
-        let wait_cert = ffi::create_string_from_char_ptr(
-                                wait_cert_info.ser_wait_cert as *mut c_char);
-        let wait_cert_sign = ffi::create_string_from_char_ptr(
-                             wait_cert_info.ser_wait_cert_sign as *mut c_char);
+        let wait_cert = unsafe { ffi::create_string_from_char_ptr(
+                                wait_cert_info.ser_wait_cert as *mut c_char) };
+        let wait_cert_sign = unsafe { ffi::create_string_from_char_ptr(
+                             wait_cert_info.ser_wait_cert_sign as *mut c_char) };
 
         println!("wait_cert = {:?}", wait_cert);
         //verify wait certificate

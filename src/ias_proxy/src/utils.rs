@@ -34,7 +34,7 @@ pub fn read_file_as_string(
     if file_reader.read_to_string(&mut file_contents).is_err() {
         panic!("Unable to read file")
     };
-    return file_contents;
+    file_contents
 }
 
 /// Reads binary file and returns vector of u8

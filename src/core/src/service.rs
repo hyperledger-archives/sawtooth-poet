@@ -99,39 +99,54 @@ impl Poet2Service {
         summary.expect("Failed to summarize block")
     }
 
-    pub fn finalize_block(&mut self, consensus: Vec<u8>) -> BlockId {
+    pub fn finalize_block(
+        &mut self,
+        consensus: &[u8]
+    ) -> BlockId {
         debug!("Finalizing block");
-        let mut block_id = self.service.finalize_block(consensus.clone());
+        let mut block_id = self.service.finalize_block(consensus.to_vec());
         while let Err(Error::BlockNotReady) = block_id {
             warn!("Block not ready to finalize");
             sleep(time::Duration::from_secs(1));
-            block_id = self.service.finalize_block(consensus.clone());
+            block_id = self.service.finalize_block(consensus.to_vec());
         }
         block_id.expect("Failed to finalize block")
     }
 
-    pub fn check_block(&mut self, block_id: BlockId) {
+    pub fn check_block(
+        &mut self,
+        block_id: BlockId
+    ) {
         debug!("Checking block {:?}", block_id);
         self.service
             .check_blocks(vec![block_id])
             .expect("Failed to check block");
     }
 
-    pub fn fail_block(&mut self, block_id: BlockId) {
+    pub fn fail_block(
+        &mut self,
+        block_id: BlockId
+    ) {
         debug!("Failing block {:?}", block_id);
         self.service
             .fail_block(block_id)
             .expect("Failed to fail block");
     }
 
-    pub fn ignore_block(&mut self, block_id: BlockId) {
+    pub fn ignore_block(
+        &mut self,
+        block_id: BlockId
+    ) {
         debug!("Ignoring block {:?}", block_id);
         self.service
             .ignore_block(block_id)
             .expect("Failed to ignore block")
     }
 
-    pub fn commit_block(&mut self, block_id: BlockId) {
+    pub fn commit_block(
+        &mut self,
+        block_id: BlockId
+    ) {
         debug!("Committing block {:?}", block_id);
         self.service
             .commit_block(block_id)
@@ -151,34 +166,47 @@ impl Poet2Service {
         };
     }
 
-    pub fn broadcast(&mut self, payload: Vec<u8>) {
+    pub fn broadcast(
+        &mut self,
+        payload: Vec<u8>
+    ) {
         debug!("Broadcasting payload");
         self.service
             .broadcast("published", payload)
             .expect("Failed to broadcast published block");
     }
 
-    pub fn send_block_received(&mut self, block: &Block) {
+    pub fn send_block_received(
+        &mut self,
+        block: &Block
+    ) {
         let block = block.clone();
 
         self.service
             .send_to(
-                &PeerId::from(block.signer_id),
+                &block.signer_id,
                 "received",
-                Vec::from(block.block_id),
+                block.block_id,
             )
             .expect("Failed to send block received");
     }
 
-    pub fn send_block_ack(&mut self, sender_id: PeerId, block_id: BlockId) {
+    pub fn send_block_ack(
+        &mut self,
+        sender_id: &PeerId,
+        block_id: BlockId
+    ) {
         self.service
-            .send_to(&sender_id, "ack", Vec::from(block_id))
+            .send_to(sender_id, "ack", block_id)
             .expect("Failed to send block ack");
     }
 
-    pub fn get_wait_time(&mut self, pre_chain_head: &Block, validator_id: &str,
-                        poet_pub_key: &String) -> u64
-    {
+    pub fn get_wait_time(
+        &mut self,
+        pre_chain_head: &Block,
+        validator_id: &str,
+        poet_pub_key: &str
+    ) -> u64 {
         let mut prev_wait_certificate = String::new();
         let mut prev_wait_certificate_sig = String::new();
 
@@ -194,8 +222,8 @@ impl Poet2Service {
         }
         let duration64 = EnclaveConfig::initialize_wait_certificate(
                               self.enclave.enclave_id,
-                              prev_wait_certificate,
-                              prev_wait_certificate_sig,
+                              &prev_wait_certificate,
+                              &prev_wait_certificate_sig,
                               validator_id,
                               &poet_pub_key);
 
@@ -207,27 +235,33 @@ impl Poet2Service {
         if wait_time as u64 == 0_u64 {
              wait_time = minimum_duration; 
         }
-        return wait_time as u64;
+        wait_time as u64
     }
 
-    pub fn get_settings(&mut self, block_id: BlockId, keys: Vec<String>)
-         -> Result<HashMap<String, String>, Error> {
-        let settings_result = self.service.get_settings(
+    pub fn get_settings(
+        &mut self,
+        block_id: BlockId,
+        keys: Vec<String>
+    ) -> Result<HashMap<String, String>, Error> {
+        self.service.get_settings(
             block_id,
-            keys);
-        settings_result
+            keys)
     }
 
-    pub fn get_setting(&mut self, block_id: BlockId, key:String) -> String {
+    pub fn get_setting(
+        &mut self,
+        block_id: BlockId,
+        key: &str
+    ) -> String {
         let settings_result = self.service.get_settings(
             block_id,
             vec![
-                    key.clone(),
+                    key.to_string(),
                 ],
         );
 
         if settings_result.is_ok() {
-            settings_result.unwrap().remove(&key).unwrap()
+            settings_result.unwrap().remove(key).unwrap()
         }
         else {
             error!("Could not get setting for key {}", key);
@@ -235,47 +269,61 @@ impl Poet2Service {
         }
     }
 
-    pub fn get_setting_from_head(&mut self, key:String) ->  String {
-        let head_id:BlockId = self.get_chain_head().block_id;
-        self.get_setting( head_id, key )
+    pub fn get_setting_from_head(
+        &mut self,
+        key: &str
+    ) -> String {
+        let head_id: BlockId = self.get_chain_head().block_id;
+        self.get_setting( head_id, key)
     }
 
-    pub fn get_state(&mut self, block_id: BlockId, key: &String) -> Result<HashMap<String, Vec<u8>>, Error> {
+    pub fn get_state(
+        &mut self,
+        block_id: BlockId,
+        key: &str
+    ) -> Result<HashMap<String, Vec<u8>>, Error> {
         self.service.get_state(
             block_id,
             vec![
-                key.clone(),
+                key.to_string(),
             ]
         )
     }
 
-    pub fn create_consensus(&mut self, summary: Vec<u8>, chain_head: Block, wait_time : u64) -> String {
-        let mut wait_certificate = String::new();
-        let mut wait_certificate_sig = String::new();
-
-        if chain_head.block_num != 0_u64 { // not genesis block
-            let result =
-                 poet2_util::payload_to_wc_and_sig(&chain_head.payload);
-            wait_certificate = result.0;
-            wait_certificate_sig = result.1;
-        }
+    pub fn create_consensus(
+        &mut self,
+        summary: &[u8],
+        chain_head: Block,
+        wait_time: u64
+    ) -> String {
+        let (wait_certificate, wait_certificate_sig) =
+            if chain_head.block_num != 0_u64 { // not genesis block
+                poet2_util::payload_to_wc_and_sig(&chain_head.payload)
+            } else {
+                (String::new(), String::new())
+            };
         info!("Block id returned is {:?}",  poet2_util::to_hex_string(&chain_head.block_id));
         let (serial_cert, cert_signature) = EnclaveConfig::finalize_wait_certificate(
                 self.enclave.enclave_id,
-                wait_certificate,
-                poet2_util::blockid_to_hex_string(chain_head.block_id),
-                wait_certificate_sig, 
-                poet2_util::to_hex_string(&summary),
+                &wait_certificate,
+                &poet2_util::to_hex_string(&chain_head.block_id),
+                &wait_certificate_sig,
+                &poet2_util::to_hex_string(&summary),
                 wait_time
             );
 
         let mut payload_to_send = serial_cert;
         payload_to_send.push_str("#");
         payload_to_send.push_str(&cert_signature); 
-        return payload_to_send.clone();
+        return payload_to_send;
     }
 
-    pub fn verify_wait_certificate( &mut self, _block: &Block, previous_block: &Block, poet_pub_key: &String) -> bool {
+    pub fn verify_wait_certificate(
+        &mut self,
+        _block: &Block,
+        previous_block: &Block,
+        poet_pub_key: &str
+    ) -> bool {
         let block = _block.clone();
         let mut wait_cert_verify_status:bool = false;
 
@@ -291,7 +339,7 @@ impl Poet2Service {
 
         debug!("sig_verify_status={:?}", sig_verify_status);
 
-        let prev_id = poet2_util::blockid_to_hex_string(block.previous_id);
+        let prev_id = poet2_util::to_hex_string(&block.previous_id);
         let signer_id = poet2_util::to_hex_string(&block.signer_id);
         let summary = poet2_util::to_hex_string(&block.summary);
         let validator_id = deser_wait_cert.validator_id.clone();
