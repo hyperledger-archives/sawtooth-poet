@@ -40,12 +40,7 @@ pub struct ValidatorRegistryPayload {
 }
 
 impl ValidatorRegistryPayload {
-    pub fn new(
-        verb: String,
-        name: String,
-        id: String,
-        signup_info_str: String,
-    ) -> Self {
+    pub fn new(verb: String, name: String, id: String, signup_info_str: String) -> Self {
         ValidatorRegistryPayload {
             verb,
             name,
@@ -63,7 +58,8 @@ impl ValidatorRegistryPayload {
             Ok(s) => s,
             Err(error) => {
                 return Err(ApplyError::InvalidTransaction(format!(
-                    "Invalid payload serialization {}", error
+                    "Invalid payload serialization {}",
+                    error
                 )));
             }
         };
@@ -73,23 +69,24 @@ impl ValidatorRegistryPayload {
             Err(error) => {
                 println!("{} is the payload_string", payload_string);
                 return Err(ApplyError::InvalidTransaction(format!(
-                    "Invalid validator payload string {}", error
+                    "Invalid validator payload string {}",
+                    error
                 )));
             }
         };
 
         if payload.name.is_empty() || payload.name.len() > VALIDATOR_NAME_LEN {
-            return Err(ApplyError::InvalidTransaction(
-                format!("Invalid validator name length {}", payload.name.len()),
-            ));
+            return Err(ApplyError::InvalidTransaction(format!(
+                "Invalid validator name length {}",
+                payload.name.len()
+            )));
         }
 
         if payload.id != public_key {
-            return Err(ApplyError::InvalidTransaction(
-                format!("Signature mismatch on validator registration with validator {} signed by {}",
-                        &payload.id,
-                        &public_key),
-            ));
+            return Err(ApplyError::InvalidTransaction(format!(
+                "Signature mismatch on validator registration with validator {} signed by {}",
+                &payload.id, &public_key
+            )));
         }
 
         Ok(payload)

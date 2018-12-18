@@ -82,7 +82,6 @@ impl TransactionHandler for ValidatorRegistryTransactionHandler {
         request: &TpProcessRequest,
         context: &mut TransactionContext,
     ) -> Result<(), ApplyError> {
-
         // Get txn public key from request header
         let txn_public_key = match &request.header.as_ref() {
             Some(s) => &s.signer_public_key,
@@ -103,11 +102,7 @@ impl TransactionHandler for ValidatorRegistryTransactionHandler {
         txn_public_key_hasher.input(txn_public_key.as_bytes());
         let txn_public_key_hash = txn_public_key_hasher.result_str();
 
-        let result = verify_signup_info(
-            context,
-            &txn_public_key_hash,
-            &val_reg_payload,
-        );
+        let result = verify_signup_info(context, &txn_public_key_hash, &val_reg_payload);
 
         if result.is_ok() {
             let validator_info = ValidatorRegistryValidatorInfo {
@@ -117,15 +112,23 @@ impl TransactionHandler for ValidatorRegistryTransactionHandler {
                 txn_id: request.signature.clone(),
             };
 
-            if self._update_validator_state(context,
-                                            &val_reg_payload.id,
-                                            &val_reg_payload.get_signup_info().anti_sybil_id,
-                                            &validator_info).is_err() {
-                return Err(ApplyError::InvalidTransaction(
-                    String::from("Could not update validator state")));
+            if self
+                ._update_validator_state(
+                    context,
+                    &val_reg_payload.id,
+                    &val_reg_payload.get_signup_info().anti_sybil_id,
+                    &validator_info,
+                )
+                .is_err()
+            {
+                return Err(ApplyError::InvalidTransaction(String::from(
+                    "Could not update validator state",
+                )));
             }
         } else {
-            return Err(ApplyError::InvalidTransaction(String::from("Invalid Signup Info")));
+            return Err(ApplyError::InvalidTransaction(String::from(
+                "Invalid Signup Info",
+            )));
         }
 
         Ok(())
@@ -150,10 +153,12 @@ impl ValidatorRegistryTransactionHandler {
 
         let mut validator_info_address: String;
         for idx in 0..validator_map.entries.len() {
-            let mut entry_str = validator_map.entries.get_mut(idx).expect("Unexpected index read");
-            let mut entry: ValidatorRegistryValidatorMapEntry =
-                serde_json::from_str(&entry_str)
-                    .expect("Error when reading Validator Registry Map Entry");
+            let mut entry_str = validator_map
+                .entries
+                .get_mut(idx)
+                .expect("Unexpected index read");
+            let mut entry: ValidatorRegistryValidatorMapEntry = serde_json::from_str(&entry_str)
+                .expect("Error when reading Validator Registry Map Entry");
             if anti_sybil_id == entry.key && !anti_sybil_id.is_empty() {
                 // remove the old validator_info data from state
                 validator_info_address = _get_address(&entry.value);
@@ -175,7 +180,7 @@ impl ValidatorRegistryTransactionHandler {
             context,
             &validator_map_address,
             &serde_json::to_string(&validator_map)
-                .expect("Error converting Validator Map to string")
+                .expect("Error converting Validator Map to string"),
         );
 
         // add the new validator_info to state
@@ -185,21 +190,18 @@ impl ValidatorRegistryTransactionHandler {
             context,
             &validator_info_address,
             &serde_json::to_string(&validator_info)
-                .expect("Error comverting Validator Registry info to string ")
+                .expect("Error comverting Validator Registry info to string "),
         );
 
-        info!("Validator id {} was added to the validator_map and set at address {}.",
-              validator_id, validator_info_address);
+        info!(
+            "Validator id {} was added to the validator_map and set at address {}.",
+            validator_id, validator_info_address
+        );
 
         Ok(())
     }
 
-    fn _set_data(
-        &self,
-        context: &mut TransactionContext,
-        address: &str,
-        data: &str,
-    ) {
+    fn _set_data(&self, context: &mut TransactionContext, address: &str, data: &str) {
         let mut map: HashMap<String, Vec<u8>> = HashMap::new();
         map.insert(address.to_string(), data.as_bytes().to_vec());
         let addresses = context.set_state(map);
@@ -223,25 +225,23 @@ impl ValidatorRegistryTransactionHandler {
 
         match entries {
             Some(present) => {
-                Ok(String::from_utf8(present)
-                    .expect("Error converting entries to string"))
+                Ok(String::from_utf8(present).expect("Error converting entries to string"))
             }
-            None => {
-                Err("Error getting context.".to_string())
-            }
+            None => Err("Error getting context.".to_string()),
         }
     }
 
     fn _get_validator_map(
         &self,
-        context: &mut TransactionContext
+        context: &mut TransactionContext,
     ) -> ValidatorRegistryValidatorMap {
         let address = _get_address(&String::from("validator_map"));
         let state = self._get_state(context, &address);
         let to_return = match state {
             Ok(validator_map_str) => {
-                let mut validator_map: ValidatorRegistryValidatorMap = serde_json::from_str(&validator_map_str)
-                    .expect("Error decoding Validator Registry Map string");
+                let mut validator_map: ValidatorRegistryValidatorMap =
+                    serde_json::from_str(&validator_map_str)
+                        .expect("Error decoding Validator Registry Map string");
                 validator_map
             }
             Err(error) => {
@@ -253,11 +253,7 @@ impl ValidatorRegistryTransactionHandler {
         to_return
     }
 
-    fn _delete_address(
-        &self,
-        context: &mut TransactionContext,
-        address: &str,
-    ) {
+    fn _delete_address(&self, context: &mut TransactionContext, address: &str) {
         let remove_addresses = vec![address.to_string()];
         let addresses = context.delete_state(remove_addresses);
 
@@ -273,9 +269,7 @@ fn get_validator_registry_prefix() -> String {
     hasher.result_str()[0..6].to_string()
 }
 
-fn _get_address(
-    key: &str
-) -> String {
+fn _get_address(key: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.input_str(&key.to_string().as_str());
     get_validator_registry_prefix() + &hasher.result_str()

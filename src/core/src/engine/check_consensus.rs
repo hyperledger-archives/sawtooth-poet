@@ -15,17 +15,17 @@
  * ------------------------------------------------------------------------------
  */
 
-extern crate sawtooth_sdk;
 extern crate log;
 extern crate log4rs;
- 
-use sawtooth_sdk::consensus::{engine::*};
+extern crate sawtooth_sdk;
+
+use poet2_util;
+use sawtooth_sdk::consensus::engine::*;
 use service::Poet2Service;
 use std::cmp;
-use poet2_util;
 use validator_registry_view;
 
-const DEFAULT_BLOCK_CLAIM_LIMIT:i32 = 250;
+const DEFAULT_BLOCK_CLAIM_LIMIT: i32 = 250;
 
 /*
 * Consensus related sanity checks to be done here
@@ -35,10 +35,7 @@ const DEFAULT_BLOCK_CLAIM_LIMIT:i32 = 250;
 *
 */
 
-pub fn check_consensus(
-    block: &Block,
-    service: &mut Poet2Service, validator_id: &str,
-) -> bool {
+pub fn check_consensus(block: &Block, service: &mut Poet2Service, validator_id: &str) -> bool {
     // 1. Validator registry check
     // 4. Match Local Mean against the locally computed
     // 5. Verfidy BlockDigest is a valid ECDSA of
@@ -47,19 +44,23 @@ pub fn check_consensus(
     //\\ 2. Signature validation using sender's PPK
     let block_signer = poet2_util::to_hex_string(&block.signer_id.clone());
     let validator = validator_id;
-    debug!("Signer ID {}, Validator ID {}", block_signer.clone(), validator);
+    debug!(
+        "Signer ID {}, Validator ID {}",
+        block_signer.clone(),
+        validator
+    );
 
-    let poet_pub_key =
-        match validator_registry_view::get_poet_pubkey_for_validator_id(
-            block_signer.as_str(),
-            &block.block_id,
-            service) {
-            Ok(registered_public_key) => registered_public_key,
-            Err(error) => {
-                info!("PoET public key is not found {}", error);
-                return false;
-            }
-        };
+    let poet_pub_key = match validator_registry_view::get_poet_pubkey_for_validator_id(
+        block_signer.as_str(),
+        &block.block_id,
+        service,
+    ) {
+        Ok(registered_public_key) => registered_public_key,
+        Err(error) => {
+            info!("PoET public key is not found {}", error);
+            return false;
+        }
+    };
 
     if !verify_wait_certificate(block, service, &poet_pub_key) {
         return false;
@@ -77,14 +78,14 @@ pub fn check_consensus(
 
     // 7. c-test
 
-    if validator == block_signer && validator_is_claiming_too_early( block, service){
+    if validator == block_signer && validator_is_claiming_too_early(block, service) {
         return false;
     }
 
     //\\ 8. Compare CC & WC
     let chain_clock = service.get_chain_clock();
     let wall_clock = service.get_wall_clock();
-    let wait_time:u64 = 0;//get_wait_cert_json(String::from_utf8(block.payload).unwrap()).wait_time;
+    let wait_time: u64 = 0; //get_wait_cert_json(String::from_utf8(block.payload).unwrap()).wait_time;
     if chain_clock + wait_time > wall_clock {
         return false;
     }
@@ -94,25 +95,23 @@ pub fn check_consensus(
 fn verify_wait_certificate(
     block: &Block,
     service: &mut Poet2Service,
-    poet_pub_key: &String)
-    -> bool {
+    poet_pub_key: &String,
+) -> bool {
     let prev_block = service.get_block(&block.previous_id).unwrap();
     let verify_status = service.verify_wait_certificate(block, &prev_block, &poet_pub_key);
     verify_status
 }
 
-
 //k-test
-fn validtor_has_claimed_block_limit( service: &mut Poet2Service ) -> bool {
-
+fn validtor_has_claimed_block_limit(service: &mut Poet2Service) -> bool {
     let mut block_claim_limit = DEFAULT_BLOCK_CLAIM_LIMIT;
-    let key_block_claim_count=9;
-    let poet_public_key="abcd";
-    let validator_info_signup_info_poet_public_key="abcd";
+    let key_block_claim_count = 9;
+    let poet_public_key = "abcd";
+    let validator_info_signup_info_poet_public_key = "abcd";
     //  let mut key_block_claim_limit = poet_settings_view.key_block_claim_limit ;     //key
     // need to use get_settings from service
-    let key_block_claim_limit = service.get_setting_from_head(
-        "sawtooth.poet.key_block_claim_limit");
+    let key_block_claim_limit =
+        service.get_setting_from_head("sawtooth.poet.key_block_claim_limit");
 
     if key_block_claim_limit != "" {
         block_claim_limit = key_block_claim_limit.parse::<i32>().unwrap();
@@ -121,21 +120,22 @@ fn validtor_has_claimed_block_limit( service: &mut Poet2Service ) -> bool {
     // let mut validator_state = self.get_validator_state();//                          //stubbed
     // if validator_state.poet_public_key == validator_info.signup_info.poet_public_key //stubbed
 
-    if poet_public_key == validator_info_signup_info_poet_public_key     //stubbed function replaced with dummy function
+    if poet_public_key == validator_info_signup_info_poet_public_key
+    //stubbed function replaced with dummy function
     {
         //if validator_state.key_block_claim_count >= block_claim_limit
-        if key_block_claim_count >= block_claim_limit{
-            true }
-        else { false }
+        if key_block_claim_count >= block_claim_limit {
+            true
+        } else {
+            false
+        }
+    } else {
+        false
     }
-    else{ false }
 }
 
-
 //c-test
-fn validator_is_claiming_too_early( block: &Block, service: &mut Poet2Service )->bool
-{
-
+fn validator_is_claiming_too_early(block: &Block, service: &mut Poet2Service) -> bool {
     let number_of_validators = 3_u64;
     //    number_of_validators = (validator_registry_view.get_validators()).len();  //stubbed function
     let total_block_claim_count = block.block_num - 1;
@@ -143,34 +143,31 @@ fn validator_is_claiming_too_early( block: &Block, service: &mut Poet2Service )-
     //    let commit_block = block_store.get_block_by_transaction_id(validator_info.transaction_id)
     let block_number = block.block_num;
 
-    let block_claim_delay_from_settings = service.get_setting_from_head(
-        "sawtooth.poet.block_claim_delay");
+    let block_claim_delay_from_settings =
+        service.get_setting_from_head("sawtooth.poet.block_claim_delay");
 
-    let key_block_claim_delay = if block_claim_delay_from_settings.parse::<u64>().is_ok() {  
-                                    block_claim_delay_from_settings.parse::<u64>().unwrap()
-                                } else { 
-                                    error!("Setting block_claim_delay_from_settings not found");
-                                    0
-                                };
+    let key_block_claim_delay = if block_claim_delay_from_settings.parse::<u64>().is_ok() {
+        block_claim_delay_from_settings.parse::<u64>().unwrap()
+    } else {
+        error!("Setting block_claim_delay_from_settings not found");
+        0
+    };
     let block_claim_delay = cmp::min(key_block_claim_delay, number_of_validators - 1);
 
-    if total_block_claim_count <= block_claim_delay
-    {
+    if total_block_claim_count <= block_claim_delay {
         return false;
     }
     // need to use get_block from service expecting block_id to have been stored
     // along with validator info in the Poet 2 module
-	
-    let blocks_claimed_since_registration  = block_number - commit_block_block_num - 1 ;
 
-    if block_claim_delay > blocks_claimed_since_registration 
-    {
+    let blocks_claimed_since_registration = block_number - commit_block_block_num - 1;
+
+    if block_claim_delay > blocks_claimed_since_registration {
         debug!("Failed c-test");
         return true;
     }
     debug!("Passed c-test");
     return false;
-
 }
 
 //z-test
@@ -246,16 +243,16 @@ fn validator_is_claiming_too_frequently(&mut self,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::default::Default;
-    use std::collections::HashMap;
-    use sawtooth_sdk::consensus::{service::Service};
     use enclave_sgx::EnclaveConfig;
+    use sawtooth_sdk::consensus::service::Service;
+    use std::collections::HashMap;
+    use std::default::Default;
 
     pub struct MockService {}
 
     impl MockService {
         pub fn new() -> MockService {
-        MockService {}
+            MockService {}
         }
     }
 
@@ -310,9 +307,11 @@ mod tests {
             _block_id: BlockId,
             _settings: Vec<String>,
         ) -> Result<HashMap<String, String>, Error> {
-
             let mut map: HashMap<String, String> = HashMap::new();
-            map.insert(String::from("sawtooth.poet.block_claim_delay"), 4.to_string());
+            map.insert(
+                String::from("sawtooth.poet.block_claim_delay"),
+                4.to_string(),
+            );
             Ok(map)
         }
 
@@ -327,7 +326,7 @@ mod tests {
 
     fn create_block(c_blockid: BlockId, p_blockid: BlockId, block_num: u64) -> Block {
         /*create a dummy block with block_num as chain length
-          this block is passed to c_test */
+        this block is passed to c_test */
         Block {
             block_id: c_blockid,
             previous_id: p_blockid,
@@ -338,14 +337,17 @@ mod tests {
         }
     }
 
-    fn assert_validator_is_claiming_too_early(c_test1: bool, block: Block, service: &mut Poet2Service) {
-        let result :bool = validator_is_claiming_too_early(&block, service);
+    fn assert_validator_is_claiming_too_early(
+        c_test1: bool,
+        block: Block,
+        service: &mut Poet2Service,
+    ) {
+        let result: bool = validator_is_claiming_too_early(&block, service);
         assert_eq!(result, c_test1);
     }
 
-
     fn should_panic_validator_is_claiming_too_early(block: Block, service: &mut Poet2Service) {
-        let result :bool = validator_is_claiming_too_early(&block, service);
+        let result: bool = validator_is_claiming_too_early(&block, service);
         assert!(result);
     }
 
@@ -356,12 +358,12 @@ mod tests {
 
         let b = create_block(BlockId::from(vec![2]), BlockId::from(vec![1]), 2);
 
-        let c_test1:bool = false;
+        let c_test1: bool = false;
 
         assert_validator_is_claiming_too_early(c_test1, b, &mut svc);
     }
 
-    // This case would fail once commit_block is extracted from 
+    // This case would fail once commit_block is extracted from
     // the chain. As of now it is hard-coded to genesis.
     /*
     #[test]
@@ -379,7 +381,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn c_test_no_block_claim_delay() {
-
         pub struct PanicMockService {}
 
         impl PanicMockService {
@@ -439,7 +440,6 @@ mod tests {
                 _block_id: BlockId,
                 _settings: Vec<String>,
             ) -> Result<HashMap<String, String>, Error> {
-
                 Ok(Default::default())
             }
 

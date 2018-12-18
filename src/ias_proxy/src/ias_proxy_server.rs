@@ -21,32 +21,24 @@ extern crate ias_client;
 extern crate serde;
 extern crate serde_json;
 
+use self::futures::{future, Future};
+use self::hyper::{
+    header::{HeaderMap, HeaderValue},
+    service::service_fn,
+    Body, Error, Method, Request, Response, Server, StatusCode,
+};
+use self::ias_client::{
+    client_utils,
+    client_utils::{ClientError, ClientResponse},
+    ias_client::IasClient,
+};
 use ias_proxy_config::IasProxyConfig;
 use lru_cache::LruCache;
-use self::futures::{Future,
-                    future};
-use self::hyper::{Body,
-                  Error,
-                  header::{HeaderMap,
-                           HeaderValue},
-                  Method,
-                  Request,
-                  Response,
-                  Server,
-                  service::service_fn,
-                  StatusCode};
-use self::ias_client::{client_utils,
-                       client_utils::{ClientError,
-                                      ClientResponse},
-                       ias_client::IasClient};
-use std::{borrow::Borrow,
-          net::SocketAddr,
-          str::FromStr,
-          sync::Mutex};
+use std::{borrow::Borrow, net::SocketAddr, str::FromStr, sync::Mutex};
 use utils::read_binary_file;
 
 /// type definition for response sent from web server
-type ResponseBox = Box<Future<Item=Response<Body>, Error=Error> + Send>;
+type ResponseBox = Box<Future<Item = Response<Body>, Error = Error> + Send>;
 
 /// structure defining IAS proxy server
 pub struct IasProxyServer {
@@ -74,8 +66,7 @@ struct IasResponse {
 }
 
 lazy_static! {
-    static ref sig_rl_cache: Mutex<LruCache<String, IasResponse>> =
-        Mutex::new(LruCache::new(None));
+    static ref sig_rl_cache: Mutex<LruCache<String, IasResponse>> = Mutex::new(LruCache::new(None));
     static ref attestation_cache: Mutex<LruCache<String, IasResponse>> =
         Mutex::new(LruCache::new(None));
 }
@@ -87,28 +78,22 @@ const UNKNOWN_ERROR_STATUS_CODE: u16 = 520;
 
 impl IasProxyServer {
     /// Create new instance of IasProxyServer
-    fn new(
-        config: &IasProxyConfig
-    ) -> Self {
+    fn new(config: &IasProxyConfig) -> Self {
         IasProxyServer {
             ias_proxy_ip: config.get_proxy_ip(),
             ias_proxy_port: config.get_proxy_port(),
             // Construct new IasClient with input config parameters
-            ias_client: Box::new(
-                IasClient::new(
-                    config.get_ias_url(),
-                    read_binary_file(config.get_spid_cert_file().as_str()),
-                    config.get_password(),
-                    None,
-                )
-            ),
+            ias_client: Box::new(IasClient::new(
+                config.get_ias_url(),
+                read_binary_file(config.get_spid_cert_file().as_str()),
+                config.get_password(),
+                None,
+            )),
         }
     }
 
     /// run method to start listening on the identified IP and port
-    pub fn run(
-        &self
-    ) {
+    pub fn run(&self) {
         // Start the web server on the configured URL
         let mut path = String::new();
         path.push_str(self.ias_proxy_ip.as_str());
@@ -130,26 +115,18 @@ impl IasProxyServer {
             let ias_client = ias_client.clone();
             // service_fn() creates a hyper's Service. It accepts a closure for handling the
             // request, future response is constructed when request is served.
-            service_fn(move |req|
-                respond_to_request(req, ias_client.borrow())
-            )
+            service_fn(move |req| respond_to_request(req, ias_client.borrow()))
         };
 
         // Run proxy server in current thread, serve or panic
-        hyper::rt::run(
-            Server::bind(&socket_addr)
-                .serve(new_service)
-                .map_err(|e| {
-                    panic!("Server error: {}", e);
-                })
-        )
+        hyper::rt::run(Server::bind(&socket_addr).serve(new_service).map_err(|e| {
+            panic!("Server error: {}", e);
+        }))
     }
 
     /// Stop listening on the port
     #[allow(dead_code)]
-    pub fn stop(
-        &self
-    ) {
+    pub fn stop(&self) {
         // TODO: Need to stop the server started and clear the cache
         unimplemented!()
     }
@@ -162,55 +139,27 @@ impl IasProxyServer {
 ///
 /// return: A ```Box<Future<Item=Response<Body>, Error=hyper::Error> + Send>``` object:
 ///     Response message to be sent back for the request.
-fn respond_to_request(
-    req: Request<Body>,
-    ias_client_obj: &IasClient,
-) -> ResponseBox {
-
+fn respond_to_request(req: Request<Body>, ias_client_obj: &IasClient) -> ResponseBox {
     // Get response parsing request parameters
     match *req.method() {
-        Method::GET => {
-            handle_get_request(
-                &req,
-                ias_client_obj,
-            )
-        }
+        Method::GET => handle_get_request(&req, ias_client_obj),
 
-        Method::POST => {
-            handle_post_request(
-                req,
-                ias_client_obj,
-            )
-        }
+        Method::POST => handle_post_request(req, ias_client_obj),
 
         // Proxy server doesn't support any other request types other than GET and POST.
-        _ => {
-            send_response(
-                StatusCode::NOT_FOUND,
-                None,
-                None,
-            )
-        }
+        _ => send_response(StatusCode::NOT_FOUND, None, None),
     }
 }
 
 /// Handle get request from the proxy, this should only be valid for getting signature revocation
 /// list. Proxy server doesn't support other GET requests. See ```response_to_request()``` for
 /// detailed description.
-fn handle_get_request(
-    req: &Request<Body>,
-    ias_client_obj: &IasClient,
-) -> ResponseBox {
-
+fn handle_get_request(req: &Request<Body>, ias_client_obj: &IasClient) -> ResponseBox {
     // Get path from request
     let path = req.uri().path().to_owned();
 
     if !path.contains(SIG_RL_LINK) {
-        return send_response(
-            StatusCode::NOT_FOUND,
-            None,
-            None,
-        );
+        return send_response(StatusCode::NOT_FOUND, None, None);
     }
     // Search cache for the signature revocation list
     let mut sig_rl_cache_lock = sig_rl_cache
@@ -219,15 +168,11 @@ fn handle_get_request(
     let cached = sig_rl_cache_lock.get(&path);
     // If there's cache, send it as response, otherwise request from IAS
     let response_to_send = match cached {
-        Some(cached_revocation_list) => {
-            Ok(cached_revocation_list.clone())
-        }
+        Some(cached_revocation_list) => Ok(cached_revocation_list.clone()),
         None => {
             // Request has gid in URI path, we do not need to send gid explicit
-            let result =
-                ias_client_obj.get_signature_revocation_list(None, Some(path.as_str()));
-            let ias_response_result =
-                ias_response_from_client_response(result);
+            let result = ias_client_obj.get_signature_revocation_list(None, Some(path.as_str()));
+            let ias_response_result = ias_response_from_client_response(result);
             if ias_response_result.is_ok() {
                 let ias_response = ias_response_result.clone().unwrap();
                 sig_rl_cache
@@ -243,11 +188,7 @@ fn handle_get_request(
             // Send the response to requester
             let mut headers = ias_response.header_map;
             let body = Body::from(ias_response.body_string);
-            send_response(
-                StatusCode::OK,
-                Option::from(headers),
-                Option::from(body),
-            )
+            send_response(StatusCode::OK, Option::from(headers), Option::from(body))
         }
         Err(error) => {
             error!("Error occurred {}", error);
@@ -266,40 +207,24 @@ fn handle_get_request(
 /// Handle post request from the proxy, this should only be valid for getting attestation
 /// verification report. Proxy server doesn't support other POST requests. See
 /// ```response_to_request()``` for detailed description.
-fn handle_post_request(
-    req: Request<Body>,
-    ias_client_obj: &IasClient,
-) -> ResponseBox {
-
+fn handle_post_request(req: Request<Body>, ias_client_obj: &IasClient) -> ResponseBox {
     // Get path from request
     let path = req.uri().path().to_owned();
 
     if !path.contains(AVR_LINK) {
-        return send_response(
-            StatusCode::NOT_FOUND,
-            None,
-            None,
-        );
+        return send_response(StatusCode::NOT_FOUND, None, None);
     }
     // read json input data
     let read_body_result = client_utils::read_body_as_string(req.into_body());
     if read_body_result.is_err() {
-        return send_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            None,
-            None,
-        );
+        return send_response(StatusCode::INTERNAL_SERVER_ERROR, None, None);
     }
     let read_body = read_body_result.unwrap();
     let json_body: IasAVRRequestBody = serde_json::from_str(read_body.as_str())
         .expect("Error deserializing IAS verification report");
     let quote = json_body.isv_enclave_quote;
     if quote.is_empty() {
-        return send_response(
-            StatusCode::NOT_FOUND,
-            None,
-            None,
-        );
+        return send_response(StatusCode::NOT_FOUND, None, None);
     }
     // If no input quote in attestation cache (isvEnclaveQuote) then return 404
     // otherwise check the cache or send the request to actual IAS server
@@ -309,17 +234,14 @@ fn handle_post_request(
     let cached_avr = attestation_cache_lock.get(&quote);
     let avr = match cached_avr {
         // Cache is present, it can be sent
-        Some(cache_present) => {
-            Ok(cache_present.clone())
-        }
+        Some(cache_present) => Ok(cache_present.clone()),
         // Cache is not presnet, request from IAS and add to cache
         None => {
-            let result =
-                ias_client_obj.post_verify_attestation(
-                    quote.as_bytes(),
-                    Option::from(json_body.pse_manifest.as_str()),
-                    Option::from(json_body.nonce.as_str()),
-                );
+            let result = ias_client_obj.post_verify_attestation(
+                quote.as_bytes(),
+                Option::from(json_body.pse_manifest.as_str()),
+                Option::from(json_body.nonce.as_str()),
+            );
             let ias_response_result = ias_response_from_client_response(result);
             if ias_response_result.is_ok() {
                 let ias_response = ias_response_result.clone().unwrap();
@@ -337,11 +259,7 @@ fn handle_post_request(
             // AVR is read, send it to the requester
             let body = Body::from(avr_content.body_string);
             let mut headers = avr_content.header_map;
-            send_response(
-                StatusCode::OK,
-                Option::from(headers),
-                Option::from(body),
-            )
+            send_response(StatusCode::OK, Option::from(headers), Option::from(body))
         }
         Err(error) => {
             error!("Error occurred {}", error);
@@ -367,7 +285,6 @@ fn send_response(
     headers: Option<HeaderMap<HeaderValue>>,
     body: Option<Body>,
 ) -> ResponseBox {
-
     // Construct response with empty body, then fill input parameters
     let mut response = Response::new(Body::empty());
     *response.status_mut() = status_code;
@@ -386,9 +303,8 @@ fn send_response(
 ///
 /// return: Result<IasResponse, ClientError>
 fn ias_response_from_client_response(
-    client_response: Result<ClientResponse, ClientError>
+    client_response: Result<ClientResponse, ClientError>,
 ) -> Result<IasResponse, ClientError> {
-
     // Start conversion, need to parse client_resposne
     match client_response {
         Ok(successful_response) => {
@@ -397,24 +313,18 @@ fn ias_response_from_client_response(
 
             // If reading body as string is successful then construct IasResponse
             match body_string_result {
-                Ok(body_read_successfully) => {
-                    Ok(IasResponse {
-                        body_string: body_read_successfully,
-                        header_map: successful_response.header_map,
-                    })
-                }
+                Ok(body_read_successfully) => Ok(IasResponse {
+                    body_string: body_read_successfully,
+                    header_map: successful_response.header_map,
+                }),
 
                 // Conversion of body to string failed
-                Err(body_read_failed) => {
-                    Err(body_read_failed)
-                }
+                Err(body_read_failed) => Err(body_read_failed),
             }
         }
 
         // ClientError occurred, there's no valid response to convert
-        Err(error_response) => {
-            Err(error_response)
-        }
+        Err(error_response) => Err(error_response),
     }
 }
 
@@ -422,10 +332,7 @@ fn ias_response_from_client_response(
 /// 'new()' for ```IasProxyServer``` is private, so use this public method to get instance of it.
 ///
 /// return: A ```IasProxyServer``` object
-pub fn get_proxy_server(
-    proxy_config: &IasProxyConfig
-) -> IasProxyServer {
-
+pub fn get_proxy_server(proxy_config: &IasProxyConfig) -> IasProxyServer {
     // Read toml config file as input.
     // Conversion to struct would have failed if fields in file doesn't match expectation
     // So the config map here has all required values set in it.

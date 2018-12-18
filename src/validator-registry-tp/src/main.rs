@@ -28,20 +28,20 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
+use log::LogLevelFilter;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
-use log::LogLevelFilter;
 use sawtooth_sdk::processor::TransactionProcessor;
 use std::process;
 use validator_registry_tp::ValidatorRegistryTransactionHandler;
 
-pub mod validator_registry_tp;
-pub mod validator_registry_signup_info;
 pub mod validator_registry_payload;
+pub mod validator_registry_signup_info;
+pub mod validator_registry_tp;
+mod validator_registry_tp_verifier;
 pub mod validator_registry_validator_info;
 pub mod validator_registry_validator_map;
-mod validator_registry_tp_verifier;
 
 fn main() {
     let matches = clap_app!(validator_registry_tp =>
@@ -51,7 +51,7 @@ fn main() {
          "connection endpoint for validator")
         (@arg verbose: -v --verbose +multiple
          "increase output verbosity"))
-        .get_matches();
+    .get_matches();
 
     let endpoint = matches
         .value_of("connect")
@@ -92,4 +92,3 @@ fn main() {
     processor.add_handler(&handler);
     processor.start();
 }
-

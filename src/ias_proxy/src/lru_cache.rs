@@ -16,20 +16,22 @@
 */
 
 /// module LruCache, for use by IAS proxy
-use std::{borrow::BorrowMut,
-          clone::Clone,
-          cmp::{Eq,
-                PartialEq},
-          collections::{HashMap,
-                        VecDeque},
-          hash::Hash};
+use std::{
+    borrow::BorrowMut,
+    clone::Clone,
+    cmp::{Eq, PartialEq},
+    collections::{HashMap, VecDeque},
+    hash::Hash,
+};
 
 /// Generic structure representation of LRU cache,
 /// Note key and value must implement the traits listed here.
 #[derive(Debug, Clone)]
 pub struct LruCache<K, V>
-    where K: PartialEq + Eq + Hash + Clone,
-          V: Clone {
+where
+    K: PartialEq + Eq + Hash + Clone,
+    V: Clone,
+{
     // Size of the LRU cache
     max_size: usize,
     // A list to note which key is accessed first, it should be locked before accessing
@@ -39,12 +41,12 @@ pub struct LruCache<K, V>
 }
 
 impl<K, V> LruCache<K, V>
-    where K: PartialEq + Eq + Hash + Clone,
-          V: Clone {
+where
+    K: PartialEq + Eq + Hash + Clone,
+    V: Clone,
+{
     /// Create a new instance of LRU cache, of generic type
-    pub fn new(
-        size: Option<usize>
-    ) -> Self {
+    pub fn new(size: Option<usize>) -> Self {
         let size = size.unwrap_or(100);
         LruCache {
             max_size: size,
@@ -55,11 +57,7 @@ impl<K, V> LruCache<K, V>
 
     /// Sets the value passed for the key, LRU cache is a ordered hashmap that changes position
     /// of keys based on how frequently they are accessed.
-    pub fn set(
-        &mut self,
-        key: K,
-        value: V,
-    ) {
+    pub fn set(&mut self, key: K, value: V) {
         let ordered_keys = self.order.borrow_mut();
         let modified_values = self.values.borrow_mut();
         // Key not present, so add it
@@ -73,7 +71,7 @@ impl<K, V> LruCache<K, V>
             ordered_keys.push_front(key);
         } else {
             // Rewrite with new value if Key is already present
-            ordered_keys.retain(|element| { *element != key });
+            ordered_keys.retain(|element| *element != key);
             modified_values.remove(&key);
             ordered_keys.push_front(key.clone());
             modified_values.insert(key, value);
@@ -81,20 +79,21 @@ impl<K, V> LruCache<K, V>
     }
 
     /// When a element is accessed from LRU cache, it is brought to front.
-    pub fn get(
-        &mut self,
-        key: &K,
-    ) -> Option<&V> {
+    pub fn get(&mut self, key: &K) -> Option<&V> {
         let ordered_keys = self.order.borrow_mut();
         let result = self.values.get(key);
         let to_return = match result {
             Some(found) => {
                 // Remove element and re-insert it in front
-                ordered_keys.retain(|element| { *element != *key });
+                ordered_keys.retain(|element| *element != *key);
                 ordered_keys.push_front(key.clone());
                 found
             }
-            None => /* unexpected */ return None,
+            None =>
+            /* unexpected */
+            {
+                return None
+            }
         };
         Option::from(to_return)
     }
@@ -125,13 +124,19 @@ mod tests {
         let lru_copy1 = lru_cache.clone();
         let found_element1 = lru_copy1.order.get(0).expect("Error reading inserted ele");
         assert_eq!(*found_element1, key2);
-        let element_accessed1 = lru_cache.get(&key1).expect("Error reading inserted value").clone();
+        let element_accessed1 = lru_cache
+            .get(&key1)
+            .expect("Error reading inserted value")
+            .clone();
         assert_eq!(element_accessed1, value1);
         // expect element found would be Key1
         let lru_copy2 = lru_cache.clone();
         let found_element2 = lru_copy2.order.get(0).expect("Error reading inserted key");
         assert_eq!(*found_element2, key1);
-        let element_accessed2 = lru_cache.get(&key2).expect("Error reading inserted value").clone();
+        let element_accessed2 = lru_cache
+            .get(&key2)
+            .expect("Error reading inserted value")
+            .clone();
         assert_eq!(element_accessed2, value2);
     }
 
@@ -142,12 +147,16 @@ mod tests {
         let value1 = "Value1".to_string();
         let value2 = "Value2".to_string();
         lru_cache.set(key.clone(), value1.clone());
-        let read_value =
-            lru_cache.get(&key).expect("Value inserted but not present").clone();
+        let read_value = lru_cache
+            .get(&key)
+            .expect("Value inserted but not present")
+            .clone();
         assert_eq!(read_value, value1);
         lru_cache.set(key.clone(), value2.clone());
-        let read_value =
-            lru_cache.get(&key).expect("Value inserted but not present").clone();
+        let read_value = lru_cache
+            .get(&key)
+            .expect("Value inserted but not present")
+            .clone();
         assert_eq!(read_value, value2);
     }
 }

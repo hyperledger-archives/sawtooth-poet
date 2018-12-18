@@ -17,9 +17,11 @@
 
 extern crate sawtooth_sdk;
 
-use database::CliError;
+use self::check_consensus as czk;
+use self::consensus_state_store::ConsensusStateStore;
 use database::config;
 use database::lmdb;
+use database::CliError;
 use enclave_sgx::EnclaveConfig;
 use poet2_util;
 use poet2_util::read_file_as_string_ignore_line_end;
@@ -29,8 +31,6 @@ use registration::save_batchlist_to_file;
 use registration::submit_batchlist_to_rest_api;
 use sawtooth_sdk::consensus::{engine::*, service::Service};
 use sawtooth_sdk::messages::batch::BatchList;
-use self::check_consensus as czk;
-use self::consensus_state_store::ConsensusStateStore;
 use service::Poet2Service;
 use settings_view::Poet2SettingsView;
 use std::sync::mpsc::{Receiver, RecvTimeoutError};
@@ -38,8 +38,8 @@ use std::time::Duration;
 use std::time::Instant;
 
 pub mod check_consensus;
-pub mod consensus_state_store;
 pub mod consensus_state;
+pub mod consensus_state_store;
 pub mod fork_resolver;
 
 const MAXIMUM_NONCE_LENGTH: usize = 32;
@@ -59,16 +59,14 @@ impl Poet2Engine {
 
     fn create_poet_engine(config: &PoetConfig) -> Self {
         // Read validator ID, validator's public key is used as identifier
-        let validator_id = read_file_as_string_ignore_line_end(config.get_validator_pub_key().as_str());
+        let validator_id =
+            read_file_as_string_ignore_line_end(config.get_validator_pub_key().as_str());
 
         // Initialize enclave
         let mut enclave = Self::initialize_enclave(config);
 
         // Create signup information
-        let signup_info = enclave.create_signup_info(
-            validator_id.as_str(),
-            config,
-        );
+        let signup_info = enclave.create_signup_info(validator_id.as_str(), config);
 
         // Generate nonce, PoET public key is unique every time enclave is initialized. Take hash
         // of it upto maximum nonce length for nonce.
@@ -83,10 +81,7 @@ impl Poet2Engine {
 
         // Call the batches REST API with composed payload bytes to be sent
         if config.is_genesis() {
-            save_batchlist_to_file(
-                config.get_genesis_batch_path().as_str(),
-                &batch_list,
-            )
+            save_batchlist_to_file(config.get_genesis_batch_path().as_str(), &batch_list)
         }
 
         // Create a PoET engine object and return
@@ -131,10 +126,8 @@ impl Engine for Poet2Engine {
         // TODO: Refactor service code and avoid cloning enclave object.
         let mut service = Poet2Service::new(service, self.enclave.clone());
 
-        let lmdb_ctx = create_lmdb_context()
-            .expect("Failed to create context");
-        let mut state_store = open_statestore(&lmdb_ctx)
-            .expect("Failed to create state store");
+        let lmdb_ctx = create_lmdb_context().expect("Failed to create context");
+        let mut state_store = open_statestore(&lmdb_ctx).expect("Failed to create state store");
 
         let mut is_published_at_height = false;
 
@@ -143,11 +136,16 @@ impl Engine for Poet2Engine {
 
         let (poet_pub_key, enclave_quote) = service.enclave.get_signup_parameters();
 
-        debug!("Signup info parameters: poet_pub_key = {}, enclave_quote = {}",
-               poet_pub_key, enclave_quote);
+        debug!(
+            "Signup info parameters: poet_pub_key = {}, enclave_quote = {}",
+            poet_pub_key, enclave_quote
+        );
 
         let mut wait_time = Duration::from_secs(service.get_wait_time(
-            &chain_head, validator_id.as_str(), &poet_pub_key));
+            &chain_head,
+            validator_id.as_str(),
+            &poet_pub_key,
+        ));
         let mut claim_wait_time = 0;
 
         let mut poet2_settings_view = Poet2SettingsView::new();
@@ -168,28 +166,38 @@ impl Engine for Poet2Engine {
                     match update {
                         // When a block comes into being internal/external
                         Update::BlockNew(block) => {
-                            info!("BlockNew :: Checking consensus data for block_id : {}",
-                                  poet2_util::to_hex_string(&block.block_id));
+                            info!(
+                                "BlockNew :: Checking consensus data for block_id : {}",
+                                poet2_util::to_hex_string(&block.block_id)
+                            );
 
                             if czk::check_consensus(&block, &mut service, validator_id.as_str()) {
-                                debug!("Passed consensus check for block_id : {}",
-                                       poet2_util::to_hex_string(&block.block_id));
+                                debug!(
+                                    "Passed consensus check for block_id : {}",
+                                    poet2_util::to_hex_string(&block.block_id)
+                                );
                                 service.check_block(block.block_id);
                             } else {
-                                debug!("Failed consensus check for block_id : {}",
-                                       poet2_util::to_hex_string(&block.block_id));
+                                debug!(
+                                    "Failed consensus check for block_id : {}",
+                                    poet2_util::to_hex_string(&block.block_id)
+                                );
                                 service.fail_block(block.block_id);
                             }
                         }
 
                         // When a block has passed validator checks
                         Update::BlockValid(block_id) => {
-                            info!("BlockValid :: Checking and resolving fork for block_id : {}",
-                                  poet2_util::to_hex_string(&block_id));
+                            info!(
+                                "BlockValid :: Checking and resolving fork for block_id : {}",
+                                poet2_util::to_hex_string(&block_id)
+                            );
                             let new_block_won = fork_resolver::resolve_fork(
                                 &mut service,
                                 &mut state_store,
-                                block_id, claim_wait_time, );
+                                block_id,
+                                claim_wait_time,
+                            );
                             if new_block_won {
                                 is_published_at_height = true;
                             }
@@ -209,16 +217,20 @@ impl Engine for Poet2Engine {
                             let chain_head_block = service.get_chain_head();
                             wait_time = Duration::from_secs(service.get_wait_time(
                                 &chain_head_block,
-                                validator_id.as_str(), &poet_pub_key));
+                                validator_id.as_str(),
+                                &poet_pub_key,
+                            ));
 
                             claim_wait_time = wait_time.as_secs();
                             service.initialize_block(Some(new_chain_head_blockid));
                         }
 
-                        // Block is invalid 
+                        // Block is invalid
                         Update::BlockInvalid(block_id) => {
-                            info!("BlockInvalid :: Invalid block received with block id : {:?}",
-                                  block_id);
+                            info!(
+                                "BlockInvalid :: Invalid block received with block id : {:?}",
+                                block_id
+                            );
                         }
                         _ => {}
                     }
@@ -226,7 +238,9 @@ impl Engine for Poet2Engine {
 
                 Err(RecvTimeoutError::Disconnected) => {
                     error!("Disconnected from validator");
-                    return Err(Error::UnknownPeer("Validator got disconnected.".to_string()));
+                    return Err(Error::UnknownPeer(
+                        "Validator got disconnected.".to_string(),
+                    ));
                 }
 
                 Err(RecvTimeoutError::Timeout) => {}
@@ -235,13 +249,15 @@ impl Engine for Poet2Engine {
             if !is_published_at_height && Instant::now().duration_since(start) > wait_time {
                 let cur_chain_head = service.get_chain_head();
                 info!("Timer expired -- publishing block");
-                debug!("Wait time was : {:?} for chain head: {}", wait_time,
-                       poet2_util::to_hex_string(&cur_chain_head.block_id));
+                debug!(
+                    "Wait time was : {:?} for chain head: {}",
+                    wait_time,
+                    poet2_util::to_hex_string(&cur_chain_head.block_id)
+                );
 
                 let summary = service.summarize_block();
-                let consensus: String = service.create_consensus(&summary,
-                                                                 cur_chain_head,
-                                                                 wait_time.as_secs());
+                let consensus: String =
+                    service.create_consensus(&summary, cur_chain_head, wait_time.as_secs());
 
                 service.finalize_block(consensus.as_bytes());
                 is_published_at_height = true;
@@ -267,10 +283,8 @@ fn create_lmdb_context() -> Result<lmdb::LmdbContext, CliError> {
 }
 
 fn open_statestore(ctx: &lmdb::LmdbContext) -> Result<ConsensusStateStore, CliError> {
-    let statestore_db = lmdb::LmdbDatabase::new(
-        ctx,
-        &["index_consensus_state"],
-    ).map_err(|err| CliError::EnvironmentError(format!("{}", err)))?;
+    let statestore_db = lmdb::LmdbDatabase::new(ctx, &["index_consensus_state"])
+        .map_err(|err| CliError::EnvironmentError(format!("{}", err)))?;
 
     Ok(ConsensusStateStore::new(statestore_db))
 }

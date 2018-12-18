@@ -15,12 +15,10 @@
  * -----------------------------------------------------------------------------
  */
 
-use crypto::{digest::Digest,
-             sha2::Sha256};
+use crypto::{digest::Digest, sha2::Sha256};
 use sawtooth_sdk::consensus::engine::BlockId;
 use service::Poet2Service;
-use std::{error,
-          fmt};
+use std::{error, fmt};
 use validator_registry_tp::validator_registry_validator_info::ValidatorRegistryValidatorInfo;
 
 #[derive(Debug, Clone)]
@@ -44,9 +42,7 @@ fn _vr_namespace_prefix() -> String {
     sha.result_str()[..6].to_string()
 }
 
-fn _to_address(
-    addressable_key: &str
-) -> String {
+fn _to_address(addressable_key: &str) -> String {
     let mut sha = Sha256::new();
     sha.input_str(addressable_key);
     _vr_namespace_prefix() + &sha.result_str()[..64].to_string()
@@ -55,11 +51,12 @@ fn _to_address(
 pub fn get_validator_info_for_validator_id(
     validator_id: &str,
     block_id: &BlockId,
-    service: &mut Poet2Service
+    service: &mut Poet2Service,
 ) -> Result<ValidatorRegistryValidatorInfo, VRVStateError> {
     let validator_id_addr = _to_address(validator_id);
     info!("{}", validator_id_addr.clone());
-    let state_data = service.get_state(block_id.clone(), &validator_id_addr)
+    let state_data = service
+        .get_state(block_id.clone(), &validator_id_addr)
         .expect("Failed to get state for validator id key");
     let raw_value = state_data.get(&validator_id_addr);
     info!("State data while reading {:?}", state_data);
@@ -78,14 +75,10 @@ pub fn get_validator_info_for_validator_id(
 pub fn get_poet_pubkey_for_validator_id(
     validator_id: &str,
     block_id: &BlockId,
-    service: &mut Poet2Service)
-    -> Result<String, VRVStateError> {
+    service: &mut Poet2Service,
+) -> Result<String, VRVStateError> {
     let validator_info =
-        get_validator_info_for_validator_id(
-            validator_id,
-            &block_id.to_owned(),
-            service
-        );
+        get_validator_info_for_validator_id(validator_id, &block_id.to_owned(), service);
     if validator_info.is_ok() {
         let validator_info_parsed = validator_info.unwrap();
         return Ok(validator_info_parsed.signup_info.poet_public_key);

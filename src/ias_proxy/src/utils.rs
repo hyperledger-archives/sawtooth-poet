@@ -23,9 +23,7 @@ use std::io::Read;
 /// function without reading file.
 ///
 /// return: A String object
-pub fn read_file_as_string(
-    file_name: &str
-) -> String {
+pub fn read_file_as_string(file_name: &str) -> String {
     let mut file_reader = match File::open(file_name) {
         Ok(file_present) => file_present,
         Err(err) => panic!("File is not present: {}", err),
@@ -40,9 +38,7 @@ pub fn read_file_as_string(
 /// Reads binary file and returns vector of u8
 ///
 /// Note: This method will panic if file is not found or error occurs when reading file as binary.
-pub fn read_binary_file(
-    filename: &str
-) -> Vec<u8> {
+pub fn read_binary_file(filename: &str) -> Vec<u8> {
     let mut file = File::open(filename).expect("File not found");
     let mut buffer = vec![];
     file.read_to_end(&mut buffer).expect("Read failed!");

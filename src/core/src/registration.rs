@@ -15,37 +15,26 @@
 ------------------------------------------------------------------------------
 */
 
-use hyper::{Body,
-            Client,
-            header,
-            header::HeaderValue,
-            Method,
-            Request,
-            Uri};
+use hyper::{header, header::HeaderValue, Body, Client, Method, Request, Uri};
 use ias_client::client_utils::read_response_future;
-use poet2_util::{read_file_as_string_ignore_line_end,
-                 sha256_from_str,
-                 sha512_from_str,
-                 write_binary_file};
+use poet2_util::{
+    read_file_as_string_ignore_line_end, sha256_from_str, sha512_from_str, write_binary_file,
+};
 use poet_config::PoetConfig;
-use protobuf::{Message,
-               RepeatedField};
-use sawtooth_sdk::{messages::{batch::{Batch,
-                                      BatchHeader,
-                                      BatchList},
-                              transaction::{Transaction,
-                                            TransactionHeader}},
-                   signing::{create_context,
-                             PrivateKey,
-                             PublicKey,
-                             secp256k1::Secp256k1PrivateKey,
-                             Signer}};
+use protobuf::{Message, RepeatedField};
+use sawtooth_sdk::{
+    messages::{
+        batch::{Batch, BatchHeader, BatchList},
+        transaction::{Transaction, TransactionHeader},
+    },
+    signing::{create_context, secp256k1::Secp256k1PrivateKey, PrivateKey, PublicKey, Signer},
+};
 use serde_json;
-use std::{str,
-          env,
-          path::Path};
-use validator_registry_tp::{validator_registry_signup_info::ValidatorRegistrySignupInfo,
-                            validator_registry_payload::ValidatorRegistryPayload};
+use std::{env, path::Path, str};
+use validator_registry_tp::{
+    validator_registry_payload::ValidatorRegistryPayload,
+    validator_registry_signup_info::ValidatorRegistrySignupInfo,
+};
 
 const VALIDATOR_REGISTRY: &str = "validator_registry";
 const CONTEXT_ALGORITHM_NAME: &str = "secp256k1";
@@ -74,7 +63,6 @@ pub fn do_create_registration(
     nonce: &str,
     signup_info: &ValidatorRegistrySignupInfo,
 ) -> BatchList {
-
     // Read private key from default path if it's not given as input in config
     let mut key_file = config.get_poet_client_private_key_file();
     if key_file.is_empty() {
@@ -83,11 +71,8 @@ pub fn do_create_registration(
     let read_key = read_file_as_string_ignore_line_end(key_file.as_str());
 
     let private_key: Box<PrivateKey> =
-        Box::new(
-            Secp256k1PrivateKey::from_hex(read_key.as_str())
-                .expect("Invalid private key"));
-    let context = create_context(CONTEXT_ALGORITHM_NAME)
-        .expect("Unsupported algorithm");
+        Box::new(Secp256k1PrivateKey::from_hex(read_key.as_str()).expect("Invalid private key"));
+    let context = create_context(CONTEXT_ALGORITHM_NAME).expect("Unsupported algorithm");
     let signer = Signer::new(context.as_ref(), private_key.as_ref());
     // get signer and public key from signer in hex
     let public_key = signer.get_public_key().expect("Public key not found");
@@ -99,17 +84,10 @@ pub fn do_create_registration(
     name.push_str(&public_key.as_hex()[..PUBLIC_KEY_IDENTIFIER_LENGTH]);
     let id = public_key.as_hex();
     info!("ID in transaction is {}", id.clone());
-    let signup_info_str = serde_json::to_string(signup_info)
-        .expect("Error serializing signup info");
-    let raw_payload =
-        ValidatorRegistryPayload::new(
-            verb,
-            name,
-            id,
-            signup_info_str,
-        );
-    let payload = serde_json::to_string(&raw_payload)
-        .expect("Error serializing payload to string");
+    let signup_info_str =
+        serde_json::to_string(signup_info).expect("Error serializing signup info");
+    let raw_payload = ValidatorRegistryPayload::new(verb, name, id, signup_info_str);
+    let payload = serde_json::to_string(&raw_payload).expect("Error serializing payload to string");
 
     // Namespace for the TP
     let vr_namespace = &sha256_from_str(VALIDATOR_REGISTRY)[..NAMESPACE_ADDRESS_LENGTH];
@@ -127,33 +105,26 @@ pub fn do_create_registration(
     vr_entry_address.push_str(public_key_hash.as_str());
 
     // Output address for the transaction
-    let output_addresses =
-        [
-            vr_entry_address.clone(), vr_map_address.clone()
-        ];
-    let input_addresses =
-        [
-            vr_entry_address, vr_map_address,
-            get_address_for_setting("sawtooth.poet.report_public_key_pem"),
-            get_address_for_setting("sawtooth.poet.valid_enclave_measurements"),
-            get_address_for_setting("sawtooth.poet.valid_enclave_basenames")
-        ];
+    let output_addresses = [vr_entry_address.clone(), vr_map_address.clone()];
+    let input_addresses = [
+        vr_entry_address,
+        vr_map_address,
+        get_address_for_setting("sawtooth.poet.report_public_key_pem"),
+        get_address_for_setting("sawtooth.poet.valid_enclave_measurements"),
+        get_address_for_setting("sawtooth.poet.valid_enclave_basenames"),
+    ];
 
     // Create transaction header
-    let transaction_header =
-        create_transaction_header(&input_addresses,
-                                  &output_addresses,
-                                  payload.as_str(),
-                                  &public_key,
-                                  nonce.to_string(),
-        );
+    let transaction_header = create_transaction_header(
+        &input_addresses,
+        &output_addresses,
+        payload.as_str(),
+        &public_key,
+        nonce.to_string(),
+    );
 
     // Create transaction
-    let transaction =
-        create_transaction(&signer,
-                           &transaction_header,
-                           payload,
-        );
+    let transaction = create_transaction(&signer, &transaction_header, payload);
 
     // Create batch header, batch
     let batch = create_batch(&signer, transaction);
@@ -164,10 +135,7 @@ pub fn do_create_registration(
 
 /// Function to create the ```BatchList``` object, which later is serialized and sent to REST API
 /// Accepts ```Batch``` as a input parameter.
-fn create_batch_list(
-    batch: Batch
-) -> BatchList {
-
+fn create_batch_list(batch: Batch) -> BatchList {
     // Construct batch list
     let batches = RepeatedField::from_vec(vec![batch]);
     let mut batch_list = BatchList::new();
@@ -178,15 +146,14 @@ fn create_batch_list(
 /// Function to create the ```Batch``` object, this is then added to ```BatchList```. Accepts
 /// signer object and ```Transaction``` as input parameters. Constructs ```BatchHeader``` , adds
 /// signature of it to ```Batch```.
-fn create_batch(
-    signer: &Signer,
-    transaction: Transaction,
-) -> Batch {
-
+fn create_batch(signer: &Signer, transaction: Transaction) -> Batch {
     // Construct BatchHeader
     let mut batch_header = BatchHeader::new();
     // set signer public key
-    let public_key = signer.get_public_key().expect("Unable to get public key").as_hex();
+    let public_key = signer
+        .get_public_key()
+        .expect("Unable to get public key")
+        .as_hex();
     let transaction_ids = vec![transaction.clone()]
         .iter()
         .map(|trans| String::from(trans.get_header_signature()))
@@ -195,9 +162,11 @@ fn create_batch(
     batch_header.set_signer_public_key(public_key);
 
     // Construct Batch
-    let batch_header_bytes = batch_header.write_to_bytes()
+    let batch_header_bytes = batch_header
+        .write_to_bytes()
         .expect("Error converting batch header to bytes");
-    let signature = signer.sign(&batch_header_bytes)
+    let signature = signer
+        .sign(&batch_header_bytes)
         .expect("Error signing the batch header");
     let mut batch = Batch::new();
     batch.set_header_signature(signature);
@@ -213,11 +182,12 @@ fn create_transaction(
     transaction_header: &TransactionHeader,
     payload: String,
 ) -> Transaction {
-
     // Construct a transaction, it has transaction header, signature and payload
-    let transaction_header_bytes = transaction_header.write_to_bytes()
+    let transaction_header_bytes = transaction_header
+        .write_to_bytes()
         .expect("Error converting transaction header to bytes");
-    let transaction_header_signature = signer.sign(&transaction_header_bytes.to_vec())
+    let transaction_header_signature = signer
+        .sign(&transaction_header_bytes.to_vec())
         .expect("Error signing the transaction header");
     let mut transaction = Transaction::new();
     transaction.set_header(transaction_header_bytes.to_vec());
@@ -235,7 +205,6 @@ fn create_transaction_header(
     public_key: &Box<PublicKey>,
     nonce: String,
 ) -> TransactionHeader {
-
     // Construct transaction header
     let mut transaction_header = TransactionHeader::new();
     transaction_header.set_family_name(VALIDATOR_REGISTRY.to_string());
@@ -261,13 +230,11 @@ fn create_transaction_header(
 ///     setting (&str): the setting key
 /// Returns:
 ///     String: the computed address
-fn get_address_for_setting(
-    setting: &str
-) -> String {
-
+fn get_address_for_setting(setting: &str) -> String {
     // Get parts of settings key
-    let setting_parts: Vec<&str> =
-        setting.splitn(MAX_SETTINGS_PARTS, SETTING_KEY_SEPARATOR).collect();
+    let setting_parts: Vec<&str> = setting
+        .splitn(MAX_SETTINGS_PARTS, SETTING_KEY_SEPARATOR)
+        .collect();
 
     // If settings key has less than maximum parts, then append empty string hash
     let number_of_empty_parts_required = MAX_SETTINGS_PARTS - setting_parts.len();
@@ -278,7 +245,6 @@ fn get_address_for_setting(
     // append 16*4 = 64 address with config state namespace
     final_hash.push_str(CONFIGSPACE_NAMESPACE);
     for setting_part in setting_parts {
-
         let setting_part_hash = &sha256_from_str(setting_part)[..SETTINGS_PART_LENGTH];
         final_hash.push_str(setting_part_hash);
     }
@@ -293,14 +259,11 @@ fn get_address_for_setting(
 }
 
 /// Sends the BatchList to the REST API
-pub fn submit_batchlist_to_rest_api(
-    url: &str,
-    api: &str,
-    batch_list: BatchList,
-) {
-
+pub fn submit_batchlist_to_rest_api(url: &str, api: &str, batch_list: BatchList) {
     // Create request body, which in this case is batch list
-    let raw_bytes = batch_list.write_to_bytes().expect("Unable to write batch list as bytes");
+    let raw_bytes = batch_list
+        .write_to_bytes()
+        .expect("Unable to write batch list as bytes");
     let body_length = raw_bytes.len();
     let bytes = Body::from(raw_bytes.to_vec());
 
@@ -323,10 +286,9 @@ pub fn submit_batchlist_to_rest_api(
         header::CONTENT_TYPE,
         HeaderValue::from_static(APPLICATION_OCTET_STREAM),
     );
-    request.headers_mut().insert(
-        header::CONTENT_LENGTH,
-        HeaderValue::from(body_length),
-    );
+    request
+        .headers_mut()
+        .insert(header::CONTENT_LENGTH, HeaderValue::from(body_length));
 
     // Call read_response_future to block on reading the response
     let response_future = client.request(request);
@@ -334,48 +296,48 @@ pub fn submit_batchlist_to_rest_api(
 }
 
 /// Saves the ```BatchList``` to a file
-pub fn save_batchlist_to_file(
-    genesis_batch_path: &str,
-    batch_list: &BatchList,
-) {
-    let current_working_directory = env::current_dir()
-        .expect("Error reading current working directory");
+pub fn save_batchlist_to_file(genesis_batch_path: &str, batch_list: &BatchList) {
+    let current_working_directory =
+        env::current_dir().expect("Error reading current working directory");
     let file_path = if genesis_batch_path.is_empty() {
         current_working_directory.as_path()
     } else {
         Path::new(genesis_batch_path)
     };
-    let raw_bytes = batch_list.write_to_bytes().expect("Unable to write batch list as bytes");
+    let raw_bytes = batch_list
+        .write_to_bytes()
+        .expect("Unable to write batch list as bytes");
     write_binary_file(&raw_bytes, file_path.to_str().expect("Unexpected filename"));
 }
 
 #[cfg(test)]
 mod tests {
-    use sawtooth_sdk::signing::{Context,
-                                secp256k1::Secp256k1Context};
     use super::*;
+    use sawtooth_sdk::signing::{secp256k1::Secp256k1Context, Context};
 
     #[test]
     fn test_get_address_for_setting() {
-        let precomputed_address = "000000ca978112ca1bbdca3e23e8160039594a2e7d2c03a9507ae2e3b0c44298fc1c14";
+        let precomputed_address =
+            "000000ca978112ca1bbdca3e23e8160039594a2e7d2c03a9507ae2e3b0c44298fc1c14";
         let address_calculated = get_address_for_setting("a.b.c");
         assert_eq!(precomputed_address, address_calculated);
 
-        let precomputed_address = "000000ca978112ca1bbdca3e23e8160039594a2e7d2c03a9507ae2e67adc8234459dc2";
+        let precomputed_address =
+            "000000ca978112ca1bbdca3e23e8160039594a2e7d2c03a9507ae2e67adc8234459dc2";
         let address_calculated = get_address_for_setting("a.b.c.d.e");
         assert_eq!(precomputed_address, address_calculated);
     }
 
     #[test]
     fn test_create_transaction() {
-
         // Construct transaction header
         let random_input_addresses = ["random input addresses".to_string()];
         let random_output_addresses = ["random output addresses".to_string()];
         let random_payload = "random payload".to_string();
         let random_nonce = "random nonce".to_string();
         let context = Secp256k1Context::new();
-        let random_private_key: Box<PrivateKey> = context.new_random_private_key()
+        let random_private_key: Box<PrivateKey> = context
+            .new_random_private_key()
             .expect("Error generating random private key");
         let signer = Signer::new(&context, random_private_key.as_ref());
         let random_public_key = signer.get_public_key().unwrap();
@@ -388,31 +350,37 @@ mod tests {
         );
 
         // Get bytes and construct transaction
-        let transaction_header_bytes = random_transaction_header.write_to_bytes()
+        let transaction_header_bytes = random_transaction_header
+            .write_to_bytes()
             .expect("Error converting transaction header to bytes");
-        let header_signature = signer.sign(&transaction_header_bytes.to_vec())
+        let header_signature = signer
+            .sign(&transaction_header_bytes.to_vec())
             .expect("Error signing the transaction header");
         let transaction = create_transaction(
             &signer,
             &random_transaction_header,
-            random_payload.to_string());
+            random_payload.to_string(),
+        );
 
         // Verify if transaction is properly composed
         assert_eq!(transaction.get_header().to_vec(), transaction_header_bytes);
         assert_eq!(transaction.get_header_signature(), header_signature);
-        assert_eq!(transaction.get_payload(), random_payload.to_string().as_bytes());
+        assert_eq!(
+            transaction.get_payload(),
+            random_payload.to_string().as_bytes()
+        );
     }
 
     #[test]
     fn test_create_transaction_header() {
-
         // Construct transaction header
         let random_input_addresses = ["random input addresses".to_string()];
         let random_output_addresses = ["random output addresses".to_string()];
         let random_payload = "random payload".to_string();
         let random_nonce = "random nonce".to_string();
         let context = Secp256k1Context::new();
-        let random_private_key: Box<PrivateKey> = context.new_random_private_key()
+        let random_private_key: Box<PrivateKey> = context
+            .new_random_private_key()
             .expect("Error generating random private key");
         let signer = Signer::new(&context, random_private_key.as_ref());
         let random_public_key = signer.get_public_key().unwrap();
@@ -427,19 +395,22 @@ mod tests {
         let payload_hash_bytes = sha512_from_str(random_payload.as_str());
         // Verify if transaction header is properly composed
         assert_eq!(random_transaction_header.get_nonce(), random_nonce);
-        assert_eq!(random_transaction_header.get_payload_sha512(), payload_hash_bytes);
+        assert_eq!(
+            random_transaction_header.get_payload_sha512(),
+            payload_hash_bytes
+        );
     }
 
     #[test]
     fn test_create_batch() {
-
         // Construct transaction header
         let random_input_addresses = ["random input addresses".to_string()];
         let random_output_addresses = ["random output addresses".to_string()];
         let random_payload = "random payload".to_string();
         let random_nonce = "random nonce".to_string();
         let context = Secp256k1Context::new();
-        let random_private_key: Box<PrivateKey> = context.new_random_private_key()
+        let random_private_key: Box<PrivateKey> = context
+            .new_random_private_key()
             .expect("Error generating random private key");
         let signer = Signer::new(&context, random_private_key.as_ref());
         let random_public_key = signer.get_public_key().unwrap();
@@ -455,7 +426,8 @@ mod tests {
         let transaction = create_transaction(
             &signer,
             &random_transaction_header,
-            random_payload.to_string());
+            random_payload.to_string(),
+        );
 
         let signer1 = Signer::new(&context, random_private_key.as_ref());
         let signer2 = Signer::new(&context, random_private_key.as_ref());
@@ -478,14 +450,14 @@ mod tests {
 
     #[test]
     fn test_create_batch_list() {
-
         // Construct transaction header
         let random_input_addresses = ["random input addresses".to_string()];
         let random_output_addresses = ["random output addresses".to_string()];
         let random_payload = "random payload".to_string();
         let random_nonce = "random nonce".to_string();
         let context = Secp256k1Context::new();
-        let random_private_key: Box<PrivateKey> = context.new_random_private_key()
+        let random_private_key: Box<PrivateKey> = context
+            .new_random_private_key()
             .expect("Error generating random private key");
         let signer = Signer::new(&context, random_private_key.as_ref());
         let random_public_key = signer.get_public_key().unwrap();
@@ -501,7 +473,8 @@ mod tests {
         let transaction = create_transaction(
             &signer,
             &random_transaction_header,
-            random_payload.to_string());
+            random_payload.to_string(),
+        );
 
         let signer1 = Signer::new(&context, random_private_key.as_ref());
         let signer2 = Signer::new(&context, random_private_key.as_ref());

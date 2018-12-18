@@ -67,9 +67,8 @@ impl<'e> LmdbDatabase<'e> {
             &ctx.env,
             Some("main"),
             &lmdb::DatabaseOptions::new(lmdb::db::CREATE),
-        ).map_err(|err| {
-            DatabaseError::InitError(format!("Failed to open database: {:?}", err))
-        })?;
+        )
+        .map_err(|err| DatabaseError::InitError(format!("Failed to open database: {:?}", err)))?;
 
         let mut index_dbs = HashMap::with_capacity(indexes.len());
         for name in indexes {
@@ -77,7 +76,8 @@ impl<'e> LmdbDatabase<'e> {
                 &ctx.env,
                 Some(name),
                 &lmdb::DatabaseOptions::new(lmdb::db::CREATE),
-            ).map_err(|err| {
+            )
+            .map_err(|err| {
                 DatabaseError::InitError(format!("Failed to open database: {:?}", err))
             })?;
             index_dbs.insert(String::from(*name), db);
@@ -117,7 +117,8 @@ impl<'a> LmdbDatabaseReader<'a> {
     }
 
     pub fn index_get(&self, index: &str, key: &[u8]) -> Result<Option<Vec<u8>>, DatabaseError> {
-        let index = self.db
+        let index = self
+            .db
             .indexes
             .get(index)
             .ok_or_else(|| DatabaseError::ReaderError(format!("Not an index: {}", index)))?;
@@ -128,7 +129,8 @@ impl<'a> LmdbDatabaseReader<'a> {
 
     #[allow(dead_code)]
     pub fn cursor(&self) -> Result<LmdbDatabaseReaderCursor, DatabaseError> {
-        let cursor = self.txn
+        let cursor = self
+            .txn
             .cursor(&self.db.main)
             .map_err(|err| DatabaseError::ReaderError(format!("{}", err)))?;
         let access = self.txn.access();
@@ -139,11 +141,13 @@ impl<'a> LmdbDatabaseReader<'a> {
     }
 
     pub fn index_cursor(&self, index: &str) -> Result<LmdbDatabaseReaderCursor, DatabaseError> {
-        let index = self.db
+        let index = self
+            .db
             .indexes
             .get(index)
             .ok_or_else(|| DatabaseError::ReaderError(format!("Not an index: {}", index)))?;
-        let cursor = self.txn
+        let cursor = self
+            .txn
             .cursor(index)
             .map_err(|err| DatabaseError::ReaderError(format!("{}", err)))?;
         let access = self.txn.access();
@@ -163,7 +167,8 @@ impl<'a> LmdbDatabaseReader<'a> {
     }
 
     pub fn index_count(&self, index: &str) -> Result<usize, DatabaseError> {
-        let index = self.db
+        let index = self
+            .db
             .indexes
             .get(index)
             .ok_or_else(|| DatabaseError::ReaderError(format!("Not an index: {}", index)))?;
@@ -224,7 +229,8 @@ impl<'a> LmdbDatabaseWriter<'a> {
         key: &[u8],
         value: &[u8],
     ) -> Result<(), DatabaseError> {
-        let index = self.db
+        let index = self
+            .db
             .indexes
             .get(index)
             .ok_or_else(|| DatabaseError::WriterError(format!("Not an index: {}", index)))?;
@@ -235,7 +241,8 @@ impl<'a> LmdbDatabaseWriter<'a> {
     }
 
     pub fn index_delete(&mut self, index: &str, key: &[u8]) -> Result<(), DatabaseError> {
-        let index = self.db
+        let index = self
+            .db
             .indexes
             .get(index)
             .ok_or_else(|| DatabaseError::WriterError(format!("Not an index: {}", index)))?;
@@ -309,7 +316,7 @@ mod tests {
 
         let store_path = &path_config.data_dir.join(String::from("unit-lmdb.lmdb"));
 
-        let mut lmdb_file_path =  store_path.to_str().unwrap();
+        let mut lmdb_file_path = store_path.to_str().unwrap();
         let ctx = LmdbContext::new(store_path, 3, None)
             .map_err(|err| DatabaseError::InitError(format!("{}", err)))
             .unwrap();

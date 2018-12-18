@@ -15,15 +15,17 @@
  * ------------------------------------------------------------------------------
  */
 
-extern crate openssl;
 extern crate base64;
+extern crate openssl;
 
 use ias_client::{client_utils::read_body_as_string, ias_client::IasClient};
 use openssl::pkey::PKey;
-use poet2_util::{read_binary_file, read_file_as_string, verify_message_signature, sha512_from_str};
+use poet2_util::{
+    read_binary_file, read_file_as_string, sha512_from_str, verify_message_signature,
+};
 use poet_config::PoetConfig;
-use serde_json::{from_str, Value};
 use serde_json;
+use serde_json::{from_str, Value};
 use sgxffi::ffi;
 use sgxffi::ffi::r_sgx_enclave_id_t;
 use sgxffi::ffi::r_sgx_epid_group_t;
@@ -33,11 +35,12 @@ use std::env;
 use std::os::raw::c_char;
 use std::path::Path;
 use std::path::PathBuf;
+use std::ptr;
 use std::str;
 use std::string::String;
-use validator_registry_tp::validator_registry_signup_info::{SignupInfoProofData,
-                                                            ValidatorRegistrySignupInfo};
-use std::ptr;
+use validator_registry_tp::validator_registry_signup_info::{
+    SignupInfoProofData, ValidatorRegistrySignupInfo,
+};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct WaitCertificate {
@@ -96,10 +99,7 @@ impl EnclaveConfig {
         }
     }
 
-    pub fn initialize_enclave(
-        &mut self,
-        config: &PoetConfig,
-    ) {
+    pub fn initialize_enclave(&mut self, config: &PoetConfig) {
         let mut eid: r_sgx_enclave_id_t = r_sgx_enclave_id_t {
             handle: 0,
             mr_enclave: ptr::null_mut(),
@@ -132,13 +132,11 @@ impl EnclaveConfig {
 
     /// Initialization if running on SGX hardware. Fill up IAS client object parameters from
     /// config file.
-    pub fn initialize_remote_attestation(
-        &mut self,
-        config: &PoetConfig,
-    ) {
+    pub fn initialize_remote_attestation(&mut self, config: &PoetConfig) {
         if !self.check_if_sgx_simulator() {
             self.ias_client.set_ias_url(config.get_ias_url());
-            self.ias_client.set_spid_cert(read_binary_file(config.get_spid_cert_file().as_str()));
+            self.ias_client
+                .set_spid_cert(read_binary_file(config.get_spid_cert_file().as_str()));
             self.ias_client.set_password(config.get_password());
             self.update_sig_rl();
         }
@@ -149,18 +147,14 @@ impl EnclaveConfig {
         pub_key_hash: &str,
         config: &PoetConfig,
     ) -> ValidatorRegistrySignupInfo {
-
         // Update SigRL before getting quote
         self.update_sig_rl();
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
         let mut signup: r_sgx_signup_info_t = self.signup_info;
         info!("creating signup_info");
 
-        ffi::create_signup_info(
-            &mut eid,
-            pub_key_hash,
-            &mut signup
-        ).expect("Failed to create signup info");
+        ffi::create_signup_info(&mut eid, pub_key_hash, &mut signup)
+            .expect("Failed to create signup info");
 
         self.signup_info.handle = signup.handle;
         self.signup_info.poet_public_key = signup.poet_public_key;
@@ -175,15 +169,16 @@ impl EnclaveConfig {
         // ready.
         let mut epid_pseudonym = poet_public_key.clone();
         if !self.check_if_sgx_simulator() {
-            let raw_response = self.ias_client.post_verify_attestation(
-                quote.as_ref(),
-                None,
-                Option::from(nonce),
-            ).expect("Error getting AVR");
+            let raw_response = self
+                .ias_client
+                .post_verify_attestation(quote.as_ref(), None, Option::from(nonce))
+                .expect("Error getting AVR");
             // Response body is the AVR or Verification Report
-            let verification_report = read_body_as_string(raw_response.body)
-                .expect("Error reading the response body");
-            let signature = raw_response.header_map.get(IAS_REPORT_SIGNATURE)
+            let verification_report =
+                read_body_as_string(raw_response.body).expect("Error reading the response body");
+            let signature = raw_response
+                .header_map
+                .get(IAS_REPORT_SIGNATURE)
                 .expect("Error reading IAS signature in response")
                 .to_str()
                 .expect("Error reading IAS signature header value as string")
@@ -194,22 +189,22 @@ impl EnclaveConfig {
             };
 
             // Verify AVR
-            check_verification_report(
-                &proof_data_struct,
-                config,
-            ).expect("Invalid attestation report");
+            check_verification_report(&proof_data_struct, config)
+                .expect("Invalid attestation report");
             debug!("Verification successful!");
 
             proof_data_string = serde_json::to_string(&proof_data_struct)
                 .expect("Error serializing structure to string");
 
             // Fill up signup information from AVR
-            let verification_report_tmp_dict: Value = from_str(
-                proof_data_struct.verification_report.as_str()
-            ).expect("Error deserializing verification report");
-            let verification_report_dict = verification_report_tmp_dict.as_object()
+            let verification_report_tmp_dict: Value =
+                from_str(proof_data_struct.verification_report.as_str())
+                    .expect("Error deserializing verification report");
+            let verification_report_dict = verification_report_tmp_dict
+                .as_object()
                 .expect("Error reading verification report as hashmap");
-            epid_pseudonym = verification_report_dict.get("epidPseudonym")
+            epid_pseudonym = verification_report_dict
+                .get("epidPseudonym")
                 .expect("No EPID Pseudonym in AVR")
                 .as_str()
                 .expect("Error reading EPID pseudonym as string")
@@ -229,15 +224,20 @@ impl EnclaveConfig {
         in_prev_wait_cert_sig: &str,
         in_validator_id: &str,
         in_poet_pub_key: &str,
-    ) -> u64 { // duration
+    ) -> u64 {
+        // duration
         let mut duration: u64 = 0_u64;
         let mut eid: r_sgx_enclave_id_t = eid;
         // initialize wait certificate - to get duration from enclave
-        ffi::initialize_wait_cert(&mut eid, &mut duration,
-                                  in_prev_wait_cert, in_prev_wait_cert_sig,
-                                  in_validator_id,
-                                  in_poet_pub_key)
-            .expect("Failed to initialize Wait certificate");
+        ffi::initialize_wait_cert(
+            &mut eid,
+            &mut duration,
+            in_prev_wait_cert,
+            in_prev_wait_cert_sig,
+            in_validator_id,
+            in_poet_pub_key,
+        )
+        .expect("Failed to initialize Wait certificate");
 
         debug!("Duration fetched from enclave = {:x?}", duration);
 
@@ -254,8 +254,7 @@ impl EnclaveConfig {
     ) -> (String, String) {
         let mut eid: r_sgx_enclave_id_t = eid;
 
-        let mut wait_cert_info: r_sgx_wait_certificate_t
-        = r_sgx_wait_certificate_t {
+        let mut wait_cert_info: r_sgx_wait_certificate_t = r_sgx_wait_certificate_t {
             handle: 0,
             ser_wait_cert: ptr::null_mut(),
             ser_wait_cert_sign: ptr::null_mut(),
@@ -264,16 +263,21 @@ impl EnclaveConfig {
         ffi::finalize_wait_cert(
             &mut eid,
             &mut wait_cert_info,
-            in_wait_cert, in_prev_block_id,
+            in_wait_cert,
+            in_prev_block_id,
             in_prev_wait_cert_sig,
-            in_block_summary, in_wait_time,
-        ).expect("Failed to finalize Wait certificate");
+            in_block_summary,
+            in_wait_time,
+        )
+        .expect("Failed to finalize Wait certificate");
 
-        let wait_cert = unsafe { ffi::create_string_from_char_ptr(
-            wait_cert_info.ser_wait_cert as *mut c_char) };
+        let wait_cert = unsafe {
+            ffi::create_string_from_char_ptr(wait_cert_info.ser_wait_cert as *mut c_char)
+        };
 
-        let wait_cert_sign = unsafe { ffi::create_string_from_char_ptr(
-            wait_cert_info.ser_wait_cert_sign as *mut c_char) };
+        let wait_cert_sign = unsafe {
+            ffi::create_string_from_char_ptr(wait_cert_info.ser_wait_cert_sign as *mut c_char)
+        };
 
         info!("wait certificate generated is {:?}", wait_cert);
 
@@ -298,77 +302,68 @@ impl EnclaveConfig {
             wait_cert_sign,
             poet_pub_key,
             &mut verify_wait_cert_status,
-        ).expect("Failed to verify wait certificate");
+        )
+        .expect("Failed to verify wait certificate");
         verify_wait_cert_status
     }
 
-    pub fn get_epid_group(
-        &mut self
-    ) -> String {
+    pub fn get_epid_group(&mut self) -> String {
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
         let mut epid_info: r_sgx_epid_group_t = r_sgx_epid_group_t {
-            epid: ptr::null_mut()
+            epid: ptr::null_mut(),
         };
-        ffi::get_epid_group(&mut eid, &mut epid_info)
-            .expect("Failed to get EPID group");
+        ffi::get_epid_group(&mut eid, &mut epid_info).expect("Failed to get EPID group");
         let epid = unsafe { ffi::create_string_from_char_ptr(epid_info.epid) };
         debug!("EPID group = {:?}", epid);
         epid
     }
 
     /// Returns boolean, information if POET is run in hardware or simulator mode.
-    pub fn check_if_sgx_simulator(
-        &mut self
-    ) -> bool {
+    pub fn check_if_sgx_simulator(&mut self) -> bool {
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
         let mut sgx_simulator: bool = false;
-        ffi::is_sgx_simulator(&mut eid, &mut sgx_simulator)
-            .expect("Failed to check SGX simulator");
-        debug!("is_sgx_simulator ? {:?}", if sgx_simulator { "Yes" } else { "No" });
+        ffi::is_sgx_simulator(&mut eid, &mut sgx_simulator).expect("Failed to check SGX simulator");
+        debug!(
+            "is_sgx_simulator ? {:?}",
+            if sgx_simulator { "Yes" } else { "No" }
+        );
         sgx_simulator
     }
 
-    pub fn set_sig_revocation_list(
-        &mut self,
-        sig_rev_list: &str,
-    ) {
+    pub fn set_sig_revocation_list(&mut self, sig_rev_list: &str) {
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
         ffi::set_sig_revocation_list(&mut eid, sig_rev_list)
             .expect("Failed to set sig revocation list");
         debug!("Signature revocation list has been updated");
     }
 
-    pub fn get_signup_parameters(
-        &mut self
-    ) -> (String, String) {
+    pub fn get_signup_parameters(&mut self) -> (String, String) {
         let signup_data: r_sgx_signup_info_t = self.signup_info;
-        let poet_pub_key = unsafe { ffi::create_string_from_char_ptr(
-            signup_data.poet_public_key as *mut c_char) };
-        let enclave_quote = unsafe { ffi::create_string_from_char_ptr(
-            signup_data.enclave_quote as *mut c_char) };
+        let poet_pub_key =
+            unsafe { ffi::create_string_from_char_ptr(signup_data.poet_public_key as *mut c_char) };
+        let enclave_quote =
+            unsafe { ffi::create_string_from_char_ptr(signup_data.enclave_quote as *mut c_char) };
         (poet_pub_key, enclave_quote)
     }
 
     /// Method to update signature revocation list received from IAS. Pass it to enclave. Note
     /// that this method is applicable only when PoET is run in SGX hardware mode.
-    pub fn update_sig_rl(
-        &mut self
-    ) {
-	//TODO - Change SGX API to get EPID group ID and uncomment the below
-	/*
-        if self.check_if_sgx_simulator() == false {
-            let epid_group = self.get_epid_group();
-            let sig_rl_response =
-                self.ias_client.get_signature_revocation_list(
-                    Option::from(epid_group.as_str()),
-                    None,
-                ).expect("Error fetching SigRL");
-            let sig_rl_string = read_body_as_string(sig_rl_response.body)
-                .expect("Error reading SigRL response as string");
-            debug!("Received SigRl of {} length", sig_rl_string.len());
-            self.set_sig_revocation_list(&sig_rl_string)
-        }
-	*/
+    pub fn update_sig_rl(&mut self) {
+        //TODO - Change SGX API to get EPID group ID and uncomment the below
+        /*
+            if self.check_if_sgx_simulator() == false {
+                let epid_group = self.get_epid_group();
+                let sig_rl_response =
+                    self.ias_client.get_signature_revocation_list(
+                        Option::from(epid_group.as_str()),
+                        None,
+                    ).expect("Error fetching SigRL");
+                let sig_rl_string = read_body_as_string(sig_rl_response.body)
+                    .expect("Error reading SigRL response as string");
+                debug!("Received SigRl of {} length", sig_rl_string.len());
+                self.set_sig_revocation_list(&sig_rl_string)
+            }
+        */
     }
 }
 
@@ -392,19 +387,16 @@ fn check_verification_report(
         .expect("Error reading IAS report key");
 
     let decoded_sig = base64::decode(signature).unwrap();
-    if !verify_message_signature(
-        &public_key,
-        verification_report.as_bytes(),
-        &decoded_sig,
-    ) {
+    if !verify_message_signature(&public_key, verification_report.as_bytes(), &decoded_sig) {
         error!("Verification report signature does not match");
         return Err(());
     }
 
     // Convert verification_report json into HashMap
-    let verification_report_tmp_value: Value = from_str(verification_report)
-        .expect("Error in json deserializing verification report");
-    let verification_report_dict = verification_report_tmp_value.as_object()
+    let verification_report_tmp_value: Value =
+        from_str(verification_report).expect("Error in json deserializing verification report");
+    let verification_report_dict = verification_report_tmp_value
+        .as_object()
         .expect("Error reading deserialized json as key value pair");
     // Verify that the verification report meets the following criteria:
     // 1. Includes an ID field.
@@ -424,7 +416,9 @@ fn check_verification_report(
         return Err(());
     }
     // 4. Enclave quote status should be "OK".
-    let enclave_quote_status = enclave_status.unwrap().as_str()
+    let enclave_quote_status = enclave_status
+        .unwrap()
+        .as_str()
         .expect("Error reading quote status as string");
     if enclave_quote_status.to_uppercase() != "OK" {
         // Allow out of date severity issues to pass.

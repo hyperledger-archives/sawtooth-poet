@@ -26,22 +26,20 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate toml;
 
-use clap::{App,
-           Arg};
+use clap::{App, Arg};
 use ias_proxy_config::IasProxyConfig;
-use log4rs::{append::{console::ConsoleAppender,
-                      file::FileAppender},
-             config::{Appender,
-                      Config,
-                      Root},
-             encode::pattern::PatternEncoder};
 use log::LogLevelFilter;
+use log4rs::{
+    append::{console::ConsoleAppender, file::FileAppender},
+    config::{Appender, Config, Root},
+    encode::pattern::PatternEncoder,
+};
 use std::process;
 use utils::read_file_as_string;
 
+mod ias_proxy_config;
 mod ias_proxy_server;
 mod lru_cache;
-mod ias_proxy_config;
 mod utils;
 
 const DEFAULT_CONFIG_FILE: &str = "tests/packaging/ias_proxy.toml";
@@ -54,28 +52,36 @@ fn main() {
         .version("1.0.0")
         .author("Intel Corporation")
         .about("IAS proxy server")
-        .arg(Arg::with_name("config")
-            .short("c")
-            .long("config")
-            .value_name("config")
-            .takes_value(true)
-            .help("Config file"))
-        .arg(Arg::with_name("log-level")
-            .long("log-level")
-            .value_name("log-level")
-            .takes_value(true)
-            .help("Logging level"))
-        .arg(Arg::with_name("log-file")
-            .long("log-file")
-            .value_name("log-file")
-            .takes_value(true)
-            .help("Log file"))
-        .arg(Arg::with_name("verbose")
-            .short("v")
-            .long("verbose")
-            .value_name("verbose")
-            .multiple(true)
-            .help("Print debug information"))
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("config")
+                .takes_value(true)
+                .help("Config file"),
+        )
+        .arg(
+            Arg::with_name("log-level")
+                .long("log-level")
+                .value_name("log-level")
+                .takes_value(true)
+                .help("Logging level"),
+        )
+        .arg(
+            Arg::with_name("log-file")
+                .long("log-file")
+                .value_name("log-file")
+                .takes_value(true)
+                .help("Log file"),
+        )
+        .arg(
+            Arg::with_name("verbose")
+                .short("v")
+                .long("verbose")
+                .value_name("verbose")
+                .multiple(true)
+                .help("Print debug information"),
+        )
         .get_matches();
 
     let log_level;
@@ -102,7 +108,12 @@ fn main() {
     let config = Config::builder()
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
         .appender(Appender::builder().build("fileout", Box::new(fileout)))
-        .build(Root::builder().appender("stdout").appender("fileout").build(log_level))
+        .build(
+            Root::builder()
+                .appender("stdout")
+                .appender("fileout")
+                .build(log_level),
+        )
         .unwrap_or_else(|err| {
             error!("{}", err);
             process::exit(1);

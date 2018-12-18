@@ -45,7 +45,11 @@ fn main() {
         source.push("simulator");
     }
     source.push("validator_registry_tp_verifier.rs");
-    println!("Copying from {:?} to {:?}", source.clone(), destination.clone());
+    println!(
+        "Copying from {:?} to {:?}",
+        source.clone(),
+        destination.clone()
+    );
     fs::copy(source, destination)
         .expect("Build will fail, because copy operation not permitted in the path!");
 }

@@ -15,12 +15,12 @@
  * ------------------------------------------------------------------------------
  */
 
-use engine::consensus_state::ConsensusState;
-use sawtooth_sdk::consensus::engine::BlockId;
+use bincode::{deserialize, serialize};
 use database::lmdb::LmdbDatabase;
 use database::DatabaseError;
-use bincode::{serialize, deserialize};
+use engine::consensus_state::ConsensusState;
 use poet2_util;
+use sawtooth_sdk::consensus::engine::BlockId;
 
 #[derive(Debug)]
 pub enum ConsensusStateStoreError {
@@ -34,45 +34,64 @@ pub struct ConsensusStateStore<'a> {
 
 impl<'a> ConsensusStateStore<'a> {
     pub fn new(db: LmdbDatabase<'a>) -> Self {
-        ConsensusStateStore { consensus_state_db:db, }
+        ConsensusStateStore {
+            consensus_state_db: db,
+        }
     }
-    pub fn get( &self, block_id: BlockId, ) ->
-        Result<Box<ConsensusState>, DatabaseError> {
-
+    pub fn get(&self, block_id: BlockId) -> Result<Box<ConsensusState>, DatabaseError> {
         let reader = self.consensus_state_db.reader()?;
         let state = reader.get(&block_id).ok_or_else(|| {
-            DatabaseError::NotFoundError(format!("State not found for
-                block_id: {}",poet2_util::to_hex_string(&block_id)))
+            DatabaseError::NotFoundError(format!(
+                "State not found for
+                block_id: {}",
+                poet2_util::to_hex_string(&block_id)
+            ))
         })?;
-        debug!("Found state for block_id : {}", poet2_util::to_hex_string(&block_id));
-        let consensus_state:ConsensusState = deserialize(&state).map_err(|err| {
+        debug!(
+            "Found state for block_id : {}",
+            poet2_util::to_hex_string(&block_id)
+        );
+        let consensus_state: ConsensusState = deserialize(&state).map_err(|err| {
             DatabaseError::CorruptionError(format!(
                 "Error in deserializing consensus state : {}",
-                    err
-                )
-            )
+                err
+            ))
         })?;
         Ok(Box::new(consensus_state.clone()))
     }
 
-    pub fn delete(&mut self, block_id: BlockId) -> Result<(), DatabaseError>{
+    pub fn delete(&mut self, block_id: BlockId) -> Result<(), DatabaseError> {
         let mut writer = self.consensus_state_db.writer()?;
         writer.delete(&Vec::from(block_id.clone()))?;
-        writer.commit().expect(&format!("Failed to commit state deletion for block_id : {}",
-            poet2_util::to_hex_string(&block_id)));
-        debug!("Deleted state for block_id : {}", poet2_util::to_hex_string(&block_id));
+        writer.commit().expect(&format!(
+            "Failed to commit state deletion for block_id : {}",
+            poet2_util::to_hex_string(&block_id)
+        ));
+        debug!(
+            "Deleted state for block_id : {}",
+            poet2_util::to_hex_string(&block_id)
+        );
         Ok(())
     }
 
-    pub fn put(&mut self, block_id: BlockId, consensus_state: ConsensusState) -> Result<(), DatabaseError>{
+    pub fn put(
+        &mut self,
+        block_id: BlockId,
+        consensus_state: ConsensusState,
+    ) -> Result<(), DatabaseError> {
         let mut writer = self.consensus_state_db.writer()?;
         let serialized_state = serialize(&consensus_state).map_err(|err| {
             DatabaseError::WriterError(format!("Failed to serialize state: {}", err))
         })?;
         writer.put(&Vec::from(block_id.clone()), &serialized_state)?;
-        writer.commit().expect(&format!("Failed to commit state write to db for block_id : {}",
-            poet2_util::to_hex_string(&block_id)));
-        debug!("Stored state for block_id : {}", poet2_util::to_hex_string(&block_id));
+        writer.commit().expect(&format!(
+            "Failed to commit state write to db for block_id : {}",
+            poet2_util::to_hex_string(&block_id)
+        ));
+        debug!(
+            "Stored state for block_id : {}",
+            poet2_util::to_hex_string(&block_id)
+        );
         Ok(())
     }
 }
@@ -81,10 +100,10 @@ impl<'a> ConsensusStateStore<'a> {
 mod tests {
     use super::*;
     use database::config;
-    use std::fs;
-    use std::path::Path;
     use database::lmdb;
     use database::CliError;
+    use std::fs;
+    use std::path::Path;
 
     /// Asserts that there are COUNT many objects in DB.
     fn assert_database_db_count(count: usize, db: &LmdbDatabase) {
@@ -129,28 +148,34 @@ mod tests {
     }
 
     /*
-     * file_prefix - Taking this as an argument to isolate the  
+     * file_prefix - Taking this as an argument to isolate the
      *               the context and db files for all the test cases.
-     *               Unit test threads might run in parallel which 
+     *               Unit test threads might run in parallel which
      *               would then create coflicts.
      */
-    fn create_context( file_prefix : &String ) -> lmdb::LmdbContext {
+    fn create_context(file_prefix: &String) -> lmdb::LmdbContext {
         let path_config = config::get_path_config();
         assert!(path_config.data_dir.exists());
-        let statestore_path = &path_config.data_dir.join(
-             Path::new(&format!("{}{}",file_prefix,config::get_filename())));
+        let statestore_path = &path_config.data_dir.join(Path::new(&format!(
+            "{}{}",
+            file_prefix,
+            config::get_filename()
+        )));
 
-         let context = lmdb::LmdbContext::new(statestore_path, 1, None)
+        let context = lmdb::LmdbContext::new(statestore_path, 1, None)
             .map_err(|err| CliError::EnvironmentError(format!("{}", err)))
             .expect("Error creating context.");
         assert!(statestore_path.exists());
         context
     }
 
-    fn cleanup_dbfile( file_prefix : &String ) {
+    fn cleanup_dbfile(file_prefix: &String) {
         let path_config = config::get_path_config();
-        let statestore_path = &path_config.data_dir.join(
-             Path::new(&format!("{}{}",file_prefix,config::get_filename())));
+        let statestore_path = &path_config.data_dir.join(Path::new(&format!(
+            "{}{}",
+            file_prefix,
+            config::get_filename()
+        )));
 
         fs::remove_file(statestore_path.to_str().unwrap());
         // Ensure the file has been deleted
@@ -159,19 +184,17 @@ mod tests {
 
     #[test]
     fn test_state_store_get() {
-
         let file_name = String::from("test_state_store_get_");
         let ctx = create_context(&file_name);
-        let statestore_db = lmdb::LmdbDatabase::new(
-            &ctx,
-            &["index_consensus_state"],
-        ).map_err(|err| CliError::EnvironmentError(format!("{}", err))).unwrap();
+        let statestore_db = lmdb::LmdbDatabase::new(&ctx, &["index_consensus_state"])
+            .map_err(|err| CliError::EnvironmentError(format!("{}", err)))
+            .unwrap();
 
         let mut state_store = ConsensusStateStore::new(statestore_db);
 
         // Taking random u8 vector as block_id
         assert!(state_store.get(BlockId::from(vec![11])).is_err());
-        state_store.put( BlockId::from(vec![11]), ConsensusState::default() );
+        state_store.put(BlockId::from(vec![11]), ConsensusState::default());
 
         assert!(state_store.get(BlockId::from(vec![11])).is_ok());
         //cleanup
@@ -180,49 +203,51 @@ mod tests {
 
     #[test]
     fn test_state_store_put() {
-
         let file_name = String::from("test_state_store_put_");
         let ctx = create_context(&file_name);
-        let statestore_db = lmdb::LmdbDatabase::new(
-            &ctx,
-            &["index_consensus_state"],
-        ).map_err(|err| CliError::EnvironmentError(format!("{}", err))).unwrap();
+        let statestore_db = lmdb::LmdbDatabase::new(&ctx, &["index_consensus_state"])
+            .map_err(|err| CliError::EnvironmentError(format!("{}", err)))
+            .unwrap();
 
         let mut state_store = ConsensusStateStore::new(statestore_db);
 
         // Taking random u8 vector as block_id
         assert!(state_store.get(BlockId::from(vec![13])).is_err());
-        state_store.put( BlockId::from(vec![13]), ConsensusState::default() );
+        state_store.put(BlockId::from(vec![13]), ConsensusState::default());
 
         assert!(state_store.get(BlockId::from(vec![13])).is_ok());
-        assert_eq!(*state_store.get(BlockId::from(vec![13])).unwrap(),
-            ConsensusState::default());
+        assert_eq!(
+            *state_store.get(BlockId::from(vec![13])).unwrap(),
+            ConsensusState::default()
+        );
         //cleanup
         cleanup_dbfile(&file_name);
     }
 
     #[test]
     fn test_state_store_delete() {
-
         let file_name = String::from("test_state_store_delete_");
         let ctx = create_context(&file_name);
-        let statestore_db = lmdb::LmdbDatabase::new(
-            &ctx,
-            &["index_consensus_state"],
-        ).map_err(|err| CliError::EnvironmentError(format!("{}", err))).unwrap();
+        let statestore_db = lmdb::LmdbDatabase::new(&ctx, &["index_consensus_state"])
+            .map_err(|err| CliError::EnvironmentError(format!("{}", err)))
+            .unwrap();
 
         let mut state_store = ConsensusStateStore::new(statestore_db);
 
         // Taking random u8 vector as block_id
-        state_store.put( BlockId::from(vec![14]), ConsensusState::default() );
-        state_store.put( BlockId::from(vec![15]), ConsensusState::default() );
+        state_store.put(BlockId::from(vec![14]), ConsensusState::default());
+        state_store.put(BlockId::from(vec![15]), ConsensusState::default());
 
-        assert_eq!(*state_store.get(BlockId::from(vec![14])).unwrap(),
-            ConsensusState::default());
-        assert_eq!(*state_store.get(BlockId::from(vec![15])).unwrap(),
-            ConsensusState::default());
+        assert_eq!(
+            *state_store.get(BlockId::from(vec![14])).unwrap(),
+            ConsensusState::default()
+        );
+        assert_eq!(
+            *state_store.get(BlockId::from(vec![15])).unwrap(),
+            ConsensusState::default()
+        );
 
-        state_store.delete( BlockId::from(vec![14]) );
+        state_store.delete(BlockId::from(vec![14]));
         assert!(state_store.get(BlockId::from(vec![14])).is_err());
         assert!(state_store.get(BlockId::from(vec![15])).is_ok());
         //cleanup

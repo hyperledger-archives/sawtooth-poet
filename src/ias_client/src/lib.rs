@@ -27,5 +27,5 @@ extern crate serde_json;
 extern crate tokio;
 
 // modules defined in this crate
-pub mod ias_client;
 pub mod client_utils;
+pub mod ias_client;

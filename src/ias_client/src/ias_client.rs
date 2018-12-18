@@ -17,20 +17,10 @@
 
 extern crate serde;
 
-use client_utils::{ClientError,
-                   ClientResponse,
-                   get_client,
-                   read_response_future};
-use hyper::{Body,
-            header,
-            header::HeaderValue,
-            Method,
-            Request,
-            Uri};
+use client_utils::{get_client, read_response_future, ClientError, ClientResponse};
+use hyper::{header, header::HeaderValue, Body, Method, Request, Uri};
 use serde_json;
-use std::{collections::HashMap,
-          str,
-          time::Duration};
+use std::{collections::HashMap, str, time::Duration};
 
 /// Structure for storing IAS connection information
 #[derive(Debug, Clone)]
@@ -64,8 +54,7 @@ impl IasClient {
             ias_url: String::new(),
             spid_cert: vec![],
             password: EMPTY_STR.to_string(),
-            timeout: Duration::new(DEFAULT_TIMEOUT_SECS,
-                                   DEFAULT_TIMEOUT_NANO_SECS),
+            timeout: Duration::new(DEFAULT_TIMEOUT_SECS, DEFAULT_TIMEOUT_NANO_SECS),
         }
     }
 
@@ -75,8 +64,10 @@ impl IasClient {
             ias_url: url,
             spid_cert: cert,
             password: passwd,
-            timeout: Duration::new(time.unwrap_or(DEFAULT_TIMEOUT_SECS),
-                                   DEFAULT_TIMEOUT_NANO_SECS),
+            timeout: Duration::new(
+                time.unwrap_or(DEFAULT_TIMEOUT_SECS),
+                DEFAULT_TIMEOUT_NANO_SECS,
+            ),
         }
     }
 
@@ -109,7 +100,6 @@ impl IasClient {
         gid: Option<&str>,
         api_path: Option<&str>,
     ) -> Result<ClientResponse, ClientError> {
-
         // Path to get SigRL from
         let mut final_path = String::new();
         final_path.push_str(self.ias_url.as_str());
@@ -124,11 +114,13 @@ impl IasClient {
             Some(gid_present) => {
                 final_path.push_str("/");
                 gid_present
-            },
+            }
             _ => "",
         };
         final_path.push_str(received_gid);
-        let url = final_path.parse::<Uri>().expect("Error constructing URI from string");
+        let url = final_path
+            .parse::<Uri>()
+            .expect("Error constructing URI from string");
         debug!("Fetching SigRL from: {}", url);
 
         // Send request to get SigRL
@@ -153,13 +145,14 @@ impl IasClient {
         manifest: Option<&str>,
         nonce: Option<&str>,
     ) -> Result<ClientResponse, ClientError> {
-
         // REST API to connect to for getting AVR
         let mut final_path = String::new();
         final_path.push_str(self.ias_url.as_str());
         final_path.push_str("/");
         final_path.push_str(AVR_LINK);
-        let url = final_path.parse::<Uri>().expect("Error constructing URI from string");
+        let url = final_path
+            .parse::<Uri>()
+            .expect("Error constructing URI from string");
         debug!("Posting attestation verification request to: {}", url);
 
         // Construct AEP, request parameter
@@ -167,25 +160,24 @@ impl IasClient {
         // with keys in request json with empty value. With following code, we are avoiding even
         // addition of keys in request json.
         let mut request_aep: HashMap<String, String> = HashMap::new();
-        request_aep.insert(String::from(ISV_ENCLAVE_QUOTE),
-                           str::from_utf8(quote)
-                               .expect("Error occurred when converting quote to string")
-                               .to_owned());
+        request_aep.insert(
+            String::from(ISV_ENCLAVE_QUOTE),
+            str::from_utf8(quote)
+                .expect("Error occurred when converting quote to string")
+                .to_owned(),
+        );
         // Optional manifest, add to request param if present
         if manifest.is_some() {
-            request_aep.insert(String::from(PSE_MANIFEST),
-                               manifest.unwrap().to_owned());
+            request_aep.insert(String::from(PSE_MANIFEST), manifest.unwrap().to_owned());
         }
         // Optional nonce, add to request param if present
         if nonce.is_some() {
-            request_aep.insert(String::from(NONCE),
-                               nonce.unwrap().to_string());
+            request_aep.insert(String::from(NONCE), nonce.unwrap().to_string());
         }
         // Construct hyper's request to be sent
-        let mut req = Request::new(
-            Body::from(
-                serde_json::to_string(&request_aep)
-                    .expect("Error occurred during AEP serialization")));
+        let mut req = Request::new(Body::from(
+            serde_json::to_string(&request_aep).expect("Error occurred during AEP serialization"),
+        ));
         *req.method_mut() = Method::POST;
         *req.uri_mut() = url.clone();
         req.headers_mut().insert(
@@ -231,7 +223,8 @@ mod tests {
             DUMMY_URL.clone().to_string(),
             DUMMY_CERT.to_vec(),
             DUMMY_PASSWORD.to_string(),
-            Option::from(DUMMY_DURATION));
+            Option::from(DUMMY_DURATION),
+        );
         assert_eq!(new_ias_client.ias_url, DUMMY_URL.clone());
         assert_eq!(new_ias_client.spid_cert.len(), DUMMY_CERT.len());
         assert_eq!(new_ias_client.timeout.as_secs(), DUMMY_DURATION);

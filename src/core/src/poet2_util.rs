@@ -17,26 +17,24 @@
 
 use crypto::digest::Digest;
 use crypto::sha2::{Sha256, Sha512};
-use openssl::{hash::MessageDigest, pkey::{PKey, Public}, sign::Verifier};
-use sawtooth_sdk::consensus::{engine::*};
+use openssl::{
+    hash::MessageDigest,
+    pkey::{PKey, Public},
+    sign::Verifier,
+};
+use sawtooth_sdk::consensus::engine::*;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 
 const WC_DELIM_CHAR: u8 = b'#' as u8; //0x23
 
-pub fn to_hex_string(
-    bytes: &[u8]
-) -> String {
-    let strs: Vec<String> = bytes.iter()
-        .map(|b| format!("{:02x}", b))
-        .collect();
+pub fn to_hex_string(bytes: &[u8]) -> String {
+    let strs: Vec<String> = bytes.iter().map(|b| format!("{:02x}", b)).collect();
     strs.join("")
 }
 
-pub fn payload_to_wc_and_sig(
-    payload: &[u8]
-) -> (String, String) {
+pub fn payload_to_wc_and_sig(payload: &[u8]) -> (String, String) {
     let delim_index = payload.iter().position(|&i| i == WC_DELIM_CHAR).unwrap();
     let payload_parts = payload.split_at(delim_index + 1);
     let mut wait_certificate = String::from_utf8(payload_parts.0.to_vec()).unwrap();
@@ -48,24 +46,22 @@ pub fn payload_to_wc_and_sig(
 /// Reads the given file as string
 ///
 /// Note: This method will panic if file is not found or error occurs when reading file as string.
-pub fn read_file_as_string(
-    filename: &str
-) -> String {
+pub fn read_file_as_string(filename: &str) -> String {
     let mut file_handler = match File::open(filename) {
         Ok(file_open_successful) => file_open_successful,
         Err(error) => panic!("Error opening file! {} : {}", error, filename),
     };
     let mut read_contents = String::new();
-    file_handler.read_to_string(&mut read_contents).expect("Read operation failed");
+    file_handler
+        .read_to_string(&mut read_contents)
+        .expect("Read operation failed");
     read_contents
 }
 
 /// Reads the given file as string, ignore the new line character at end
 ///
 /// Note: This method will panic if file is not found or error occurs when reading file as string.
-pub fn read_file_as_string_ignore_line_end(
-    filename: &str
-) -> String {
+pub fn read_file_as_string_ignore_line_end(filename: &str) -> String {
     let mut read_contents = read_file_as_string(filename);
     read_contents.pop();
     read_contents
@@ -74,9 +70,7 @@ pub fn read_file_as_string_ignore_line_end(
 /// Reads binary file and returns vector of u8
 ///
 /// Note: This method will panic if file is not found or error occurs when reading file as binary.
-pub fn read_binary_file(
-    filename: &str
-) -> Vec<u8> {
+pub fn read_binary_file(filename: &str) -> Vec<u8> {
     let mut file = File::open(filename).expect("File not found");
     let mut buffer = vec![];
     file.read_to_end(&mut buffer).expect("Read failed!");
@@ -85,27 +79,20 @@ pub fn read_binary_file(
 }
 
 /// Write binary data to a file
-pub fn write_binary_file(
-    data: &[u8],
-    filename: &str,
-) {
+pub fn write_binary_file(data: &[u8], filename: &str) {
     let mut file = File::create(filename).expect("File not found");
     file.write_all(data).expect("Write binary file failed");
 }
 
 /// Returns SHA256 of input &str in String
-pub fn sha256_from_str(
-    input_value: &str
-) -> String {
+pub fn sha256_from_str(input_value: &str) -> String {
     let mut sha256_calculator = Sha256::new();
     sha256_calculator.input_str(input_value);
     sha256_calculator.result_str()
 }
 
 /// Returns SHA512 of input &str in String
-pub fn sha512_from_str(
-    input_value: &str
-) -> String {
+pub fn sha512_from_str(input_value: &str) -> String {
     let mut sha512_calculator = Sha512::new();
     sha512_calculator.input_str(input_value);
     sha512_calculator.result_str()
@@ -116,14 +103,12 @@ pub fn sha512_from_str(
 /// as input.
 ///
 /// Note: SHA256 algorithm is used to find message digest.
-pub fn verify_message_signature(
-    pub_key: &PKey<Public>,
-    message: &[u8],
-    signature: &[u8],
-) -> bool {
+pub fn verify_message_signature(pub_key: &PKey<Public>, message: &[u8], signature: &[u8]) -> bool {
     let mut verifier = Verifier::new(MessageDigest::sha256(), pub_key).unwrap();
     verifier.update(message).expect("Error adding message");
-    verifier.verify(signature).expect("Error verifying message signature")
+    verifier
+        .verify(signature)
+        .expect("Error verifying message signature")
 }
 
 #[cfg(test)]
@@ -149,7 +134,8 @@ The dummy file.
 
     #[test]
     fn test_sha256_from_str() {
-        let sha256_of_validator_tp = "6a437209808cff53912c184ab0d3742d47c601c32367e8c34dbe34e9b923e147";
+        let sha256_of_validator_tp =
+            "6a437209808cff53912c184ab0d3742d47c601c32367e8c34dbe34e9b923e147";
         let sha256_calculated = sha256_from_str("validator_registry");
         assert_eq!(sha256_of_validator_tp, sha256_calculated)
     }
