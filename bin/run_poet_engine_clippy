@@ -1,3 +1,5 @@
+#!/bin/bash
+#
 # Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +15,32 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-version: '3.6'
+top_dir=$(cd $(dirname $(dirname $0)) && pwd)
 
-services:
+dirs="
+    $top_dir/src/core
+    $top_dir/src/ias_client
+    $top_dir/src/ias_proxy
+    $top_dir/src/sgx/rust_sgxffi
+    $top_dir/src/validator-registry-tp
+"
 
-  poet-engine-clippy:
-    build:
-      context: ./
-      dockerfile: ./clippy-poet.dockerfile
-      args:
-        - http_proxy
-        - https_proxy
-        - no_proxy
-    image: poet-engine-clippy:${ISOLATION_ID}
-    volumes:
-      - ./:/project/sawtooth-poet/
-    command: run_poet_engine_clippy
+exitcode=0
+
+for dir in $dirs; do
+    cd $dir
+    echo "$dir"
+
+    cargo clippy
+    exitcode=$?
+
+    # cargo clippy returns non-zero error code if there are errors.
+
+    if [[ $exitcode != 0 ]]; then
+      echo "Clippy errors found: $dir (error code: $exitcode)"
+      break
+    fi
+
+done
+
+exit $exitcode

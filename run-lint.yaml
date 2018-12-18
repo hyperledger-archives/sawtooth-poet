@@ -17,15 +17,15 @@ version: '3.6'
 
 services:
 
-  poet-engine-clippy:
+  lint-rust:
     build:
-      context: ./
-      dockerfile: ./clippy-poet.dockerfile
+      context: .
+      dockerfile: ./lint.dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
-    image: poet-engine-clippy:${ISOLATION_ID}
+    image: lint:${ISOLATION_ID}
     volumes:
-      - ./:/project/sawtooth-poet/
-    command: run_poet_engine_clippy
+      - .:/project/sawtooth-poet
+    command: run_lint_rust

@@ -24,7 +24,6 @@ pub fn verify_signup_info(
     _originator_public_key_hash: &str,
     _val_reg_payload: &ValidatorRegistryPayload,
 ) -> Result<(), ValueError> {
-
     // In simulator mode, always return success.
     Ok(())
 }

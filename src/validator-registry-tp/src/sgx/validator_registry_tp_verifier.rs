@@ -17,20 +17,20 @@
 
 extern crate openssl;
 
-use crypto::{digest::Digest,
-             sha2::Sha256};
+use self::openssl::{
+    hash::MessageDigest,
+    pkey::{PKey, Public},
+    sha::sha256,
+    sign::Verifier,
+};
+use crypto::{digest::Digest, sha2::Sha256};
 use protobuf;
-use sawtooth_sdk::{messages::setting::Setting,
-                   processor::handler::{ApplyError,
-                                        TransactionContext}};
-use self::openssl::{hash::MessageDigest,
-                    pkey::{PKey,
-                           Public},
-                    sha::sha256,
-                    sign::Verifier};
+use sawtooth_sdk::{
+    messages::setting::Setting,
+    processor::handler::{ApplyError, TransactionContext},
+};
 use validator_registry_payload::ValidatorRegistryPayload;
-use validator_registry_signup_info::{SignupInfoProofData,
-                                     ValidatorRegistrySignupInfo};
+use validator_registry_signup_info::{SignupInfoProofData, ValidatorRegistrySignupInfo};
 use validator_registry_tp::ValueError;
 
 const _CONFIG_ADDRESS_PART_SIZE: usize = 16;
@@ -59,10 +59,9 @@ pub fn verify_signup_info(
 
     // Try to get the report key from the configuration setting.  If it
     // is not there or we cannot parse it, fail verification.
-    let report_public_key_pem = get_config_setting(
-        context,
-        &"sawtooth.poet.report_public_key_pem".to_string())
-        .expect("Error reading config setting: PoET public key");
+    let report_public_key_pem =
+        get_config_setting(context, &"sawtooth.poet.report_public_key_pem".to_string())
+            .expect("Error reading config setting: PoET public key");
 
     // TODO: Need below 2 parameters for quote verification
     /*
@@ -78,22 +77,19 @@ pub fn verify_signup_info(
     let public_key = PKey::public_key_from_pem(
         report_public_key_pem
             .expect("Error reading public key information from on-chain setting")
-            .as_bytes()
-    ).expect("Error creating Public Key object");
+            .as_bytes(),
+    )
+    .expect("Error creating Public Key object");
     let decoded_sig = base64::decode(signature).unwrap();
-    if !verify_message_signature(
-        &public_key,
-        verification_report.as_bytes(),
-        &decoded_sig,
-    ) {
+    if !verify_message_signature(&public_key, verification_report.as_bytes(), &decoded_sig) {
         error!("Verification report signature does not match");
         return Err(ValueError);
     }
 
     // Convert verification_report json into HashMap
-    let verification_report_tmp_value: serde_json::Value = serde_json::from_str(
-        verification_report.as_str()
-    ).expect("Error reading verification report as Json");
+    let verification_report_tmp_value: serde_json::Value =
+        serde_json::from_str(verification_report.as_str())
+            .expect("Error reading verification report as Json");
     let verification_report_dict = verification_report_tmp_value
         .as_object()
         .expect("Error reading verification report as Key Value pair");
@@ -109,13 +105,17 @@ pub fn verify_signup_info(
         return Err(ValueError);
     }
     // Verify that the verification report EPID pseudonym matches the anti-sybil ID
-    let epid_pseudonym = verification_report_dict.get("epidPseudonym")
+    let epid_pseudonym = verification_report_dict
+        .get("epidPseudonym")
         .expect("Error reading epidPseudonym from verification report")
         .as_str()
         .expect("Error converting epidPseudonym as string reference");
     if epid_pseudonym != signup_info.anti_sybil_id {
-        error!("The anti-sybil ID in the verification report {} does not match the one \
-            contained in the signup information {}", epid_pseudonym, signup_info.anti_sybil_id);
+        error!(
+            "The anti-sybil ID in the verification report {} does not match the one \
+             contained in the signup information {}",
+            epid_pseudonym, signup_info.anti_sybil_id
+        );
         return Err(ValueError);
     }
     // Includes an enclave quote.
@@ -124,22 +124,30 @@ pub fn verify_signup_info(
         return Err(ValueError);
     }
     // The ISV enclave quote body is base 64 encoded
-    let _enclave_quote = verification_report_dict.get("isvEnclaveQuoteBody")
+    let _enclave_quote = verification_report_dict
+        .get("isvEnclaveQuoteBody")
         .expect("Error reading isvEnclaveQuoteBody from verification report");
     // The report body should be SHA256(SHA256(OPK)|PPK)
-    let hash_input = format!("{}{}", originator_public_key_hash.to_uppercase(), signup_info
-        .poet_public_key.to_uppercase());
+    let hash_input = format!(
+        "{}{}",
+        originator_public_key_hash.to_uppercase(),
+        signup_info.poet_public_key.to_uppercase()
+    );
     let _hash_value = sha256(hash_input.as_bytes());
     // TODO: Quote verification
     // Verify that the nonce in the verification report matches the nonce in the transaction
     // payload submitted
     let nonce = match verification_report_dict.get("nonce") {
-        Some(nonce_present) => nonce_present.as_str()
+        Some(nonce_present) => nonce_present
+            .as_str()
             .expect("Error reading nonce as string reference"),
         None => "",
     };
     if nonce != signup_info.nonce {
-        error!("AVR nonce {} does not match signup info nonce {}", nonce, signup_info.nonce);
+        error!(
+            "AVR nonce {} does not match signup info nonce {}",
+            nonce, signup_info.nonce
+        );
         return Err(ValueError);
     }
     Ok(())
@@ -150,14 +158,12 @@ pub fn verify_signup_info(
 /// signature of the message as input parameters.
 ///
 /// Note: Digest of message is calculated using SHA256 algorithm in this function.
-fn verify_message_signature(
-    pub_key: &PKey<Public>,
-    message: &[u8],
-    signature: &[u8],
-) -> bool {
+fn verify_message_signature(pub_key: &PKey<Public>, message: &[u8], signature: &[u8]) -> bool {
     let mut verifier = Verifier::new(MessageDigest::sha256(), pub_key)
         .expect("Error creating verifier object for SHA256 algortihm");
-    verifier.update(message).expect("Error updating message to verifier");
+    verifier
+        .update(message)
+        .expect("Error updating message to verifier");
     verifier.verify(signature).expect("Error verifying message")
 }
 
@@ -192,10 +198,10 @@ fn get_setting_data(
     })
 }
 
-fn unpack_data<T>(
-    data: &[u8]
-) -> Result<T, ApplyError>
-    where T: protobuf::Message, {
+fn unpack_data<T>(data: &[u8]) -> Result<T, ApplyError>
+where
+    T: protobuf::Message,
+{
     protobuf::parse_from_bytes(&data).map_err(|err| {
         warn!(
             "Invalid error: Failed to unmarshal SettingsTransaction: {:?}",
@@ -208,9 +214,7 @@ fn unpack_data<T>(
     })
 }
 
-fn config_key_to_address(
-    key: &String
-) -> String {
+fn config_key_to_address(key: &String) -> String {
     let _config_address_padding = config_short_hash(String::new());
 
     let key_parts: Vec<&str> = key.split(".").collect();
@@ -218,7 +222,10 @@ fn config_key_to_address(
         panic!("Failed to get key parts");
     }
 
-    let mut addr_parts: Vec<String> = key_parts.iter().map(|key_part| config_short_hash(key_part.to_string())).collect();
+    let mut addr_parts: Vec<String> = key_parts
+        .iter()
+        .map(|key_part| config_short_hash(key_part.to_string()))
+        .collect();
     let addr_parts_len = addr_parts.len();
     for _i in 0..(_CONFIG_MAX_KEY_PARTS - addr_parts_len) {
         addr_parts.push(_config_address_padding.clone());

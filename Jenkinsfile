@@ -62,11 +62,25 @@ node ('master') {
             env.ISOLATION_ID = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
             env.COMPOSE_PROJECT_NAME = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
 
+            // Run lint checks
+            stage("Run Lint") {
+                // Run docker build on simulator and hardware both one at a
+                // time, to generate required artifacts and then perform lint
+                // checks
+                sh 'docker-compose -f docker-poet-build.yaml up'
+                sh 'docker-compose -f run-lint.yaml up --abort-on-container-exit --exit-code-from lint-rust lint-rust'
+                sh 'docker-compose -f clippy-poet.yaml up --abort-on-container-exit --exit-code-from poet-engine-clippy poet-engine-clippy'
+                sh 'docker-compose -f docker-poet-hw-build.yaml up'
+                sh 'docker-compose -f run-lint.yaml up --abort-on-container-exit --exit-code-from lint-rust lint-rust'
+                sh 'docker-compose -f clippy-poet.yaml up --abort-on-container-exit --exit-code-from poet-engine-clippy poet-engine-clippy'
+            }
+
             // Run the tests
             stage("Run Tests") {
                 sh './bin/run_docker_test tests/unit-poet.yaml'
                 sh './bin/run_docker_test tests/unit-ias-client.yaml'
-                sh './bin/run_docker_test tests/unit-ias-proxy.yaml'
+                // TODO: Enable this when IAS proxy is made use
+                // sh './bin/run_docker_test tests/unit-ias-proxy.yaml'
                 sh '''
                   docker rm -f \
                     $(docker ps -f "label=com.sawtooth.isolation_id=${ISOLATION_ID}" \

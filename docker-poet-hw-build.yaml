@@ -27,6 +27,8 @@ services:
          - no_proxy
      volumes:
        - ./:/project/sawtooth-poet/
+     environment:
+       - 'SGX_HW_MODE=TRUE'
      working_dir: '/project/sawtooth-poet/src/core'
      entrypoint: "bash -c \"\
          source /project/sawtooth-poet/build_sgx_binary.sh \
@@ -43,6 +45,8 @@ services:
          - no_proxy
      volumes:
        - ./src/validator-registry-tp:/project/sawtooth-poet/src/validator-registry-tp/
+     environment:
+       - 'SGX_HW_MODE=TRUE'
      working_dir: '/project/sawtooth-poet/src/validator-registry-tp'
      entrypoint: "bash -c \"\
          RUST_BACKTRACE=1 cargo build\""

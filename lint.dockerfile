@@ -14,7 +14,6 @@
 # ------------------------------------------------------------------------------
 
 FROM ubuntu:xenial
-
 RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sources.list \
  && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8AA7AF1F1091A5FD \
  || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 8AA7AF1F1091A5FD) \
@@ -72,4 +71,4 @@ RUN curl https://sh.rustup.rs -sSf > /usr/bin/rustup-init \
 ENV PATH=$PATH:/protoc3/bin:/project/sawtooth-poet/bin:/root/.cargo/bin \
     CARGO_INCREMENTAL=0
 
-RUN rustup update && rustup component add clippy-preview
+RUN rustup update && rustup component add rustfmt-preview
