@@ -42,5 +42,4 @@ class PendingForks:
         except IndexError:
             return None
 
-        block = self._blocks.pop(block_id)
-        return block
+        return self._blocks.pop(block_id, None)
