@@ -63,7 +63,6 @@ enclavemod = Extension(
      'sawtooth_poet_sgx/poet_enclave_sgx/common.cpp',
      'sawtooth_poet_sgx/poet_enclave_sgx/poet.cpp',
      'sawtooth_poet_sgx/poet_enclave_sgx/wait_certificate.cpp',
-     'sawtooth_poet_sgx/poet_enclave_sgx/wait_timer.cpp',
      'sawtooth_poet_sgx/poet_enclave_sgx/signup_data.cpp',
      'sawtooth_poet_sgx/poet_enclave_sgx/signup_info.cpp',
      'sawtooth_poet_sgx/poet_enclave_sgx/{}/platform_support.cpp'.format(

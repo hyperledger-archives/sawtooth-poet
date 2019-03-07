@@ -58,8 +58,7 @@ namespace sawtooth {
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         Enclave::Enclave() :
-            enclaveId(0),
-            sealedSignupDataSize(0)
+            enclaveId(0)
         {
             uint32_t size;
             sgx_status_t ret = sgx_calc_quote_size(nullptr, 0, &size);
@@ -142,8 +141,7 @@ namespace sawtooth {
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::GetEnclaveCharacteristics(
             sgx_measurement_t* outEnclaveMeasurement,
-            sgx_basename_t* outEnclaveBasename,
-            sgx_sha256_hash_t* outEnclavePseManifestHash
+            sgx_basename_t* outEnclaveBasename
             )
         {
             ThrowIfNull(
@@ -152,13 +150,9 @@ namespace sawtooth {
             ThrowIfNull(
                 outEnclaveBasename,
                 "Enclave basename pointer is NULL");
-            ThrowIfNull(
-                outEnclavePseManifestHash,
-                "Enclave PSE manifest hash pointer is NULL");
 
             Zero(outEnclaveMeasurement, sizeof(*outEnclaveMeasurement));
             Zero(outEnclaveBasename, sizeof(*outEnclaveBasename));
-            Zero(outEnclavePseManifestHash, sizeof(*outEnclavePseManifestHash));
 
             // We can get the enclave's measurement (i.e., mr_enclave) and
             // basename only by getting a quote.  To do that, we need to first
@@ -234,25 +228,6 @@ namespace sawtooth {
                 ret,
                 "Failed to create linkable quote for enclave report");
 
-            // Now get the PSE manifest hash and let the function copy it
-            // directly into the caller's buffer
-            ret =
-                this->CallSgx(
-                    [this,
-                     &poetRet,
-                     outEnclavePseManifestHash] () {
-                    sgx_status_t ret =
-                        ecall_GetPseManifestHash(
-                            this->enclaveId,
-                            &poetRet,
-                            outEnclavePseManifestHash);
-                    return ConvertPoetErrorStatus(ret, poetRet);
-                });
-            ThrowSgxError(
-                ret,
-                "Failed to retrieve PSE manifest hash for enclave");
-            this->ThrowPoetError(poetRet);
-
             // Copy the mr_enclave and basenaeme to the caller's buffers
             memcpy_s(
                 outEnclaveMeasurement,
@@ -303,17 +278,12 @@ namespace sawtooth {
         void Enclave::CreateSignupData(
             const std::string& inOriginatorPublicKeyHash,
             sgx_ec256_public_t* outPoetPublicKey,
-            buffer_t& outEnclaveQuote,
-            sgx_ps_sec_prop_desc_t* outPseManifest,
-            buffer_t& outSealedSignupData
+            buffer_t& outEnclaveQuote
             )
         {
             ThrowIfNull(
                 outPoetPublicKey,
                 "PoET public key pointer is NULL");
-            ThrowIfNull(
-                outPseManifest,
-                "PSE manifest pointer is NULL");
 
             // We need target info in order to create signup data report
             sgx_target_info_t targetInfo = { 0 };
@@ -330,9 +300,6 @@ namespace sawtooth {
             sgx_report_t enclaveReport = { 0 };
             poet_err_t poetRet = POET_SUCCESS;
 
-            // Properly size the sealed signup data buffer for the caller
-            // and call into the enclave to create the signup data
-            outSealedSignupData.resize(this->sealedSignupDataSize);
             ret =
                 this->CallSgx(
                     [this,
@@ -340,9 +307,7 @@ namespace sawtooth {
                      &targetInfo,
                      inOriginatorPublicKeyHash,
                      outPoetPublicKey,
-                     &enclaveReport,
-                     &outSealedSignupData,
-                     outPseManifest] () {
+                     &enclaveReport] () {
                     sgx_status_t ret =
                         ecall_CreateSignupData(
                             this->enclaveId,
@@ -350,10 +315,7 @@ namespace sawtooth {
                             &targetInfo,
                             inOriginatorPublicKeyHash.c_str(),
                             outPoetPublicKey,
-                            &enclaveReport,
-                            &outSealedSignupData[0],
-                            outSealedSignupData.size(),
-                            outPseManifest);
+                            &enclaveReport);
                     return ConvertPoetErrorStatus(ret, poetRet);
                 });
             ThrowSgxError(
@@ -399,71 +361,11 @@ namespace sawtooth {
         } // Enclave::GenerateSignupData
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        void Enclave::UnsealSignupData(
-            const buffer_t& inSealedSignupData,
-            sgx_ec256_public_t* outPoetPublicKey
-            )
-        {
-            ThrowIfNull(
-                outPoetPublicKey,
-                "PoET public key pointer is NULL");
-
-            // Call down into the enclave to unseal the signup data
-            poet_err_t poetRet = POET_SUCCESS;
-            sgx_status_t ret =
-                this->CallSgx(
-                    [this,
-                     &poetRet,
-                     &inSealedSignupData,
-                     outPoetPublicKey] () {
-                    sgx_status_t ret =
-                        ecall_UnsealSignupData(
-                            this->enclaveId,
-                            &poetRet,
-                            &inSealedSignupData[0],
-                            inSealedSignupData.size(),
-                            outPoetPublicKey);
-                    return ConvertPoetErrorStatus(ret, poetRet);
-                });
-            ThrowSgxError(
-                ret,
-                "Failed to unseal signup data");
-            this->ThrowPoetError(poetRet);
-        } // Enclave::UnsealSignupData
-
-        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        void Enclave::ReleaseSignupData(
-            const buffer_t& inSealedSignupData
-            )
-        {
-            // Call down into the enclave to release the signup data
-            poet_err_t poetRet = POET_SUCCESS;
-            sgx_status_t ret =
-                this->CallSgx(
-                    [this,
-                     &poetRet,
-                     &inSealedSignupData] () {
-                    sgx_status_t ret =
-                        ecall_ReleaseSignupData(
-                            this->enclaveId,
-                            &poetRet,
-                            &inSealedSignupData[0],
-                            inSealedSignupData.size());
-                    return ConvertPoetErrorStatus(ret, poetRet);
-                });
-            ThrowSgxError(
-                ret,
-                "Failed to release signup data");
-            this->ThrowPoetError(poetRet);
-        } // Enclave::ReleaseSignupData
-
-        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::VerifySignupInfo(
             const std::string& inOriginatorPublicKeyHash,
             const sgx_ec256_public_t* inPoetPublicKey,
             const sgx_quote_t* inEnclaveQuote,
-            size_t inEnclaveQuoteSize,
-            const sgx_sha256_hash_t* inPseManifestHash
+            size_t inEnclaveQuoteSize
             )
         {
             ThrowIfNull(inPoetPublicKey, "PoET public key pointer is NULL");
@@ -491,7 +393,6 @@ namespace sawtooth {
                      &targetInfo,
                      inOriginatorPublicKeyHash,
                      inPoetPublicKey,
-                     inPseManifestHash,
                      &testReport] () {
                     sgx_status_t ret =
                         ecall_VerifySignupInfo(
@@ -500,7 +401,6 @@ namespace sawtooth {
                             &targetInfo,
                             inOriginatorPublicKeyHash.c_str(),
                             inPoetPublicKey,
-                            inPseManifestHash,
                             &testReport);
                     return ConvertPoetErrorStatus(ret, poetRet);
                 });
@@ -573,109 +473,107 @@ namespace sawtooth {
         } // Enclave::VerifySignupInfo
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        void Enclave::CreateWaitTimer(
-            const buffer_t& inSealedSignupData,
-            const std::string& inValidatorAddress,
-            const std::string& inPreviousCertificateId,
-            double requestTime,
-            double localMean,
-            char* outSerializedTimer,
-            size_t inSerializedTimerLength,
-            sgx_ec256_signature_t* outTimerSignature
+        void Enclave::Enclave_InitializeWaitCertificate(
+            const char* inPreviousWaitCertificate,
+            size_t inPreviousWaitCertificateLen,
+            const char* inValidatorId,
+            size_t inValidatorIdLen,
+            uint8_t* duration,
+            size_t inDurationLen
             )
         {
-            ThrowIfNull(
-                outSerializedTimer,
-                "Serialized wait timer pointer is NULL");
-            ThrowIfNull(
-                outTimerSignature,
-                "Wait timer signature pointer is NULL");
 
-            // Let the enclave create a wait timer for us
+            ThrowIfNull( inPreviousWaitCertificate, "NULL PreviousWaitCertificate");
+            ThrowIfNull( inValidatorId, "NULL ValidatorId");
+
             poet_err_t poetRet = POET_SUCCESS;
             sgx_status_t ret =
                 this->CallSgx(
-                    [this,
-                     &poetRet,
-                     &inSealedSignupData,
-                     inValidatorAddress,
-                     inPreviousCertificateId,
-                     requestTime,
-                     localMean,
-                     outSerializedTimer,
-                     inSerializedTimerLength,
-                     outTimerSignature] () {
-                    sgx_status_t ret =
-                        ecall_CreateWaitTimer(
-                            this->enclaveId,
-                            &poetRet,
-                            &inSealedSignupData[0],
-                            inSealedSignupData.size(),
-                            inValidatorAddress.c_str(),
-                            inPreviousCertificateId.c_str(),
-                            requestTime,
-                            localMean,
-                            outSerializedTimer,
-                            inSerializedTimerLength,
-                            outTimerSignature);
-                    return ConvertPoetErrorStatus(ret, poetRet);
-                });
-            ThrowSgxError(ret, "Call to ecall_CreateWaitTimer failed");
+                        [this,
+                         &poetRet,
+                         inPreviousWaitCertificate,
+                         inPreviousWaitCertificateLen,
+                         inValidatorId,
+                         inValidatorIdLen,
+                         duration,
+                         inDurationLen] () {
+                        sgx_status_t ret =
+                            ecall_InitializeWaitCertificate(
+                                this->enclaveId,
+                                &poetRet,
+                                inPreviousWaitCertificate,
+                                inPreviousWaitCertificateLen,
+                                inValidatorId,
+                                inValidatorIdLen,
+                                duration,
+                                inDurationLen);
+                        return ConvertPoetErrorStatus(ret, poetRet);
+                    });
+            ThrowSgxError(ret, "Call to ecall_InitializeWaitCertificate failed");
             this->ThrowPoetError(poetRet);
-        } // Enclave::CreateWaitTimer
+        } //Enclave_InitializeWaitCertificate
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        void Enclave::CreateWaitCertificate(
-            const buffer_t& inSealedSignupData,
-            const std::string& inSerializedWaitTimer,
-            const sgx_ec256_signature_t* inWaitTimerSignature,
-            const std::string& inBlockHash,
+        void Enclave::Enclave_FinalizeWaitCertificate(
+            const char* inPrevWaitCertificate,
+            size_t inPrevWaitCertificateLen,
+            const char* inPrevBlockId,
+            size_t inPrevBlockIdLen,
+            const char* inPrevWaitCertificateSig,
+            size_t inPrevWaitCertificateSigLen,
+            const char* inBlockSummary,
+            size_t inBlockSummaryLen,
+            uint64_t inWaitTime,
             char* outSerializedWaitCertificate,
-            size_t inSerializedWaitCertificateLength,
+            size_t inSerializedWaitCertificateLen,
             sgx_ec256_signature_t* outWaitCertificateSignature
             )
         {
-            ThrowIfNull(
-                inWaitTimerSignature,
-                "Wait timer signature pointer is NULL");
-            ThrowIfNull(
-                outSerializedWaitCertificate,
-                "Serialized wait certificate pointer is NULL");
-            ThrowIfNull(
-                outWaitCertificateSignature,
-                "Wait certificate signature pointer is NULL");
+            ThrowIfNull(inPrevWaitCertificate, "NULL PrevWaitCertificate");
+            ThrowIfNull(inPrevBlockId, "NULL PreviousBlockId");
+            ThrowIfNull(inPrevWaitCertificateSig, "NULL PrevWaitCertificateSignature");
+            ThrowIfNull(inBlockSummary, "NULL BlockSummary");
+            ThrowIfNull(outSerializedWaitCertificate, "NULL outSerializedWaitCertificate");
 
             poet_err_t poetRet = POET_SUCCESS;
             sgx_status_t ret =
                 this->CallSgx(
-                    [this,
-                     &poetRet,
-                     &inSealedSignupData,
-                     inSerializedWaitTimer,
-                     inWaitTimerSignature,
-                     inBlockHash,
-                     outSerializedWaitCertificate,
-                     inSerializedWaitCertificateLength,
-                     outWaitCertificateSignature] () {
-                    sgx_status_t ret =
-                        ecall_CreateWaitCertificate(
-                            this->enclaveId,
-                            &poetRet,
-                            &inSealedSignupData[0],
-                            inSealedSignupData.size(),
-                            inSerializedWaitTimer.c_str(),
-                            inWaitTimerSignature,
-                            inBlockHash.c_str(),
-                            outSerializedWaitCertificate,
-                            inSerializedWaitCertificateLength,
-                            outWaitCertificateSignature);
-                    return ConvertPoetErrorStatus(ret, poetRet);
-                });
-            ThrowSgxError
-                (ret,
-                "Call to ecall_CreateWaitCertificate failed");
+                        [this,
+                         &poetRet,
+                         inPrevWaitCertificate,
+                         inPrevWaitCertificateLen,
+                         inPrevBlockId,
+                         inPrevBlockIdLen,
+                         inPrevWaitCertificateSig,
+                         inPrevWaitCertificateSigLen,
+                         inBlockSummary,
+                         inBlockSummaryLen,
+                         inWaitTime,
+                         outSerializedWaitCertificate,
+                         inSerializedWaitCertificateLen,
+                         outWaitCertificateSignature] () {
+                        sgx_status_t ret =
+                            ecall_FinalizeWaitCertificate(
+                                this->enclaveId,
+                                &poetRet,
+                                inPrevWaitCertificate,
+                                inPrevWaitCertificateLen,
+                                inPrevBlockId,
+                                inPrevBlockIdLen,
+                                inPrevWaitCertificateSig,
+                                inPrevWaitCertificateSigLen,
+                                inBlockSummary,
+                                inBlockSummaryLen,
+                                inWaitTime,
+                                outSerializedWaitCertificate,
+                                inSerializedWaitCertificateLen,
+                                outWaitCertificateSignature);
+                        return ConvertPoetErrorStatus(ret, poetRet);
+                    });
+            ThrowSgxError(ret, "Call to ecall_FinalizeWaitCertificate failed");
             this->ThrowPoetError(poetRet);
-        } // Enclave::CreateWaitCertificate
+
+        }
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::VerifyWaitCertificate(
@@ -771,24 +669,6 @@ namespace sawtooth {
                 ThrowSgxError(
                     ret,
                     "Enclave call to ecall_Initialize failed");
-                this->ThrowPoetError(poetError);
-
-                // We need to figure out a priori the size of the sealed signup
-                // data so that caller knows the proper size for the buffer when
-                // creating signup data.
-                ret =
-                    this->CallSgx([this, &poetError] () {
-                        sgx_status_t ret =
-                            ecall_CalculateSealedSignupDataSize(
-                                this->enclaveId,
-                                &poetError,
-                                &this->sealedSignupDataSize);
-                        return
-                            ConvertPoetErrorStatus(ret, poetError);
-                    });
-                ThrowSgxError(
-                    ret,
-                    "Failed to calculate length of sealed signup data");
                 this->ThrowPoetError(poetError);
             }
         } // Enclave::LoadEnclave

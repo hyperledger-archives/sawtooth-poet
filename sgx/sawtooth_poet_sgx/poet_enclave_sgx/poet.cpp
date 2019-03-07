@@ -49,20 +49,16 @@ Poet::Poet(
 
     StringBuffer mrEnclaveBuffer(Poet_GetEnclaveMeasurementSize());
     StringBuffer basenameBuffer(Poet_GetEnclaveBasenameSize());
-    StringBuffer pseManifestHashBuffer(Poet_GetEnclavePseManifestHashSize());
 
     ThrowPoetError(
         Poet_GetEnclaveCharacteristics(
             mrEnclaveBuffer.data(),
             mrEnclaveBuffer.length,
             basenameBuffer.data(),
-            basenameBuffer.length,
-            pseManifestHashBuffer.data(),
-            pseManifestHashBuffer.length));
+            basenameBuffer.length));
 
     this->mr_enclave = mrEnclaveBuffer.str();
     this->basename = basenameBuffer.str();
-    this->pse_manifest_hash = pseManifestHashBuffer.str();
 } // Poet::Poet
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
