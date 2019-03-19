@@ -1,4 +1,4 @@
-# Copyright 2018 Cargill Incorporated
+# Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,34 +11,45 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# ------------------------------------------------------------------------------
 
-# docker build -f families/Dockerfile -t sawtooth-poet-families-local .
-
-# -------------=== poet families build ===-------------
-
+# Base image to run rust
 FROM ubuntu:xenial
 
-RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/bumper/nightly xenial universe" >> /etc/apt/sources.list \
- && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
- || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
- && apt-get update \
+RUN apt-get update \
  && apt-get install -y -q --allow-downgrades \
-    python3 \
-    python3-setuptools
+    build-essential \
+    curl \
+    libssl-dev \
+    gcc \
+    libzmq3-dev \
+    openssl \
+    pkg-config \
+    unzip \
+    git \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install -y -q --allow-downgrades \
-    python3-cryptography>=1.7.1 \
-    python3-grpcio \
-    python3-grpcio-tools \
-    python3-protobuf \
-    python3-sawtooth-sdk
+RUN \
+ if [ ! -z $HTTP_PROXY ] && [ -z $http_proxy ]; then \
+  http_proxy=$HTTP_PROXY; \
+ fi; \
+ if [ ! -z $http_proxy ]; then \
+  http_proxy_host=$(printf $http_proxy | sed 's|http.*://\(.*\):\(.*\)$|\1|');\
+  http_proxy_port=$(printf $http_proxy | sed 's|http.*://\(.*\):\(.*\)$|\2|');\
+  mkdir -p $HOME/.cargo \
+  && echo "[http]" >> $HOME/.cargo/config \
+  && echo 'proxy = "'$http_proxy_host:$http_proxy_port'"' >> $HOME/.cargo/config \
+  && cat $HOME/.cargo/config; \
+ fi;
 
-ENV PATH=$PATH:/project/sawtooth-poet/bin
+RUN curl -OLsS https://github.com/google/protobuf/releases/download/v3.5.1/protoc-3.5.1-linux-x86_64.zip \
+ && unzip protoc-3.5.1-linux-x86_64.zip -d protoc3 \
+ && rm protoc-3.5.1-linux-x86_64.zip
 
-WORKDIR /project/sawtooth-poet
+RUN curl https://sh.rustup.rs -sSf > /usr/bin/rustup-init \
+ && chmod +x /usr/bin/rustup-init \
+ && rustup-init -y
 
-CMD echo "\033[0;32m--- Building poet families ---\n\033[0m" \
- && bin/protogen \
- && cd families \
- && python3 setup.py clean --all \
- && python3 setup.py build
+ENV PATH=$PATH:/protoc3/bin:/root/.cargo/bin \
+    CARGO_INCREMENTAL=0

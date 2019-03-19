@@ -1,4 +1,4 @@
-// Copyright 2017 Intel Corporation
+// Copyright 2019 Intel Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,6 +34,11 @@ message ValidatorInfo {
     string transaction_id = 4;
 }
 
+message SignUpInfoProof {
+    string verification_report = 1;
+    string signature = 2;
+}
+
 message SignUpInfo {
     // Encoded public key corresponding to private key used by PoET to sign
     // wait certificates.
@@ -41,7 +46,7 @@ message SignUpInfo {
 
     // Information that can be used internally to verify the validity of
     // the signup information stored as an opaque buffer.
-    string proof_data = 2;
+    SignUpInfoProof proof_data = 2;
 
     // A string corresponding to the anti-Sybil ID for the enclave that
     // generated the signup information.
