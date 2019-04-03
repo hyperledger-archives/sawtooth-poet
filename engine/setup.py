@@ -45,7 +45,6 @@ setup(
         "colorlog",
         "cryptography",
         "sawtooth-sdk",
-        "sawtooth-signing",
         "sawtooth-poet-core",
         "toml",
         "cbor"

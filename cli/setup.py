@@ -32,7 +32,6 @@ setup(
         'protobuf',
         'sawtooth-poet-common',
         'sawtooth-poet-core',
-        'sawtooth-signing',
         'sawtooth-sdk',
         'toml',
     ],
