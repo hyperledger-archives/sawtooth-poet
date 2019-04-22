@@ -179,7 +179,7 @@ test_ias() {
 
 test_integration() {
     run_docker_test ./tests/sawtooth_poet_tests/test_dynamic_network.yaml
-    run_docker_test ./tests/sawtooth_poet_tests/test_poet_liveness.yaml
+    run_docker_test ./tests/sawtooth_poet_tests/test_poet_liveness.yaml --timeout 1800
 }
 
 test_deployment() {

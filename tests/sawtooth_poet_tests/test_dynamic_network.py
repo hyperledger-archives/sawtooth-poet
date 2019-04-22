@@ -112,7 +112,8 @@ class TestDynamicNetwork(unittest.TestCase):
             self.start_new_nodes(
                 processors, peering, schedulers,
                 start_nodes_per_round, round_, poet_kwargs)
-            self.send_populate_batch(time_between_batches)
+            if round_ == 0:
+                self.send_populate_batch(time_between_batches)
             self.send_txns_alternating(batches, time_between_batches)
             self.send_txns_all_at_once(batches, time_between_batches)
             self.assert_consensus()

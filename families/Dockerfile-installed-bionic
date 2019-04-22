@@ -12,19 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# docker build -f core/Dockerfile-installed -t sawtooth-poet-core .
+# docker build -f families/Dockerfile-installed-bionic -t sawtooth-poet-families-tp .
 
 # -------------=== poet common build ===-------------
 
-FROM ubuntu:xenial as poet-common-builder
+FROM ubuntu:bionic as poet-common-builder
 
 ENV VERSION=AUTO_STRICT
 
-RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/bumper/nightly xenial universe" >> /etc/apt/sources.list \
+RUN apt-get update \
+ && apt-get install gnupg -y
+
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly bionic universe" >> /etc/apt/sources.list \
  && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
  || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
  && apt-get update \
- && apt-get install -y -q --allow-downgrades \
+ && apt-get install -y -q \
     git \
     python3 \
     python3-protobuf \
@@ -42,86 +45,59 @@ RUN cd /project/common/ \
  && if [ -d "packaging/ubuntu" ]; then cp -R packaging/ubuntu/* debian/; fi \
  && dpkg-buildpackage -b -rfakeroot -us -uc
 
+# -------------=== poet families build ===-------------
 
-# -------------=== simulator build ===-------------
-
-FROM ubuntu:xenial as poet-simulator-builder
+FROM ubuntu:bionic as poet-families-builder
 
 ENV VERSION=AUTO_STRICT
 
-RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/bumper/nightly xenial universe" >> /etc/apt/sources.list \
+RUN apt-get update \
+ && apt-get install gnupg -y
+
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly bionic universe" >> /etc/apt/sources.list \
  && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
  || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
  && apt-get update \
- && apt-get install -y -q --allow-downgrades \
+ && apt-get install -y -q \
+    git \
+    python3 \
     python3-cryptography>-1.7.1 \
-    git \
-    python3 \
-    python3-sawtooth-signing \
-    python3-stdeb \
-    python3-cryptography>=1.7.1
-
-COPY --from=poet-common-builder /project/python3-sawtooth-poet-common*.deb /tmp
-
-COPY . /project
-
-RUN dpkg -i /tmp/python3-sawtooth*.deb || true \
- && apt-get -f -y install \
- && cd /project/simulator \
- && if [ -d "debian" ]; then rm -rf debian; fi \
- && python3 setup.py clean --all \
- && python3 setup.py --command-packages=stdeb.command debianize \
- && if [ -d "packaging/ubuntu" ]; then cp -R packaging/ubuntu/* debian/; fi \
- && dpkg-buildpackage -b -rfakeroot -us -uc
-
-
-# -------------=== poet core build ===-------------
-
-FROM ubuntu:xenial as poet-core-builder
-
-ENV VERSION=AUTO_STRICT
-
-RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/bumper/nightly xenial universe" >> /etc/apt/sources.list \
- && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
- || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
- && apt-get update \
- && apt-get install -y -q --allow-downgrades \
-    git \
-    python3 \
-    python3-cbor \
-    python3-lmdb \
+    python3-colorlog \
+    python3-grpcio-tools \
+    python3-grpcio \
+    python3-protobuf \
     python3-sawtooth-sdk \
-    python3-requests \
     python3-stdeb
 
 COPY --from=poet-common-builder /project/python3-sawtooth-poet-common*.deb /tmp
-COPY --from=poet-simulator-builder /project/python3-sawtooth-poet-simulator*.deb /tmp
 
 COPY . /project
 
 RUN dpkg -i /tmp/python3-sawtooth*.deb || true \
  && apt-get -f -y install \
- && cd /project/core/ \
+ && cd /project/families/ \
  && if [ -d "debian" ]; then rm -rf debian; fi \
  && python3 setup.py clean --all \
  && python3 setup.py --command-packages=stdeb.command debianize \
  && if [ -d "packaging/ubuntu" ]; then cp -R packaging/ubuntu/* debian/; fi \
  && dpkg-buildpackage -b -rfakeroot -us -uc
 
+ # -------------=== poet families docker build ===-------------
+FROM ubuntu:bionic
 
-# -------------=== poet core docker build ===-------------
-
-FROM ubuntu:xenial
+RUN apt-get update \
+ && apt-get install -y \
+    gnupg \
+    systemd
 
 COPY --from=poet-common-builder /project/python3-sawtooth-poet-common*.deb /tmp
-COPY --from=poet-simulator-builder /project/python3-sawtooth-poet-simulator*.deb /tmp
-COPY --from=poet-core-builder /project/python3-sawtooth-poet-core*.deb /tmp
+COPY --from=poet-families-builder /project/python3-sawtooth-poet-families*.deb /tmp
 
-RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/bumper/nightly xenial universe" >> /etc/apt/sources.list \
+RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly bionic universe" >> /etc/apt/sources.list \
  && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 44FC67F19B2466EA \
  || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 44FC67F19B2466EA) \
  && apt-get update \
- && dpkg -i /tmp/python3-sawtooth*.deb || true \
+ && dpkg -i /tmp/python3-sawtooth-*.deb || true \
  && apt-get -f -y install \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*

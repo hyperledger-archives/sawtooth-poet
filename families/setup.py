@@ -46,7 +46,6 @@ setup(
         'colorlog',
         'cryptography>=1.7.1',
         'sawtooth-sdk',
-        'sawtooth-signing',
         'sawtooth-poet-common',
     ],
     data_files=data_files,

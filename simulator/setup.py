@@ -39,7 +39,7 @@ setup(name='sawtooth-poet-simulator',
       install_requires=[
           'cryptography>=1.7.1',
           'sawtooth-poet-common',
-          'sawtooth-signing',
+          'sawtooth-sdk',
       ],
       data_files=data_files,
       entry_points={})
