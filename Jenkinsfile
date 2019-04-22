@@ -15,28 +15,43 @@
 // limitations under the License.
 // ------------------------------------------------------------------------------
 
-// Discard old builds after 31 days
-properties([[$class: 'BuildDiscarderProperty', strategy:
-        [$class: 'LogRotator', artifactDaysToKeepStr: '',
-        artifactNumToKeepStr: '', daysToKeepStr: '31', numToKeepStr: '']]]);
+pipeline {
+    agent {
+        node {
+            label 'master'
+            customWorkspace "workspace/${env.BUILD_TAG}"
+        }
+    }
 
-node ('master') {
-    timestamps {
-        // Create a unique workspace so Jenkins doesn't reuse an existing one
-        ws("workspace/${env.BUILD_TAG}") {
-            stage("Clone Repo") {
-                checkout scm
-                sh 'git fetch --tag'
+    triggers {
+        cron(env.BRANCH_NAME == 'master' ? 'H 3 * * *' : '')
+    }
+
+    options {
+        timestamps()
+        buildDiscarder(logRotator(daysToKeepStr: '31'))
+    }
+
+    environment {
+        ISOLATION_ID = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
+        COMPOSE_PROJECT_NAME = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
+    }
+
+    stages {
+        stage('Check Whitelist') {
+            steps {
+                readTrusted 'bin/whitelist'
+                sh './bin/whitelist "$CHANGE_AUTHOR" /etc/jenkins-authorized-builders'
             }
-
-            if (!(env.BRANCH_NAME == 'master' && env.JOB_BASE_NAME == 'master')) {
-                stage("Check Whitelist") {
-                    readTrusted 'bin/whitelist'
-                    sh './bin/whitelist "$CHANGE_AUTHOR" /etc/jenkins-authorized-builders'
+            when {
+                not {
+                    branch 'master'
                 }
             }
+        }
 
-            stage("Check for Signed-Off Commits") {
+        stage('Check for Signed-Off Commits') {
+            steps {
                 sh '''#!/bin/bash -l
                     if [ -v CHANGE_URL ] ;
                     then
@@ -58,36 +73,49 @@ node ('master') {
                     fi
                 '''
             }
+        }
 
-            // Set the ISOLATION_ID environment variable for the whole pipeline
-            env.ISOLATION_ID = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
-            env.COMPOSE_PROJECT_NAME = sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()
+        stage('Fetch Tags') {
+            steps {
+                sh 'git fetch --tag'
+            }
+        }
 
-            stage("Build Lint Dependencies") {
+        stage('Build Lint Dependencies') {
+            steps {
                 sh 'docker-compose up --abort-on-container-exit --build --force-recreate --renew-anon-volumes --exit-code-from poet-common poet-common'
                 sh 'docker-compose down'
             }
+        }
 
-            stage("Run Lint") {
+        stage('Run Lint') {
+            steps {
                 sh 'docker-compose -f ci/run-lint.yaml up --abort-on-container-exit --build --force-recreate --renew-anon-volumes --exit-code-from lint lint'
                 sh 'docker-compose -f ci/run-lint.yaml up --abort-on-container-exit --build --force-recreate --renew-anon-volumes --exit-code-from bandit bandit'
                 sh 'docker-compose -f ci/run-lint.yaml down'
             }
+        }
 
-            stage("Build Test Dependencies") {
+        stage('Build Test Dependencies') {
+            steps {
                 sh 'docker-compose -f docker-compose-installed.yaml build'
             }
+        }
 
-            // Run the tests
-            stage("Run Tests") {
+        stage('Run Tests') {
+            steps {
                 sh 'INSTALL_TYPE="" ./bin/run_tests -i deployment'
             }
+        }
 
-            stage("Compile coverage report") {
+        stage('Compile coverage report') {
+            steps {
                 sh 'docker run --rm -v $(pwd):/project/sawtooth-poet sawtooth-poet-tests:$ISOLATION_ID /bin/bash -c "cd coverage && coverage combine && coverage html -d html"'
             }
+        }
 
-            stage("Create git archive") {
+        stage('Create git archive') {
+            steps {
                 sh '''
                     REPO=$(git remote show -n origin | grep Fetch | awk -F'[/.]' '{print $6}')
                     VERSION=`git describe --dirty`
@@ -95,21 +123,37 @@ node ('master') {
                     git archive HEAD --format=tgz -9 --output=$REPO-$VERSION.tgz
                 '''
             }
+        }
 
-            stage ("Build documentation") {
+        stage ('Build documentation') {
+            steps {
                 sh 'docker build . -f ci/sawtooth-build-docs -t sawtooth-build-docs:$ISOLATION_ID'
                 sh 'docker run --rm -v $(pwd):/project/sawtooth-poet sawtooth-build-docs:$ISOLATION_ID'
             }
+        }
 
-            stage("Archive Build artifacts") {
+        stage('Archive Build artifacts') {
+            steps {
                 sh 'docker-compose -f ci/copy-debs.yaml up'
-                archiveArtifacts artifacts: '*.tgz, *.zip'
-                archiveArtifacts artifacts: 'build/debs/*.deb'
-                archiveArtifacts artifacts: 'build/bandit.html'
-                archiveArtifacts artifacts: 'coverage/html/*'
-                archiveArtifacts artifacts: 'docs/build/html/**, docs/build/latex/*.pdf'
                 sh 'docker-compose -f ci/copy-debs.yaml down'
             }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker-compose down'
+            sh 'docker-compose -f ci/run-lint.yaml down'
+            sh 'docker-compose -f ci/copy-debs.yaml down'
+        }
+        success {
+            archiveArtifacts '*.tgz, *.zip, build/debs/*.deb, build/bandit.html, coverage/html/*, docs/build/html/**, docs/build/latex/*.pdf'
+        }
+        aborted {
+            error "Aborted, exiting now"
+        }
+        failure {
+            error "Failed, exiting now"
         }
     }
 }

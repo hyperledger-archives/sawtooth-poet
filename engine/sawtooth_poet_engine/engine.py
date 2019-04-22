@@ -160,6 +160,9 @@ class PoetEngine(Engine):
             Message.CONSENSUS_NOTIFY_BLOCK_VALID: self._handle_valid_block,
             Message.CONSENSUS_NOTIFY_BLOCK_COMMIT:
                 self._handle_committed_block,
+            Message.CONSENSUS_NOTIFY_PEER_CONNECTED: self._handle_peer_msgs,
+            Message.CONSENSUS_NOTIFY_PEER_DISCONNECTED: self._handle_peer_msgs,
+            Message.CONSENSUS_NOTIFY_PEER_MESSAGE: self._handle_peer_msgs,
         }
 
         while True:
@@ -223,6 +226,10 @@ class PoetEngine(Engine):
         self._pending_forks_to_resolve.push(block)
 
         self._process_pending_forks()
+
+    def _handle_peer_msgs(self, msg):
+        # PoET does not care about peer notifications
+        pass
 
     def _process_pending_forks(self):
         while not self._committing:
