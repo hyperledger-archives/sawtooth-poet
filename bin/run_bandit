@@ -30,6 +30,7 @@ directories="
     simulator/build
     simulator/tests
     tests
+    tests/sawtooth_poet_tests/*
 "
 
 if [ ! -d "$top_dir/build" ]; then
