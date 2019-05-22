@@ -1,5 +1,5 @@
 #
-# Copyright 2017 Intel Corporation
+# Copyright 2019 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,12 +22,16 @@
 
 spid = 'DEADBEEF00000000DEADBEEF00000000'
 
-# ias_url is the URL of the Intel Attestation Service (IAS) server.  The 
-# example server is for debug enclaves only
+# ias_url is the URL of the Intel Attestation Service (IAS) server.
+# The URL for enclaves under development is:
+#       https://api.trustedservices.intel.com/sgx/dev
+# The URL for production enclaves is:
+#       https://api.trustedservices.intel.com/sgx
 
-ias_url = 'https://test-as.sgx.trustedservices.intel.com:443'
+ias_url = 'https://api.trustedservices.intel.com/sgx/dev'
 
-# spid_cert_file is the full path to the PEM-encoded certificate file that was
-# submitted to Intel in order to obtain a SPID
+# ias_subscription_key is associated with the SPID. The Key and SPID can
+# be obtained by signing up and subscribing to the Attestation Service via
+# the SGX Services portal at: https://api.portal.trustedservices.intel.com
 
-spid_cert_file = '/full/path/to/certificate.pem'
+ias_subscription_key = 'ffffffff'

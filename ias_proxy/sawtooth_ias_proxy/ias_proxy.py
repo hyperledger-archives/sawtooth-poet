@@ -133,14 +133,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         # pylint: disable=invalid-name
-        if self.path.find('/attestation/sgx/v2/sigrl') == 0:
+        if self.path.find('/attestation/v3/sigrl') == 0:
             self._get_sig_rl()
         else:
             self._respond(404)
 
     def do_POST(self):
         # pylint: disable=invalid-name
-        if self.path.find('/attestation/sgx/v2/report') == 0:
+        if self.path.find('/attestation/v3/report') == 0:
             self._post_verify_attestation()
         else:
             self._respond(404)
@@ -162,7 +162,7 @@ class IasProxyServer:
         self.client = \
             ias_client.IasClient(
                 ias_url=proxy_config['ias_url'],
-                spid_cert_file=proxy_config['spid_cert_file'])
+                ias_subscription_key=proxy_config['ias_subscription_key'])
 
     def stop(self):
         """
@@ -194,7 +194,8 @@ def get_server():
         proxy_config = toml.loads(fd.read())
 
     # Verify the integrity (as best we can) of the TOML configuration file
-    valid_keys = set(['proxy_name', 'proxy_port', 'ias_url', 'spid_cert_file'])
+    valid_keys = set(['proxy_name', 'proxy_port',
+                      'ias_url', 'ias_subscription_key'])
     found_keys = set(proxy_config.keys())
 
     invalid_keys = found_keys.difference(valid_keys)

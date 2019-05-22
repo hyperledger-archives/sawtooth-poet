@@ -19,7 +19,6 @@ Provide rest api helper functions for communicating with IAS.
 
 import logging
 from urllib.parse import urljoin
-
 import requests
 
 LOGGER = logging.getLogger(__name__)
@@ -30,14 +29,14 @@ class IasClient:
     Provide rest api helper functions for communicating with IAS.
     """
 
-    def __init__(self, ias_url, spid_cert_file, timeout=300):
+    def __init__(self, ias_url, ias_subscription_key, timeout=300):
         self._ias_url = ias_url
-        self._cert = spid_cert_file
+        self._ias_key = ias_subscription_key
         self._timeout = timeout
 
     def get_signature_revocation_lists(self,
                                        gid='',
-                                       path='/attestation/sgx/v2/sigrl'):
+                                       path='/attestation/v3/sigrl'):
         """
         @param gid: Hex, base16 encoded
         @param path: URL path for sigrl request
@@ -48,7 +47,10 @@ class IasClient:
         path = '{}/{}'.format(path, gid) if gid else path
         url = urljoin(self._ias_url, path)
         LOGGER.debug("Fetching SigRL from: %s", url)
-        result = requests.get(url, cert=self._cert, timeout=self._timeout)
+        result = requests.get(url,
+                              headers={"Ocp-Apim-Subscription-Key":
+                                       self._ias_key},
+                              timeout=self._timeout)
         if result.status_code != requests.codes.ok:
             LOGGER.error("get_signature_revocation_lists HTTP Error code : %d",
                          result.status_code)
@@ -67,10 +69,9 @@ class IasClient:
                 if the header does not contain a signature.
         """
 
-        path = '/attestation/sgx/v2/report'
+        path = '/attestation/v3/report'
         url = urljoin(self._ias_url, path)
-        LOGGER.debug("Posting attestation verification request to: %s",
-                     url)
+        LOGGER.debug("Posting attestation verification request to: %s", url)
         json = {"isvEnclaveQuote": quote}
 
         if manifest is not None:
@@ -80,7 +81,9 @@ class IasClient:
 
         LOGGER.debug("Posting attestation evidence payload: %s", json)
 
-        response = requests.post(url, json=json, cert=self._cert,
+        response = requests.post(url, json=json,
+                                 headers={"Ocp-Apim-Subscription-Key":
+                                          self._ias_key},
                                  timeout=self._timeout)
         LOGGER.debug("received attestation result code: %d",
                      response.status_code)
