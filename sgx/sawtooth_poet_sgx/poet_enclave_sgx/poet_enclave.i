@@ -141,7 +141,7 @@ def initialize(config_dir, data_dir):
         toml_config = toml.loads(fd.read())
 
     # Verify the integrity (as best we can) of the TOML configuration file
-    valid_keys = set(['spid', 'ias_url', 'spid_cert_file'])
+    valid_keys = set(['spid', 'ias_url', 'ias_subscription_key'])
     found_keys = set(toml_config.keys())
 
     invalid_keys = found_keys.difference(valid_keys)
@@ -164,7 +164,7 @@ def initialize(config_dir, data_dir):
         _ias = \
             ias_client.IasClient(
                 ias_url=toml_config['ias_url'],
-                spid_cert_file=toml_config['spid_cert_file'])
+                ias_subscription_key=toml_config['ias_subscription_key'])
 
     if not _poet:
         if os.name == 'nt':
