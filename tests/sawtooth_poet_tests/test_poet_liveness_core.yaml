@@ -1,0 +1,190 @@
+# Copyright 2019 Cargill Incorporated
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+
+version: "3.7"
+
+volumes:
+  sawtooth-keys-0:
+  sawtooth-db-0:
+  sawtooth-keys-1:
+  sawtooth-db-1:
+  sawtooth-keys-2:
+  sawtooth-db-2:
+  sawtooth-keys-3:
+  sawtooth-db-3:
+  sawtooth-keys-4:
+  sawtooth-db-4:
+  validator-configs:
+
+services:
+
+  test-poet-liveness-core:
+    image: hyperledger/sawtooth-poet-tests:nightly
+    volumes:
+      - validator-configs:/data/tests/poet/poet_liveness_data
+      - sawtooth-keys-0:/etc/sawtooth/keys
+      - sawtooth-db-0:/var/lib/sawtooth
+    command: "bash -c \"\
+        while [[ ! -f /etc/sawtooth/keys/validator.priv ]];
+        do sleep 1; done && \
+        sawset genesis \
+          -k /etc/sawtooth/keys/validator.priv \
+          -o config-genesis.batch && \
+        sawset proposal create \
+          -k /etc/sawtooth/keys/validator.priv \
+          sawtooth.consensus.algorithm.name=PoET \
+          sawtooth.consensus.algorithm.version=0.1 \
+          sawtooth.poet.report_public_key_pem=\
+          \\\"$$(cat /data/tests/poet/simulator_rk_pub.pem)\\\" \
+          sawtooth.poet.valid_enclave_measurements=$$(poet enclave measurement) \
+          sawtooth.poet.valid_enclave_basenames=$$(poet enclave basename) \
+          sawtooth.validator.batch_injectors=block_info \
+          'sawtooth.validator.block_validation_rules=NofX:1,block_info;XatY:block_info,0;local:0'
+          -o config.batch && \
+        poet registration create -k /etc/sawtooth/keys/validator.priv -o poet.batch && \
+        sawset proposal create \
+          -k /etc/sawtooth/keys/validator.priv \
+          $$(/data/tests/poet//poet_liveness_data/poet-settings.sh) \
+          -o poet-settings.batch && \
+        sawadm genesis \
+          config-genesis.batch config.batch poet.batch poet-settings.batch &&
+        nose2-3
+        -vvvv
+        -s /data/tests/poet/
+        test_poet_liveness
+    \""
+    expose:
+      - 8008
+    stop_signal: SIGKILL
+
+
+  intkey-workload:
+    image: hyperledger/sawtooth-poet-tests:nightly
+    expose:
+      - 8008
+    command: "bash -c \"\
+      while true; do curl -s http://rest-api-0:8008/state | grep -q head; if [ $$? -eq 0 ]; then break; fi; sleep 0.5; done; \
+      intkey workload --rate 1 --display-frequency 15 --urls http://rest-api-0:8008,http://rest-api-1:8008,http://rest-api-2:8008,http://rest-api-3:8008,http://rest-api-4:8008 \
+      \""
+    stop_signal: SIGKILL
+
+  smallbank-workload:
+    image: hyperledger/sawtooth-poet-tests:nightly
+    expose:
+      - 8008
+    command: "bash -c \"\
+      sawtooth keygen smallbank-key; \
+      while true; do curl -s http://rest-api-0:8008/state | grep -q head; if [ $$? -eq 0 ]; then break; fi; sleep 0.5; done; \
+      smallbank-workload load --key /root/.sawtooth/keys/smallbank-key.priv --rate 1 --target http://rest-api-0:8008,http://rest-api-1:8008,http://rest-api-2:8008,http://rest-api-3:8008,http://rest-api-4:8008 \
+      \""
+    stop_signal: SIGKILL
+
+  poet-0:
+    image: hyperledger/sawtooth-poet-engine:nightly
+    volumes:
+      - sawtooth-keys-0:/etc/sawtooth/keys
+      - sawtooth-db-0:/var/lib/sawtooth
+    command: "bash -c \"\
+        while [[ ! -f /etc/sawtooth/keys/validator.priv ]];
+        do sleep 1; done && \
+        poet-engine --connect tcp://validator-0:5005 --component tcp://validator-0:4004 -vv
+        \""
+    stop_signal: SIGKILL
+
+  poet-1:
+    image: hyperledger/sawtooth-poet-engine:nightly
+    volumes:
+      - sawtooth-keys-1:/etc/sawtooth/keys
+      - sawtooth-db-1:/var/lib/sawtooth
+    command: "bash -c \"\
+        while [[ ! -f /etc/sawtooth/keys/validator.priv ]];
+        do sleep 1; done && \
+        poet-engine --connect tcp://validator-1:5005 --component tcp://validator-1:4004 -vv
+        \""
+    stop_signal: SIGKILL
+
+  poet-2:
+    image: hyperledger/sawtooth-poet-engine:nightly
+    volumes:
+      - sawtooth-keys-2:/etc/sawtooth/keys
+      - sawtooth-db-2:/var/lib/sawtooth
+    command: "bash -c \"\
+        while [[ ! -f /etc/sawtooth/keys/validator.priv ]];
+        do sleep 1; done && \
+        poet-engine --connect tcp://validator-2:5005 --component tcp://validator-2:4004 -vv
+        \""
+    stop_signal: SIGKILL
+
+  poet-3:
+    image: hyperledger/sawtooth-poet-engine:nightly
+    volumes:
+      - sawtooth-keys-3:/etc/sawtooth/keys
+      - sawtooth-db-3:/var/lib/sawtooth
+    command: "bash -c \"\
+        while [[ ! -f /etc/sawtooth/keys/validator.priv ]];
+        do sleep 1; done && \
+        poet-engine --connect tcp://validator-3:5005 --component tcp://validator-3:4004 -vv
+        \""
+    stop_signal: SIGKILL
+
+  poet-4:
+    image: hyperledger/sawtooth-poet-engine:nightly
+    build:
+      context: .
+      dockerfile: ../../engine/Dockerfile
+    volumes:
+      - sawtooth-keys-4:/etc/sawtooth/keys
+      - sawtooth-db-4:/var/lib/sawtooth
+    command: "bash -c \"\
+        while [[ ! -f /etc/sawtooth/keys/validator.priv ]];
+        do sleep 1; done && \
+        poet-engine --connect tcp://validator-4:5005 --component tcp://validator-4:4004 -vv
+        \""
+    stop_signal: SIGKILL
+
+  poet-validator-registry-tp-0:
+    image: hyperledger/sawtooth-poet-validator-registry-tp:nightly
+    expose:
+      - 4004
+    command: poet-validator-registry-tp -C tcp://validator-0:4004
+    stop_signal: SIGKILL
+
+  poet-validator-registry-tp-1:
+    image: hyperledger/sawtooth-poet-validator-registry-tp:nightly
+    expose:
+      - 4004
+    command: poet-validator-registry-tp -C tcp://validator-1:4004
+    stop_signal: SIGKILL
+
+  poet-validator-registry-tp-2:
+    image: hyperledger/sawtooth-poet-validator-registry-tp:nightly
+    expose:
+      - 4004
+    command: poet-validator-registry-tp -C tcp://validator-2:4004
+    stop_signal: SIGKILL
+
+  poet-validator-registry-tp-3:
+    image: hyperledger/sawtooth-poet-validator-registry-tp:nightly
+    expose:
+      - 4004
+    command: poet-validator-registry-tp -C tcp://validator-3:4004
+    stop_signal: SIGKILL
+
+  poet-validator-registry-tp-4:
+    image: hyperledger/sawtooth-poet-validator-registry-tp:nightly
+    expose:
+      - 4004
+    command: poet-validator-registry-tp -C tcp://validator-4:4004
+    stop_signal: SIGKILL
