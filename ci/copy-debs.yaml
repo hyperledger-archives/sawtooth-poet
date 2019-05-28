@@ -97,7 +97,7 @@ services:
       "
 
   poet-tests:
-    image: sawtooth-poet-tests:${ISOLATION_ID}
+    image: sawtooth-poet-tests-installed:${ISOLATION_ID}
     volumes:
       - ../build/debs:/build/debs
     command: |

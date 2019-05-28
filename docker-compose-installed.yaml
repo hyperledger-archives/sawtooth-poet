@@ -70,3 +70,9 @@ services:
       context: .
       dockerfile: ias_proxy/Dockerfile-installed-${DISTRO}
     image: sawtooth-ias-proxy:${ISOLATION_ID}
+
+  poet-tests:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile-tests-installed
+    image: sawtooth-poet-tests-installed:${ISOLATION_ID}
