@@ -51,6 +51,9 @@ class PoetEngine(Engine):
     def version(self):
         return '0.1'
 
+    def additional_protocols(self):
+        return [('poet', '0.1')]
+
     def stop(self):
         self._exit = True
 
