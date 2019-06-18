@@ -375,9 +375,31 @@ class TestWaitCertificate(TestCase):
         wc.check_valid(
             poet_enclave_module=mock_poet_enclave_module,
             previous_certificate_id=NULL_BLOCK_IDENTIFIER,
+            validator_id='1660 Pennsylvania Avenue NW',
             poet_public_key=signup_info.poet_public_key,
             consensus_state=self.mock_consensus_state,
             poet_settings_view=self.mock_poet_settings_view)
+
+        # Verify that check_valid enforces agreement on fields
+        # Set mismatched previous_certificate_id
+        with self.assertRaises(ValueError):
+            wc.check_valid(
+                poet_enclave_module=mock_poet_enclave_module,
+                previous_certificate_id='0123456789ABCDEF',
+                validator_id='1660 Pennsylvania Avenue NW',
+                poet_public_key=signup_info.poet_public_key,
+                consensus_state=self.mock_consensus_state,
+                poet_settings_view=self.mock_poet_settings_view)
+
+        # Set mismatched validator_id
+        with self.assertRaises(ValueError):
+            wc.check_valid(
+                poet_enclave_module=mock_poet_enclave_module,
+                previous_certificate_id=NULL_BLOCK_IDENTIFIER,
+                validator_id='1661 Pennsylvania Avenue NW',
+                poet_public_key=signup_info.poet_public_key,
+                consensus_state=self.mock_consensus_state,
+                poet_settings_view=self.mock_poet_settings_view)
 
         validator_info = \
             ValidatorInfo(
@@ -411,6 +433,7 @@ class TestWaitCertificate(TestCase):
         another_wc.check_valid(
             poet_enclave_module=mock_poet_enclave_module,
             previous_certificate_id=wc.identifier,
+            validator_id='1660 Pennsylvania Avenue NW',
             poet_public_key=signup_info.poet_public_key,
             consensus_state=self.mock_consensus_state,
             poet_settings_view=self.mock_poet_settings_view)
@@ -516,6 +539,7 @@ class TestWaitCertificate(TestCase):
         wc_copy.check_valid(
             poet_enclave_module=mock_poet_enclave_module,
             previous_certificate_id=NULL_BLOCK_IDENTIFIER,
+            validator_id='1660 Pennsylvania Avenue NW',
             poet_public_key=signup_info.poet_public_key,
             consensus_state=self.mock_consensus_state,
             poet_settings_view=self.mock_poet_settings_view)
