@@ -293,7 +293,7 @@ class TestWaitCertificate(TestCase):
         # create mock_poet_enclave_wait_timer
         mock_poet_enclave_wait_timer = \
             mock.Mock(sealed_signup_data=signup_info.sealed_signup_data,
-                      validator_address='1060 W Addison Street',
+                      validator_address='1660 Pennsylvania Avenue NW',
                       duration=1.0,
                       previous_certificate_id=NULL_BLOCK_IDENTIFIER,
                       local_mean=5.0,
@@ -308,7 +308,7 @@ class TestWaitCertificate(TestCase):
                       previous_certificate_id=NULL_BLOCK_IDENTIFIER,
                       local_mean=5.0,
                       request_time=time.time(),
-                      validator_address='1060 W Addison Street',
+                      validator_address='1660 Pennsylvania Avenue NW',
                       nonce=NULL_BLOCK_IDENTIFIER,
                       block_hash="Reader's Digest",
                       signature='00112233445566778899aabbccddeeff',
@@ -425,7 +425,7 @@ class TestWaitCertificate(TestCase):
 
         # create mock_poet_enclave_wait_timer
         mock_poet_enclave_wait_timer = \
-            mock.Mock(validator_address='1060 W Addison Street',
+            mock.Mock(validator_address='1660 Pennsylvania Avenue NW',
                       duration=1.0,
                       previous_certificate_id=NULL_BLOCK_IDENTIFIER,
                       local_mean=5.0,
@@ -439,7 +439,7 @@ class TestWaitCertificate(TestCase):
                       previous_certificate_id=NULL_BLOCK_IDENTIFIER,
                       local_mean=5.0,
                       request_time=time.time(),
-                      validator_address='1060 W Addison Street',
+                      validator_address='1660 Pennsylvania Avenue NW',
                       nonce=NULL_BLOCK_IDENTIFIER,
                       block_hash="Reader's Digest",
                       signature='00112233445566778899aabbccddeeff',
