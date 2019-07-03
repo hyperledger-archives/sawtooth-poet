@@ -603,12 +603,13 @@ class PoetBlockPublisher(BlockPublisherInterface):
             poet_key_state = self._poet_key_state_store[active_key]
             sealed_signup_data = poet_key_state.sealed_signup_data
             try:
+                block_header_hex = block_header.hex()
                 wait_certificate = \
                     WaitCertificate.create_wait_certificate(
                         poet_enclave_module=poet_enclave_module,
                         sealed_signup_data=sealed_signup_data,
                         wait_timer=self._wait_timer,
-                        block_hash=block_header)
+                        block_hash=block_header_hex)
                 consensus = json.dumps(wait_certificate.dump()).encode()
             except ValueError as ve:
                 LOGGER.error('Failed to create wait certificate: %s', ve)
