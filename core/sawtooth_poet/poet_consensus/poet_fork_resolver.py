@@ -233,7 +233,8 @@ class PoetForkResolver(ForkResolverInterface):
                     cur_fork_head.header_signature[:8],
                     new_fork_head.header_signature[:8])
                 chosen_fork_head = cur_fork_head
-            else:
+            elif new_fork_head.header_signature > \
+                    cur_fork_head.header_signature:
                 LOGGER.info(
                     'Choose new fork %s over current fork %s: '
                     'New fork header signature (%s) greater than current fork '
@@ -243,6 +244,13 @@ class PoetForkResolver(ForkResolverInterface):
                     new_fork_head.header_signature[:8],
                     cur_fork_head.header_signature[:8])
                 chosen_fork_head = new_fork_head
+            else:
+                LOGGER.info(
+                    'Choose current fork %s over new fork %s: '
+                    'Current fork header signature is same as new fork '
+                    'header signature',
+                    cur_fork_head.header_signature[:8],
+                    new_fork_head.header_signature[:8])
 
         # Now that we have chosen a fork for the chain head, if we chose the
         # new fork and it is a PoET block (i.e., it has a wait certificate),

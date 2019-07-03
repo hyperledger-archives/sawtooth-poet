@@ -351,10 +351,35 @@ class TestPoetForkResolver(TestCase):
                             in message)
 
         # Subtest 3: when new & current fork heads have
-        # the same wait duration
+        # the same wait duration and same header signature.
+        # If block header signature is same, it should be same block received
+        # second time.
 
         # change new_fork_mock_wait_certificate duration to a smaller value
         new_fork_mock_wait_certificate.duration = 1.0
+
+        # set mock_utils.deserialize_wait_certificate
+        # to return a specific value for each fork_head
+        # with cur_fork_head being deserialized first
+        mock_utils.deserialize_wait_certificate.side_effect = \
+            [mock_wait_certificate,
+             new_fork_mock_wait_certificate]
+
+        # check test
+        with mock.patch('sawtooth_poet.poet_consensus.poet_fork_resolver.'
+                        'LOGGER') as mock_logger:
+            self.assertFalse(fork_resolver.compare_forks(
+                cur_fork_head=mock_cur_fork_header,
+                new_fork_head=mock_new_fork_header))
+
+        # Subtest 4: when new & current fork heads have
+        # the same wait duration and different header signature
+
+        # Change the mock_new_fork_head.header_signature to something else.
+        # New fork head's header signature is greater than current fork
+        # head's header signature
+        mock_new_fork_header.header_signature = \
+            '00112233445566778899aabbccddefff'
 
         # set mock_utils.deserialize_wait_certificate
         # to return a specific value for each fork_head
@@ -445,13 +470,13 @@ class TestPoetForkResolver(TestCase):
                 previous_block_id='2',
                 header_signature='00112233445566778899aabbccddeeff')
 
-        # create mock_new_fork_head
+        # create mock_new_fork_head, with different header signature
         mock_new_fork_header = \
             mock.Mock(
                 identifier='0123456789abcdefedcba9876543211',
                 signer_public_key='90834587139405781349807435098745',
                 previous_block_id='3',
-                header_signature='00112233445566778899aabbccddeeff')
+                header_signature='00112233445566778899aabbccddefff')
 
         fork_resolver = \
             poet_fork_resolver.PoetForkResolver(
@@ -515,7 +540,7 @@ class TestPoetForkResolver(TestCase):
         mock_cur_fork_consensus_state.aggregate_local_mean = 1.0
         mock_new_fork_consensus_state.aggregate_local_mean = 1.0
 
-        # check test
+        # check test, return true indicates that new fork won
         self.assertTrue(fork_resolver.compare_forks(
             cur_fork_head=mock_cur_fork_header,
             new_fork_head=mock_new_fork_header))
