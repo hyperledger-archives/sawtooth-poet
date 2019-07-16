@@ -45,7 +45,7 @@ class TestIasClient(unittest.TestCase):
         received = self.mock_server.get_received()
 
         self.assertEqual(received["command"], "GET")
-        self.assertEqual(received["path"], "/attestation/sgx/v2/sigrl/gid")
+        self.assertEqual(received["path"], "/attestation/v3/sigrl/gid")
         self.assertEqual(siglist, "thisisasignaturelist")
 
         verification = client.post_verify_attestation(
@@ -55,7 +55,7 @@ class TestIasClient(unittest.TestCase):
         received_data = json.loads(received["data"].decode())
 
         self.assertEqual(received["command"], "POST")
-        self.assertEqual(received["path"], "/attestation/sgx/v2/report")
+        self.assertEqual(received["path"], "/attestation/v3/report")
         self.assertEqual(received_data, {
             "isvEnclaveQuote": "thisisaquote",
             "pseManifest": "thisisamanifest",
