@@ -161,6 +161,7 @@ class PoetEngine(Engine):
         handlers = {
             Message.CONSENSUS_NOTIFY_BLOCK_NEW: self._handle_new_block,
             Message.CONSENSUS_NOTIFY_BLOCK_VALID: self._handle_valid_block,
+            Message.CONSENSUS_NOTIFY_BLOCK_INVALID: self._handle_invalid_block,
             Message.CONSENSUS_NOTIFY_BLOCK_COMMIT:
                 self._handle_committed_block,
             Message.CONSENSUS_NOTIFY_PEER_CONNECTED: self._handle_peer_msgs,
@@ -229,6 +230,10 @@ class PoetEngine(Engine):
         self._pending_forks_to_resolve.push(block)
 
         self._process_pending_forks()
+
+    def _handle_invalid_block(self, block_id):
+        block = self._get_block(block_id)
+        self._fail_block(block.block_id)
 
     def _handle_peer_msgs(self, msg):
         # PoET does not care about peer notifications
