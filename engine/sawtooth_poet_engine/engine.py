@@ -43,6 +43,7 @@ class PoetEngine(Engine):
         self._building = False
         self._committing = False
 
+        self._validating_blocks = set()
         self._pending_forks_to_resolve = PendingForks()
 
     def name(self):
@@ -195,7 +196,7 @@ class PoetEngine(Engine):
                 LOGGER.exception("Unhandled exception in message loop")
 
     def _try_to_publish(self):
-        if self._published:
+        if self._published or self._validating_blocks:
             return
 
         if not self._building:
@@ -218,8 +219,10 @@ class PoetEngine(Engine):
         LOGGER.info('Received %s', block)
 
         self._check_block(block.block_id)
+        self._validating_blocks.add(block.block_id)
 
     def _handle_valid_block(self, block_id):
+        self._validating_blocks.discard(block_id)
         block = self._get_block(block_id)
 
         if self._check_consensus(block):
@@ -231,6 +234,7 @@ class PoetEngine(Engine):
             self._fail_block(block.block_id)
 
     def _handle_invalid_block(self, block_id):
+        self._validating_blocks.discard(block_id)
         block = self._get_block(block_id)
         self._fail_block(block.block_id)
 
