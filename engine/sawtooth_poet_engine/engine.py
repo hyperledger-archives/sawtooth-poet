@@ -217,19 +217,18 @@ class PoetEngine(Engine):
         block = PoetBlock(block)
         LOGGER.info('Received %s', block)
 
-        if self._check_consensus(block):
-            LOGGER.info('Passed consensus check: %s', block.block_id.hex())
-            self._check_block(block.block_id)
-        else:
-            LOGGER.info('Failed consensus check: %s', block.block_id.hex())
-            self._fail_block(block.block_id)
+        self._check_block(block.block_id)
 
     def _handle_valid_block(self, block_id):
         block = self._get_block(block_id)
 
-        self._pending_forks_to_resolve.push(block)
-
-        self._process_pending_forks()
+        if self._check_consensus(block):
+            LOGGER.info('Passed consensus check: %s', block.block_id.hex())
+            self._pending_forks_to_resolve.push(block)
+            self._process_pending_forks()
+        else:
+            LOGGER.info('Failed consensus check: %s', block.block_id.hex())
+            self._fail_block(block.block_id)
 
     def _handle_invalid_block(self, block_id):
         block = self._get_block(block_id)
