@@ -224,6 +224,7 @@ class PoetEngine(Engine):
     def _handle_valid_block(self, block_id):
         self._validating_blocks.discard(block_id)
         block = self._get_block(block_id)
+        LOGGER.info('Validated %s', block)
 
         if self._check_consensus(block):
             LOGGER.info('Passed consensus check: %s', block.block_id.hex())
@@ -236,6 +237,7 @@ class PoetEngine(Engine):
     def _handle_invalid_block(self, block_id):
         self._validating_blocks.discard(block_id)
         block = self._get_block(block_id)
+        LOGGER.info('Block invalid: %s', block)
         self._fail_block(block.block_id)
 
     def _handle_peer_msgs(self, msg):
