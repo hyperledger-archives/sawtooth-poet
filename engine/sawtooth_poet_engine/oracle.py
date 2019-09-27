@@ -273,10 +273,7 @@ class _StateViewProxy:
             block_id=self._block_id,
             addresses=[prefix])
 
-        return [
-            (address, data)
-            for address, data in result.items()
-        ]
+        return list(result.items())
 
 
 class _BatchPublisherProxy:
