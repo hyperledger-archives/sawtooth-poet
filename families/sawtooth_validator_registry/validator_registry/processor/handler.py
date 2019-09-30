@@ -204,6 +204,9 @@ class ValidatorRegistryTransactionHandler(TransactionHandler):
     def __init__(self):
         pass
 
+    # Disable invalid-overridden-method. The sawtooth-sdk expects these to be
+    # properties.
+    # pylint: disable=invalid-overridden-method
     @property
     def family_name(self):
         return 'sawtooth_validator_registry'
