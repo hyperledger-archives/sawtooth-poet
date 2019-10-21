@@ -46,9 +46,13 @@ class PoetEngine(Engine):
         self._validating_blocks = set()
         self._pending_forks_to_resolve = PendingForks()
 
+    # Ignore invalid override pylint issues
+    # pylint: disable=invalid-overridden-method
     def name(self):
         return 'PoET'
 
+    # Ignore invalid override pylint issues
+    # pylint: disable=invalid-overridden-method
     def version(self):
         return '0.1'
 
