@@ -164,7 +164,7 @@ def validator_cmds(num,
         os.path.join(sawtooth_home, 'keys', 'validator'))
 
     validator = ' '.join([
-        'sawtooth-validator -v',
+        'sawtooth-validator -vv',
         '--scheduler {}'.format(scheduler_func(num)),
         '--endpoint {}'.format(endpoint(num)),
         '--bind component:{}'.format(bind_component(num)),
@@ -253,7 +253,7 @@ def simple_validator_cmds(*args, **kwargs):
     Returns:
         str : The validator startup command.
     """
-    return ['sawtooth-validator -v']
+    return ['sawtooth-validator -vv']
 
 
 def start_validator(num,
@@ -310,7 +310,7 @@ def processor_verbosity(processor_name):
 
     for keyword in acceptably_quiet:
         if keyword in processor_name:
-            return '-v'
+            return '-vv'
 
     return ''
 
@@ -327,7 +327,7 @@ def start_processors(num, processor_func):
 def engine_cmd(num):
     return 'poet-engine --connect {s} {v}'.format(
         s=engine_connection_address(num),
-        v='-v'
+        v='-vv'
     )
 
 
