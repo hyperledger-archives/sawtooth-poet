@@ -16,6 +16,7 @@
 # Exclude IDE and Editor files
 /.idea/
 *.sublime*
+families/sawtooth_validator_registry/validator_registry/.idea/
 
 # Exclude poet build artifacts
 /**/__pycache__/
@@ -45,3 +46,6 @@
 /docs/source/cli/output/
 
 *.batch
+
+families/sawtooth_validator_registry/validator_registry/Cargo.lock
+families/sawtooth_validator_registry/validator_registry/target

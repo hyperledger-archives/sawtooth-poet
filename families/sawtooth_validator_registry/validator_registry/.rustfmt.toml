@@ -1,4 +1,4 @@
-# Copyright 2017 Intel Corporation
+# Copyright 2020 Walmart Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,12 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ------------------------------------------------------------------------------
-[unittest]
-start-dir = tests
-code-directories = ..
-test-file-pattern = test*.py
-plugins = nose2.plugins.coverage
+# ----------------------------------------------------------------------------
 
-[coverage]
-always-on = True
+# Force the maximum width to 80 characters, default value is 100
+max_width = 80

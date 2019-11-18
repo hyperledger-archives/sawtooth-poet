@@ -1,0 +1,65 @@
+# Copyright 2019 Intel Corporation
+# Copyright 2020 Walmart Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ----------------------------------------------------------------------------
+
+[package]
+name = "poet-validator-registry-tp"
+version = "2.0.0"
+authors = ["Intel Corporation", "Walmart Inc."]
+build = "build.rs"
+description = "Validator Registry TP for Sawtooth PoET consensus"
+
+[package.metadata.deb]
+maintainer = "sawtooth"
+depends = "$auto"
+copyright = "Copyright 2019 Intel Corporation; Copyright 2020 Walmart Inc."
+assets = [
+    ["../../packaging/systemd/sawtooth-poet-validator-registry-tp.service",
+    "/lib/systemd/system/sawtooth-poet-validator-registry-tp.service", "644"],
+
+    ["../../packaging/systemd/sawtooth-poet-validator-registry-tp",
+    "/etc/default/sawtooth-poet-validator-registry-tp", "644"],
+
+    ["target/release/poet-validator-registry-tp",
+    "/usr/bin/poet-validator-registry-tp", "755"],
+]
+
+[dependencies]
+sawtooth-sdk = "0.2"
+log = "0.3.0"
+log4rs = "0.7.0"
+serde = { version="^1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = "~2.27.0"
+rust-crypto = "0.2.36"
+protobuf = "2.0"
+openssl = "0.10.15"
+base64 = "0.10.0"
+rand = "0.7.0"
+bincode = "1.1.4"
+serde-big-array = "0.1.5"
+hex = "0.3.2"
+
+[build-dependencies]
+protoc-rust = "2.0"
+glob = "0.2"
+cfg-if = "0.1"
+
+[[bin]]
+# The name of binary created
+name = "poet-validator-registry-tp"
+
+# This field point where the binary can be built (place of main)
+path = "src/main.rs"
