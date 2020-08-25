@@ -1053,7 +1053,8 @@ class ConsensusState:
         except (LookupError, ValueError, KeyError, TypeError) as error:
             raise \
                 ValueError(
-                    'Error parsing ConsensusState buffer: {}'.format(error))
+                    'Error parsing ConsensusState buffer: {}'.format(
+                        error)) from error
 
     def __str__(self):
         validators = \

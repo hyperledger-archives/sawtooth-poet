@@ -203,4 +203,4 @@ class SgxQuote(SgxStruct):
                             '<{}s'.format(self.signature_len),
                             raw_buffer[self.FIXED_STRUCT_SIZE + 4:])
         except struct.error as se:
-            raise ValueError('Unable to parse: {}'.format(se))
+            raise ValueError('Unable to parse: {}'.format(se)) from se

@@ -85,4 +85,4 @@ class SgxReportData(SgxStruct):
         try:
             (self.d,) = struct.unpack(self._format, raw_buffer)
         except struct.error as se:
-            raise ValueError('Unable to parse: {}'.format(se))
+            raise ValueError('Unable to parse: {}'.format(se)) from se

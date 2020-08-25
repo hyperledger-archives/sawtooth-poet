@@ -334,7 +334,8 @@ class _PoetEnclaveSimulator:
             except ParseError:
                 raise \
                     ValueError(
-                        'Invalid signup data. Badly formatted poet key(s).')
+                        'Invalid signup data. Badly formatted poet key(s).') \
+                    from ParseError
 
             # In a TEE implementation we would increment the HW counter here.
             # We can't usefully simulate a HW counter though.
@@ -403,7 +404,8 @@ class _PoetEnclaveSimulator:
             except ParseError:
                 raise \
                     ValueError(
-                        'Invalid signup data. Badly formatted poet key(s).')
+                        'Invalid signup data. Badly formatted poet key(s).') \
+                    from ParseError
 
             # Several criteria need to be met before we can create a wait
             # certificate:
@@ -505,7 +507,8 @@ class _PoetEnclaveSimulator:
         except ParseError:
             raise \
                 ValueError(
-                    'Invalid signup data. Badly formatted poet key(s).')
+                    'Invalid signup data. Badly formatted poet key(s).') \
+                from ParseError
 
         if not \
             cls._context.verify(

@@ -133,7 +133,8 @@ class PoetKeyStateStore(MutableMapping):
                 raise ValueError('signup_nonce {} must be a string'.format(
                     poet_key_state.signup_nonce))
         except (AttributeError, binascii.Error) as error:
-            raise ValueError('poet_key_state is invalid: {}'.format(error))
+            raise ValueError('poet_key_state is invalid: {}'.format(
+                error)) from error
 
     def __setitem__(self, poet_public_key, poet_key_state):
         """Adds/updates an item in the store
@@ -179,9 +180,11 @@ class PoetKeyStateStore(MutableMapping):
                 old_key_state.append('UNKNOWN_NONCE')
                 poet_key_state = PoetKeyState._make(old_key_state)
             except (AttributeError, TypeError) as error:
-                raise ValueError('poet_key_state is invalid: {}'.format(error))
+                raise ValueError('poet_key_state is invalid: {}'.format(
+                    error)) from error
         except (AttributeError, ValueError) as error:
-            raise ValueError('poet_key_state is invalid: {}'.format(error))
+            raise ValueError('poet_key_state is invalid: {}'.format(
+                error)) from error
 
         PoetKeyStateStore._check_poet_key_state(poet_key_state)
         return poet_key_state
