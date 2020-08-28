@@ -236,9 +236,9 @@ class WaitCertificate:
                 enclave_certificate,
                 poet_public_key)
         except Timeout:
-            raise NotAvailableException
+            raise NotAvailableException from Timeout
         except requests.ConnectionError:
-            raise NotAvailableException
+            raise NotAvailableException from requests.ConnectionError
 
     def dump(self):
         """Returns a dict containing information about the wait

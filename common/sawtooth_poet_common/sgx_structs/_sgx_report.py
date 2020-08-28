@@ -113,4 +113,4 @@ class SgxReport(SgxStruct):
             self.body.parse_from_bytes(body)
             self.key_id.parse_from_bytes(key_id)
         except struct.error as se:
-            raise ValueError('Unable to parse: {}'.format(se))
+            raise ValueError('Unable to parse: {}'.format(se)) from se

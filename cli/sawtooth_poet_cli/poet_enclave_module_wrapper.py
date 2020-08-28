@@ -53,7 +53,7 @@ class PoetEnclaveModuleWrapper:
         try:
             self._poet_enclave_module = importlib.import_module(module_name)
         except ImportError as e:
-            raise AssertionError(str(e))
+            raise AssertionError(str(e)) from e
 
         self._poet_enclave_module.initialize(config_dir, data_dir)
 

@@ -93,7 +93,8 @@ def _get_state(context, address, value_type):
         entries_list = context.get_state([address], timeout=STATE_TIMEOUT_SEC)
     except FutureTimeoutError:
         LOGGER.warning('Timeout occurred on context.get_state([%s])', address)
-        raise InternalError('Unable to get {}'.format(address))
+        raise InternalError('Unable to get {}'.format(
+            address)) from FutureTimeoutError
 
     value = value_type()
     if entries_list:
@@ -158,7 +159,8 @@ def _delete_address(context, address):
         LOGGER.warning(
             'Timeout occurred on state.delete_state([%s, <value>])', address)
         raise InternalError(
-            'Failed to save value on address {}'.format(address))
+            'Failed to save value on address {}'.format(
+                address)) from FutureTimeoutError
 
     if len(addresses) != 1:
         LOGGER.warning(
@@ -178,7 +180,8 @@ def _set_data(context, address, data):
         LOGGER.warning(
             'Timeout occurred on context.set_state([%s, <value>])', address)
         raise InternalError(
-            'Failed to save value on address {}'.format(address))
+            'Failed to save value on address {}'.format(
+                address)) from FutureTimeoutError
 
     if len(addresses) != 1:
         LOGGER.warning(
@@ -246,13 +249,14 @@ class ValidatorRegistryTransactionHandler(TransactionHandler):
                 serialization.load_pem_public_key(
                     report_public_key_pem.encode(),
                     backend=backends.default_backend())
-        except KeyError:
+        except KeyError as e:
             raise \
                 ValueError(
                     'Report public key configuration setting '
-                    '(sawtooth.poet.report_public_key_pem) not found.')
+                    '(sawtooth.poet.report_public_key_pem) not found.') from e
         except (TypeError, ValueError) as error:
-            raise ValueError('Failed to parse public key: {}'.format(error))
+            raise ValueError('Failed to parse public key: {}'.format(
+                error)) from error
 
         # Retrieve the valid enclave measurement values, converting the comma-
         # delimited list. If it is not there, or fails to parse correctly,
@@ -268,12 +272,13 @@ class ValidatorRegistryTransactionHandler(TransactionHandler):
             raise \
                 ValueError(
                     'Valid enclave measurements configuration setting '
-                    '(sawtooth.poet.valid_enclave_measurements) not found.')
+                    '(sawtooth.poet.valid_enclave_measurements) not found.') \
+                from KeyError
         except ValueError as error:
             raise \
                 ValueError(
                     'Failed to parse enclave measurement: {}'.format(
-                        valid_measurements))
+                        valid_measurements)) from error
 
         # Retrieve the valid enclave basename value. If it is not there, or
         # fails to parse correctly, fail verification.
@@ -288,12 +293,13 @@ class ValidatorRegistryTransactionHandler(TransactionHandler):
             raise \
                 ValueError(
                     'Valid enclave basenames configuration setting '
-                    '(sawtooth.poet.valid_enclave_basenames) not found.')
+                    '(sawtooth.poet.valid_enclave_basenames) not found.') \
+                from KeyError
         except ValueError:
             raise \
                 ValueError(
                     'Failed to parse enclave basename: {}'.format(
-                        valid_basenames))
+                        valid_basenames)) from ValueError
 
         try:
             report_public_key.verify(
@@ -301,8 +307,8 @@ class ValidatorRegistryTransactionHandler(TransactionHandler):
                 verification_report.encode(),
                 padding.PKCS1v15(),
                 hashes.SHA256())
-        except InvalidSignature:
-            raise ValueError('Verification report signature is invalid')
+        except InvalidSignature as e:
+            raise ValueError('Verification report signature is invalid') from e
 
         verification_report_dict = json.loads(verification_report)
 
@@ -499,7 +505,7 @@ class ValidatorRegistryTransactionHandler(TransactionHandler):
             raise InvalidTransaction(
                 'Invalid Signup Info: {0}, Reason: {1}'.format(
                     signup_info,
-                    error))
+                    error)) from error
 
         validator_info = ValidatorInfo(
             name=validator_name,

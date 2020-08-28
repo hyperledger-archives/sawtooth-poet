@@ -173,4 +173,4 @@ class SgxReportBody(SgxStruct):
             self.mr_signer.parse_from_bytes(mr_signer)
             self.report_data.parse_from_bytes(report_data)
         except struct.error as se:
-            raise ValueError('Unable to parse: {}'.format(se))
+            raise ValueError('Unable to parse: {}'.format(se)) from se

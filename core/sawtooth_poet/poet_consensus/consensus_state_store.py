@@ -106,7 +106,7 @@ class ConsensusStateStore(MutableMapping):
                 KeyError(
                     'Cannot return block with ID {}: {}'.format(
                         block_id,
-                        error))
+                        error)) from error
 
     def __delitem__(self, block_id):
         del self._store_db[block_id]
