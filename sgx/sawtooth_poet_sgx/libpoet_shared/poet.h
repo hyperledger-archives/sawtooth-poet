@@ -19,6 +19,7 @@
 
 #include "shared_library.h"
 #include <stdlib.h>
+#include <stdint.h>
 
 #ifdef LIBPOET_BUILD
     #define POET_FUNC   SHARED_LIBRARY_EXPORT
@@ -110,14 +111,10 @@ extern "C" {
     POET_FUNC size_t Poet_GetEpidGroupSize();
     POET_FUNC size_t Poet_GetEnclaveMeasurementSize();
     POET_FUNC size_t Poet_GetEnclaveBasenameSize();
-    POET_FUNC size_t Poet_GetEnclavePseManifestHashSize();
-    POET_FUNC size_t Poet_GetWaitTimerSize();
     POET_FUNC size_t Poet_GetWaitCertificateSize();
     POET_FUNC size_t Poet_GetSignatureSize();
     POET_FUNC size_t Poet_GetPublicKeySize();
-    POET_FUNC size_t Poet_GetPseManifestSize();
     POET_FUNC size_t Poet_GetEnclaveQuoteSize();
-    POET_FUNC size_t Poet_GetSealedSignupDataSize();
 
     /*
         Returns the EPID group as a Hex(base 16) encoded string.
@@ -147,19 +144,12 @@ extern "C" {
         inEnclaveBasenameLength - The size of the buffer pointed to by
             outEnclaveBasename.  The value to provide for this parameter may
             be obtained by calling Poet_GetEnclaveBasenameSize().
-        outEnclavePseManifestHash - A pointer to a buffer that upon return will
-            contain the hex encoded PSE manifest hash.
-        inEnclavePseManifestHashSize - The size of the buffer pointed to by
-            outEnclavePseManifest.  The value to provide for this parameter
-            may be obtained by calling Poet_GetEnclavePseManifestHashSize().
     */
     POET_FUNC poet_err_t Poet_GetEnclaveCharacteristics(
         char* outMrEnclave,
         size_t inMrEnclaveLength,
         char* outEnclaveBasename,
-        size_t inEnclaveBasenameLength,
-        char* outEnclavePseManifestHash,
-        size_t inEnclavePseManifestHashSize
+        size_t inEnclaveBasenameLength
         );
 
     /*
@@ -184,11 +174,6 @@ extern "C" {
         inPoetPublicKeySize - The size of the buffer pointed to by
             outPoetPublicKey.  The value to provide for this parameter may be
             obtained by calling Poet_GetPublicKeySize().
-        outPseManifest - A pointer to a buffer that upon return will contain
-            the base 64 encoded PSE manifest.
-        inPseManifestSize - The size of the buffer pointed to by
-            inPseManifestSize.  The value to provide for this parameter may be
-            obtained by calling Poet_GetEnclavePseManifestSize().
         outEnclaveQuote - A pointer to a buffer that upon return will contain
             the base 64 encoded linkable enclave quote.
         inEnclaveQuoteSize - The size of the buffer pointed to by
@@ -204,43 +189,10 @@ extern "C" {
         const char* inOriginatorPublicKeyHash,
         char* outPoetPublicKey,
         size_t inPoetPublicKeySize,
-        char* outPseManifest,
-        size_t inPseManifestSize,
         char* outEnclaveQuote,
-        size_t inEnclaveQuoteSize,
-        char* outSealedSignupData,
-        size_t inSealedSignupDataSize
+        size_t inEnclaveQuoteSize
         );
 
-    /*
-        Use previously sealed signup data to re-establish the PoET enclave.
-
-        inSealedSignupData - A string representing the base 64 encoded sealed
-            signup data returned from a successful call to
-            PoET_CreateSignupData.
-        outPoetPublicKey - A pointer to a buffer that upon return will contain
-            the hex encoded PoET public key contained within the sealed
-            signup data.
-        inPoetPublicKeySize - The size of the buffer pointed to by
-            outPoetPublicKey.  The value to provide for this parameter may be
-            obtained by calling Poet_GetPublicKeySize().
-    */
-    POET_FUNC poet_err_t Poet_UnsealSignupData(
-        const char* inSealedSignupData,
-        char* outPoetPublicKey,
-        size_t inPoetPublicKeySize
-        );
-
-    /*
-        Release the hardware counter used by signup data.
-
-        inSealedSignupData - A string representing the base 64 encoded sealed
-            signup data returned from a successful call to
-            PoET_CreateSignupData.
-    */
-    POET_FUNC poet_err_t Poet_ReleaseSignupData(
-        const char* inSealedSignupData
-        );
 
     /*
         Verifies that the signup information provided is valid (as least as far
@@ -253,88 +205,54 @@ extern "C" {
         inEnclaveQuote - A string representing the base 64 encoding of the
             enclave quote that the other validator provided to IAS when it
             created its signup information.
-        inPseManifestHash - A string representing the hex encoding of the PSE
-            manifest hash.
     */
     POET_FUNC poet_err_t Poet_VerifySignupInfo(
         const char* inOriginatorPublicKeyHash,
         const char* inPoetPublicKey,
-        const char* inEnclaveQuote,
-        const char* inPseManifestHash
+        const char* inEnclaveQuote
         );
 
     /*
-        Generates a wait timer that later, upon expiration, can be used to
-        create a wait certificate.
-
-        inSealedSignupData - A string representing the base 64 encoded sealed
-            signup data returned from a successful call to
-            PoET_CreateSignupData.
-        inValidatorAddress - A string representing the validator address.
-        inPreviousCertificateId - A string representing the ID of the previous
-            wait certificate (i.e., the wait certificate from the block that
-            has been most-recently added to the block chain).
-        inRequestTime - The time wait timer was requested.
-        inLocalMean - The local mean wait time that has been calculated.
-        outSerializedWaitTimer - A pointer to a buffer that upon return will
-            contain the serialized wait timer.
-        inSerializedWaitTimerLength - The size of the buffer pointed to by
-            outSerializedWaitTimer.  The value to provide for this parameter
-            may be obtained by calling Poet_GetWaitTimerSize().
-        outWaitTimerSignature - A pointer to a buffer that upon return will
-            contain the base 64 encoded ECDSA signature over the serialized
-            wait timer using the PoET secret key from the validator's signup
-            info.
-        inSerializedWaitTimerLength - The size of the buffer pointed to by
-            outWaitTimerSignature.  The value to provide for this parameter may
-            be obtained by calling Poet_GetSignatureSize().
+        Initialize wait certificate and generates duration
+        prevWaitCertificate - string representation of serialized
+            previous wait certificate
+        validatorId - string representation of validator id
+        duration - Duration to be filled by the enclave
     */
-    POET_FUNC poet_err_t Poet_CreateWaitTimer(
-        const char* inSealedSignupData,
-        const char* inValidatorAddress,
-        const char* inPreviousCertificateId,
-        double inRequestTime,
-        double inLocalMean,
-        char* outSerializedWaitTimer,
-        size_t inSerializedTimerLength,
-        char* outWaitTimerSignature,
-        size_t inWaitTimerSignatureLength
+    poet_err_t Poet_InitializeWaitCertificate(
+        const char* inPrevWaitCertificate,
+        size_t inPrevWaitCertificateLen,
+        const char* inValidatorId,
+        size_t inValidatorIdLen,
+        uint8_t *outDuration,
+        size_t inDurationLen
         );
 
     /*
-        Generate the Wait Certificate.  If the wait timer has not expired or
-        its signature is invalid, this will fail.
-
-        inSerializedWaitTimer - A string representing a serialized wait timer
-            created by a previously-successful call to PoET_CreateWaitTimer().
-        inWaitTimerSignature - A string that contains the base 64 encoded ECDSA
-            signature over the serialized wait timer (inSerializedWaitTimer)
-            using the PoET secret key from the validator's signup info.  This
-            was returned from a successful call to Poet_CreateWaitTimer().
-        inBlockHash - A string representing the hash over the contents of the
-            block for which this certificate is being created.
-        outSerializedWaitCertificate - A pointer to a buffer that upon return
-            will contain the serialized wait certificate.
-        inSerializedWaitCertificateLength - The size of the buffer pointed to by
-            outSerializedWaitCertificate.  The value to provide for this
-            parameter may be obtained by calling Poet_GetWaitCertificateSize().
-        outWaitCertificateSignature - A pointer to a buffer that upon return
-            will contain the base 64 encoded ECDSA signature over the serialized
-            wait certificate using the PoET secret key from the validator's
-            signup info.
-        inWaitCertificateSignatureLength - The size of the buffer pointed to by
-            outWaitCertificateSignature.  The value to provide for this
-            parameter may be obtained by calling Poet_GetSignatureSize().
+        Finalize and generates wait certificate
+        inPrevWaitCertificate - string representation of serialized
+            previous wait certificate
+        inPrevBlockId - string representation of hash of previous block
+        inBlockSummary - string representation of hash of all transactions in a block
+        inWaitTime - WaitTime that needs to be added in wait certificate
+        outSerializedWaitCertificate - output : serialized wait certificate
+            that will be filled by enclave
+        outSerializedWaitCertificateSignature - output: signed serialized wait certificate
     */
-    POET_FUNC poet_err_t Poet_CreateWaitCertificate(
-        const char* inSealedSignupData,
-        const char* inSerializedWaitTimer,
-        const char* inWaitTimerSignature,
-        const char* inBlockHash,
+    poet_err_t Poet_FinalizeWaitCertificate(
+        const char* inPrevWaitCertificate,
+        size_t inPrevWaitCertificateLen,
+        const char* inPrevBlockId,
+        size_t inPrevBlockIdLen,
+        const char* inPrevWaitCertificateSig,
+        size_t inPrevWaitCertificateSigLen,
+        const char* inBlockSummary,
+        size_t inBlockSummaryLen,
+        uint64_t inWaitTime,
         char* outSerializedWaitCertificate,
-        size_t inSerializedWaitCertificateLength,
-        char* outWaitCertificateSignature,
-        size_t inWaitCertificateSignatureLength
+        size_t inSerializedWaitCertificateLen,
+        char* outSerializedWaitCertificateSignature,
+        size_t inSerializedWaitCertificateSignatureLen
         );
 
     /*

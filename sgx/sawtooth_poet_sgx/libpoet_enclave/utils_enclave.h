@@ -26,23 +26,6 @@
 namespace sp = sawtooth::poet;
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class PseSession
-{
-public:
-    PseSession()
-    {
-        sp::ThrowSgxError(
-            sgx_create_pse_session(),
-            "Failed to create PSE session.");
-    } // PseSession
-
-    virtual ~PseSession()
-    {
-        sgx_close_pse_session();
-    } // ~PseSession
-}; // class PseSession
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class JsonValue
 {
 public: 

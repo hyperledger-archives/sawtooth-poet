@@ -184,12 +184,6 @@ POET_FUNC size_t Poet_GetEnclaveBasenameSize()
 } // Poet_GetEnclaveBasenameSize
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-POET_FUNC size_t Poet_GetEnclavePseManifestHashSize()
-{
-    return HEX_STRING_SIZE(sizeof(sgx_sha256_hash_t));
-} // Poet_GetEnclavePseManifestHashSize
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 POET_FUNC size_t Poet_GetWaitTimerSize()
 {
     return 2*1024; // Empirically these are big enough
@@ -219,22 +213,10 @@ POET_FUNC size_t Poet_GetPublicKeySize()
 } // Poet_GetPublicKeySize
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-POET_FUNC size_t Poet_GetPseManifestSize()
-{
-    return BASE64_SIZE(sizeof(sgx_ps_sec_prop_desc_t));
-} // Poet_GetPseManifestSize
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 POET_FUNC size_t Poet_GetEnclaveQuoteSize()
 {
     return BASE64_SIZE(g_Enclave.GetQuoteSize());
 } // Poet_GetEnclaveQuoteSize
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-POET_FUNC size_t Poet_GetSealedSignupDataSize()
-{
-    return BASE64_SIZE(g_Enclave.GetSealedSignupDataSize());
-} // Poet_GetSealedSignupDataSize
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 poet_err_t Poet_GetEpidGroup(
@@ -284,9 +266,7 @@ poet_err_t Poet_GetEnclaveCharacteristics(
     char* outMrEnclave,
     size_t inMrEnclaveLength,
     char* outEnclaveBasename,
-    size_t inEnclaveBasenameLength,
-    char* outEnclavePseManifestHash,
-    size_t inEnclavePseManifestHashSize
+    size_t inEnclaveBasenameLength
     )
 {
     poet_err_t ret = POET_SUCCESS;
@@ -300,23 +280,15 @@ poet_err_t Poet_GetEnclaveCharacteristics(
         sp::ThrowIf<sp::ValueError>(
            inEnclaveBasenameLength < Poet_GetEnclaveBasenameSize(),
            "Enclave basename buffer is too small");
-        sp::ThrowIfNull(
-            outEnclavePseManifestHash,
-            "NULL outEnclavePseManifestHash");
-        sp::ThrowIf<sp::ValueError>(
-           inEnclavePseManifestHashSize < Poet_GetEnclavePseManifestHashSize(),
-           "Enclave PSE manifest hash buffer is too small");
 
         // Get the enclave characteristics and then convert the binary data to
         // hex strings and copy them to the caller's buffers.
         sgx_measurement_t enclaveMeasurement;
         sgx_basename_t enclaveBasename;
-        sgx_sha256_hash_t enclavePseManifestHash;
 
         g_Enclave.GetEnclaveCharacteristics(
             &enclaveMeasurement,
-            &enclaveBasename,
-            &enclavePseManifestHash);
+            &enclaveBasename);
 
         std::string hexString =
             sp::BinaryToHexString(
@@ -335,16 +307,6 @@ poet_err_t Poet_GetEnclaveCharacteristics(
         strncpy_s(
            outEnclaveBasename,
            inEnclaveBasenameLength,
-           hexString.c_str(),
-           hexString.length());
-
-        hexString =
-            sp::BinaryToHexString(
-                enclavePseManifestHash,
-                sizeof(enclavePseManifestHash));
-        strncpy_s(
-           outEnclavePseManifestHash,
-           inEnclavePseManifestHashSize,
            hexString.c_str(),
            hexString.length());
     } catch (sp::PoetError& e) {
@@ -393,12 +355,8 @@ POET_FUNC poet_err_t Poet_CreateSignupData(
     const char* inOriginatorPublicKeyHash,
     char* outPoetPublicKey,
     size_t inPoetPublicKeySize,
-    char* outPseManifest,
-    size_t inPseManifestSize,
     char* outEnclaveQuote,
-    size_t inEnclaveQuoteSize,
-    char* outSealedSignupData,
-    size_t inSealedSignupDataSize
+    size_t inEnclaveQuoteSize
     )
 {
     poet_err_t result = POET_SUCCESS;
@@ -410,37 +368,23 @@ POET_FUNC poet_err_t Poet_CreateSignupData(
         sp::ThrowIf<sp::ValueError>(
             inPoetPublicKeySize < Poet_GetPublicKeySize(),
             "Public key buffer too small (outPoetPublicKey)");
-        sp::ThrowIfNull(outPseManifest, "NULL outPseManifest");
-        sp::ThrowIf<sp::ValueError>(
-            inPseManifestSize < Poet_GetPseManifestSize(),
-            "PSE manifest buffer too small (outPseManifest)");
         sp::ThrowIfNull(outEnclaveQuote, "NULL outEnclaveQuote");
         sp::ThrowIf<sp::ValueError>(
             inEnclaveQuoteSize < Poet_GetEnclaveQuoteSize(),
             "Enclave quote buffer too small (outEnclaveQuote)");
-        sp::ThrowIfNull(outSealedSignupData, "NULL outSealedSignupData");
-        sp::ThrowIf<sp::ValueError>(
-            inSealedSignupDataSize < Poet_GetSealedSignupDataSize(),
-            "Sealed signup data buffer too small (inSealedSignupDataSize)");
 
         // Clear out the buffers
         Zero(outPoetPublicKey, inPoetPublicKeySize);
-        Zero(outPseManifest, inPseManifestSize);
         Zero(outEnclaveQuote, inEnclaveQuoteSize);
-        Zero(outSealedSignupData, inSealedSignupDataSize);
 
         // Have the enclave create the signup data
         sgx_ec256_public_t poetPublicKey = {0};
         sp::Enclave::buffer_t enclaveQuote;
-        sgx_ps_sec_prop_desc_t pseManifest = {0};
-        sp::Enclave::buffer_t sealedSignupData;
 
         g_Enclave.CreateSignupData(
             inOriginatorPublicKeyHash,
             &poetPublicKey,
-            enclaveQuote,
-            &pseManifest,
-            sealedSignupData);
+            enclaveQuote);
 
         // Encode and copy the data that is to be returned to the caller
         std::string encodedPublicKey(sp::EncodePublicKey(&poetPublicKey));
@@ -449,12 +393,7 @@ POET_FUNC poet_err_t Poet_CreateSignupData(
             inPoetPublicKeySize,
             encodedPublicKey.c_str(),
             encodedPublicKey.length());
-        sp::EncodeB64(outPseManifest, inPseManifestSize, &pseManifest);
         sp::EncodeB64(outEnclaveQuote, inEnclaveQuoteSize, enclaveQuote);
-        sp::EncodeB64(
-            outSealedSignupData,
-            inSealedSignupDataSize,
-            sealedSignupData);
     } catch (sp::PoetError& e) {
         Poet_SetLastError(e.what());
         result = e.error_code();
@@ -470,96 +409,10 @@ POET_FUNC poet_err_t Poet_CreateSignupData(
 } // Poet_CreateSignupData
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-poet_err_t Poet_UnsealSignupData(
-    const char* inSealedSignupData,
-    char* outPoetPublicKey,
-    size_t inPoetPublicKeySize
-    )
-{
-    poet_err_t result = POET_SUCCESS;
-
-    try {
-        // validate params
-        sp::ThrowIfNull(
-            inSealedSignupData,
-            "NULL inSealedSignupData");
-        sp::ThrowIfNull(outPoetPublicKey, "NULL outPoetPublicKey");
-        sp::ThrowIf<sp::ValueError>(
-            inPoetPublicKeySize < Poet_GetPublicKeySize(),
-            "Public key buffer too small (outPoetPublicKey)");
-
-        // Clear out the buffers
-        Zero(outPoetPublicKey, inPoetPublicKeySize);
-
-        // Decode the sealed data before sending it down
-        std::vector<uint8_t> sealedSignupData;
-        sp::DecodeB64(sealedSignupData, inSealedSignupData);
-
-        // Have the enclave unseal the signup data
-        sgx_ec256_public_t  poetPublicKey = {0};
-
-        g_Enclave.UnsealSignupData(sealedSignupData, &poetPublicKey);
-
-        // Encode and copy the data that is to be returned to the caller
-        std::string encodedPublicKey(sp::EncodePublicKey(&poetPublicKey));
-        strncpy_s(
-            outPoetPublicKey,
-            inPoetPublicKeySize,
-            encodedPublicKey.c_str(),
-            encodedPublicKey.length());
-    } catch (sp::PoetError& e) {
-        Poet_SetLastError(e.what());
-        result = e.error_code();
-    } catch (std::exception& e) {
-        Poet_SetLastError(e.what());
-        result = POET_ERR_UNKNOWN;
-    } catch (...) {
-        Poet_SetLastError("Unexpected exception");
-        result = POET_ERR_UNKNOWN;
-    }
-
-    return result;
-} // Poet_UnsealSignupData
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-poet_err_t Poet_ReleaseSignupData(
-    const char* inSealedSignupData
-    )
-{
-    poet_err_t result = POET_SUCCESS;
-
-    try {
-        // validate params
-        sp::ThrowIfNull(
-            inSealedSignupData,
-            "NULL inSealedSignupData");
-
-        // Decode the sealed data before sending it down
-        std::vector<uint8_t> sealedSignupData;
-        sp::DecodeB64(sealedSignupData, inSealedSignupData);
-
-        // Have the enclave release the signup data
-        g_Enclave.ReleaseSignupData(sealedSignupData);
-    } catch (sp::PoetError& e) {
-        Poet_SetLastError(e.what());
-        result = e.error_code();
-    } catch (std::exception& e) {
-        Poet_SetLastError(e.what());
-        result = POET_ERR_UNKNOWN;
-    } catch (...) {
-        Poet_SetLastError("Unexpected exception");
-        result = POET_ERR_UNKNOWN;
-    }
-
-    return result;
-} // Poet_ReleaseSignupData
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 poet_err_t Poet_VerifySignupInfo(
     const char* inOriginatorPublicKeyHash,
     const char* inPoetPublicKey,
-    const char* inEnclaveQuote,
-    const char* inPseManifestHash
+    const char* inEnclaveQuote
     )
 {
     poet_err_t result = POET_SUCCESS;
@@ -569,7 +422,6 @@ poet_err_t Poet_VerifySignupInfo(
         sp::ThrowIfNull(inOriginatorPublicKeyHash, "NULL inOriginatorPublicKeyHash");
         sp::ThrowIfNull(inPoetPublicKey, "NULL inPoetPublicKey");
         sp::ThrowIfNull(inEnclaveQuote, "NULL inEnclaveQuote");
-        sp::ThrowIfNull(inPseManifestHash,  "NULL inPseManifestHash");
 
         // Take the encoded public key and decode it
         sgx_ec256_public_t poetPublicKey;
@@ -580,20 +432,12 @@ poet_err_t Poet_VerifySignupInfo(
         std::vector<uint8_t> enclaveQuoteBuffer;
         sp::DecodeB64(enclaveQuoteBuffer, inEnclaveQuote);
 
-        // Take the hex encoded PSE manifest hash and decode it
-        sgx_sha256_hash_t pseManifestHash;
-        sp::HexStringToBinary(
-            reinterpret_cast<uint8_t *>(&pseManifestHash),
-            sizeof(pseManifestHash),
-            inPseManifestHash);
-
         // Now let the enclave take over
         g_Enclave.VerifySignupInfo(
             inOriginatorPublicKeyHash,
             &poetPublicKey,
             reinterpret_cast<sgx_quote_t *>(&enclaveQuoteBuffer[0]),
-            enclaveQuoteBuffer.size(),
-            &pseManifestHash);
+            enclaveQuoteBuffer.size());
     } catch (sp::PoetError& e) {
         Poet_SetLastError(e.what());
         result = e.error_code();
@@ -609,73 +453,29 @@ poet_err_t Poet_VerifySignupInfo(
 } // Poet_VerifySignupInfo
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-poet_err_t Poet_CreateWaitTimer(
-    const char* inSealedSignupData,
-    const char* inValidatorAddress,
-    const char* inPreviousCertificateId,
-    double inRequestTime,
-    double inLocalMean,
-    char* outSerializedWaitTimer,
-    size_t inSerializedTimerLength,
-    char* outWaitTimerSignature,
-    size_t inWaitTimerSignatureLength
+poet_err_t Poet_InitializeWaitCertificate(
+    const char* inPrevWaitCertificate,
+    size_t inPrevWaitCertificateLen,
+    const char* inValidatorId,
+    size_t inValidatorIdLen,
+    uint8_t *outDuration,
+    size_t inDurationLen
     )
 {
     poet_err_t ret = POET_SUCCESS;
-
     try {
         // validate params
-        sp::ThrowIfNull(inSealedSignupData, "NULL SealedSignupData");
-        sp::ThrowIfNull(inValidatorAddress, "NULL ValidatorAddress");
-        sp::ThrowIfNull(inPreviousCertificateId, "NULL inPreviousCertificateId");
-        sp::ThrowIfNull(outSerializedWaitTimer, "NULL outSerializedWaitTimer");
-        sp::ThrowIfNull(outWaitTimerSignature, "NULL outWaitTimerSignature");
-        size_t addressLength = strlen(inValidatorAddress);
-        sp::ThrowIf<sp::ValueError>(
-             addressLength > MAX_ADDRESS_LENGTH
-             || addressLength < MIN_ADDRESS_LENGTH,
-            "Invalid Validator Address"
-            );
-        sp::ThrowIf<sp::ValueError>(
-            inSerializedTimerLength < Poet_GetWaitTimerSize(),
-            "WaitTimer buffer to small (outSerializedWaitTimer)"
-            );
-        sp::ThrowIf<sp::ValueError>(
-            inWaitTimerSignatureLength < Poet_GetSignatureSize(),
-            "Signature buffer to small (outWaitTimerSignature)"
-            );
-        sp::ThrowIf<sp::ValueError>(
-            inLocalMean <= 0.0,
-            "Invalid local mean time"
-            );
-        sp::ThrowIf<sp::ValueError>(
-            strlen(inPreviousCertificateId) != CERTIFICATE_ID_LENGTH,
-            "Invalid Previous CertificateId"
-            );
+        sp::ThrowIfNull(inPrevWaitCertificate, "NULL PreviousWaitCertificate");
+        sp::ThrowIfNull(inValidatorId, "NULL ValidatorId");
 
-        Zero(outSerializedWaitTimer, inSerializedTimerLength);
-        Zero(outWaitTimerSignature, inWaitTimerSignatureLength);
+        g_Enclave.Enclave_InitializeWaitCertificate(
+            inPrevWaitCertificate,
+            inPrevWaitCertificateLen,
+            inValidatorId,
+            inValidatorIdLen,
+            outDuration,
+            inDurationLen);
 
-        // Decode the sealed data before sending it down
-        std::vector<uint8_t> sealedSignupData;
-        sp::DecodeB64(sealedSignupData, inSealedSignupData);
-
-        sgx_ec256_signature_t waitTimerSignature = { 0 };
-        g_Enclave.CreateWaitTimer(
-            sealedSignupData,
-            inValidatorAddress,
-            inPreviousCertificateId,
-            inRequestTime,
-            inLocalMean,
-            outSerializedWaitTimer,
-            inSerializedTimerLength,
-            &waitTimerSignature);
-
-        // Encode the timer signature returned
-        Poet_EncodeSignature(
-            outWaitTimerSignature,
-            inWaitTimerSignatureLength,
-            &waitTimerSignature);
     } catch (sp::PoetError& e) {
         Poet_SetLastError(e.what());
         ret = e.error_code();
@@ -688,70 +488,56 @@ poet_err_t Poet_CreateWaitTimer(
     }
 
     return ret;
-} // Poet_CreateWaitTimer
+} // Poet_InitialzeWaitCertificate
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-poet_err_t Poet_CreateWaitCertificate(
-    const char* inSealedSignupData,
-    const char* inSerializedWaitTimer,
-    const char* inWaitTimerSignature,
-    const char* inBlockHash,
+poet_err_t Poet_FinalizeWaitCertificate(
+    const char* inPrevWaitCertificate,
+    size_t inPrevWaitCertificateLen,
+    const char* inPrevBlockId,
+    size_t inPrevBlockIdLen,
+    const char* inPrevWaitCertificateSig,
+    size_t inPrevWaitCertificateSigLen,
+    const char* inBlockSummary,
+    size_t inBlockSummaryLen,
+    uint64_t inWaitTime,
     char* outSerializedWaitCertificate,
-    size_t inSerializedWaitCertificateLength,
-    char* outWaitCertificateSignature,
-    size_t inWaitCertificateSignatureLength
+    size_t inSerializedWaitCertificateLen,
+    char* outSerializedWaitCertificateSignature,
+    size_t inSerializedWaitCertificateSignatureLen
     )
 {
     poet_err_t ret = POET_SUCCESS;
     try {
         // validate params
-        sp::ThrowIfNull(inSealedSignupData, "NULL SealedSignupData");
-        sp::ThrowIfNull(inSerializedWaitTimer, "NULL inSerializedWaitTimer");
-        sp::ThrowIfNull(inWaitTimerSignature, "NULL inWaitTimerSignature");
-        sp::ThrowIfNull(inBlockHash, "NULL inBlockHash");
-        sp::ThrowIfNull(
-            outSerializedWaitCertificate,
-            "NULL outSerializedWaitCertificate");
-        sp::ThrowIfNull(
-            outWaitCertificateSignature,
-            "NULL outWaitCertificateSignature");
-        sp::ThrowIf<sp::ValueError>(
-            inSerializedWaitCertificateLength < Poet_GetWaitCertificateSize(),
-            "WaitCertificate buffer to small (outSerializedWaitCertificate)"
-            );
-        sp::ThrowIf<sp::ValueError>(
-            inWaitCertificateSignatureLength < Poet_GetSignatureSize(),
-            "Signature buffer to small (outWaitCertificateSignature)"
-            );
+        sp::ThrowIfNull(inPrevWaitCertificate, "NULL PrevWaitCertificate");
+        sp::ThrowIfNull(inPrevBlockId, "NULL PoetBlockId");
+        sp::ThrowIfNull(inPrevWaitCertificateSig, "NULL PrevWaitCertificateSignature");
+        sp::ThrowIfNull(inBlockSummary, "NULL BlockSummary");
 
-        Zero(outSerializedWaitCertificate, inSerializedWaitCertificateLength);
-        Zero(outWaitCertificateSignature, inWaitCertificateSignatureLength);
-
-        // Decode the sealed data before sending it down
-        std::vector<uint8_t> sealedSignupData;
-        sp::DecodeB64(sealedSignupData, inSealedSignupData);
-
-        sgx_ec256_signature_t waitTimerSignature;
         sgx_ec256_signature_t waitCertificateSignature;
 
-        // Take the encoded wait timer signature and convert into something
-        // that is more convenient to use internally
-        Poet_DecodeSignature(&waitTimerSignature, inWaitTimerSignature);
-
-        g_Enclave.CreateWaitCertificate(
-            sealedSignupData,
-            inSerializedWaitTimer,
-            &waitTimerSignature,
-            inBlockHash,
+        g_Enclave.Enclave_FinalizeWaitCertificate(
+            inPrevWaitCertificate,
+            inPrevWaitCertificateLen,
+            inPrevBlockId,
+            inPrevBlockIdLen,
+            inPrevWaitCertificateSig,
+            inPrevWaitCertificateSigLen,
+            inBlockSummary,
+            inBlockSummaryLen,
+            inWaitTime,
             outSerializedWaitCertificate,
-            inSerializedWaitCertificateLength,
-            &waitCertificateSignature);
+            inSerializedWaitCertificateLen,
+            &waitCertificateSignature
+            );
 
         // Encode the certificate signature returned
         Poet_EncodeSignature(
-            outWaitCertificateSignature,
-            inWaitCertificateSignatureLength,
+            outSerializedWaitCertificateSignature,
+            inSerializedWaitCertificateSignatureLen,
             &waitCertificateSignature);
+
     } catch (sp::PoetError& e) {
         Poet_SetLastError(e.what());
         ret = e.error_code();
@@ -764,7 +550,7 @@ poet_err_t Poet_CreateWaitCertificate(
     }
 
     return ret;
-} // Poet_CreateWaitCertificate
+} // Poet_FinalizeWaitCertificate
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 POET_FUNC poet_err_t Poet_VerifyWaitCertificate(

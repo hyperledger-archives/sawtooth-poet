@@ -31,59 +31,43 @@ enclave {
             [in, out] sgx_target_info_t* targetInfo,
             [out] sgx_report_t* outReport
             );
-        public poet_err_t ecall_GetPseManifestHash(
-            [out] sgx_sha256_hash_t* outPseManifestHash
-            );
 
-        public poet_err_t ecall_CalculateSealedSignupDataSize(
-            [out] size_t* pSealedSignupDataSize
-            );
         public poet_err_t ecall_CreateSignupData(
             [in] const sgx_target_info_t* inTargetInfo,
             [in, string] const char* inOriginatorPublicKeyHash,
             [out] sgx_ec256_public_t* outPoetPublicKey,
-            [out] sgx_report_t* outEnclaveReport,
-            [out, size=inSealedSignupDataSize] uint8_t* outSealedSignupData,
-            size_t inSealedSignupDataSize,
-            [out] sgx_ps_sec_prop_desc_t* outPseManifest
-            );
-        public poet_err_t ecall_UnsealSignupData(
-            [in, size=inSealedSignupDataSize] const uint8_t* inSealedSignupData,
-            size_t inSealedSignupDataSize,
-            [out] sgx_ec256_public_t* outPoetPublicKey
-            );
-        public poet_err_t ecall_ReleaseSignupData(
-            [in, size=inSealedSignupDataSize] const uint8_t* inSealedSignupData,
-            size_t inSealedSignupDataSize
+            [out] sgx_report_t* outEnclaveReport
             );
         public poet_err_t ecall_VerifySignupInfo(
             [in] const sgx_target_info_t*   inTargetInfo,
             [in, string] const char*        inOriginatorPublicKeyHash,
             [in] const sgx_ec256_public_t*  inPoetPublicKey,
-            [in] const sgx_sha256_hash_t*   inPseManifestHash,
             [out] sgx_report_t*             outEnclaveReport
             );
-        public poet_err_t ecall_CreateWaitTimer(
-            [in, size=inSealedSignupDataSize] const uint8_t* inSealedSignupData,
-            size_t inSealedSignupDataSize,
-            [in, string] const char* inValidatorAddress,
-            [in, string] const char* inPreviousCertificateId,
-            double inRequestTime,
-            double inLocalMean,
-            [out, size=inSerializedTimerLength] char* outSerializedTimer,
-            size_t inSerializedTimerLength,
-            [out] sgx_ec256_signature_t* outTimerSignature
+         public poet_err_t ecall_InitializeWaitCertificate(
+            [in, string] const char* inPreviousWaitCertificate,
+            size_t inPreviousWaitCertificateLen,
+            [in, string] const char* inValidatorId,
+            size_t inValidatorIdLen,
+            [out, size=inDurationLenBytes] uint8_t* outDuration,
+            size_t inDurationLenBytes
             );
-        public poet_err_t ecall_CreateWaitCertificate( 
-            [in, size=inSealedSignupDataSize] const uint8_t* inSealedSignupData,
-            size_t inSealedSignupDataSize,
-            [in, string] const char* inSerializedWaitTimer,
-            [in] const sgx_ec256_signature_t* inWaitTimerSignature,
-            [in, string] const char* inBlockHash,
-            [out, size=inSerializedWaitCertificateLength] char* outSerializedWaitCertificate,
-            size_t inSerializedWaitCertificateLength,
+        public poet_err_t ecall_FinalizeWaitCertificate(
+            [in, string] const char* inPrevWaitCert,
+            size_t inPrevWaitCertLen,
+            [in, string] const char* inPrevBlockId,
+            size_t inPrevBlockIdLen,
+            [in, string] const char* inPrevWaitCertificateSig,
+            size_t inPrevWaitCertificateSigLen,
+            [in, string] const char* inBlockSummary,
+            size_t inBlockSummaryLen,
+            uint64_t inWaitTime,
+            [out, size=inSerializedWaitCertificateLen] char* outSerializedWaitCertificate,
+            size_t inSerializedWaitCertificateLen,
             [out] sgx_ec256_signature_t* outWaitCertificateSignature
             );
+
+
         public poet_err_t ecall_VerifyWaitCertificate(
             [in, string] const char* inSerializedWaitCertificate,
             [in] const sgx_ec256_signature_t* inWaitCertificateSignature,

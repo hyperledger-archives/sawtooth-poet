@@ -28,32 +28,24 @@ _SignupData::_SignupData(
 {
     // Create some buffers for receiving the output parameters
     std::vector<char> poetPublicKey(Poet_GetPublicKeySize());
-    std::vector<char> pseManifest(Poet_GetPseManifestSize());
     std::vector<char> enclaveQuote(Poet_GetEnclaveQuoteSize());
-    std::vector<char> sealedSignupData(Poet_GetSealedSignupDataSize());
-    
+
     // Create the signup data
-    poet_err_t result = 
+    poet_err_t result =
         Poet_CreateSignupData(
             originatorPublicKeyHash.c_str(),
             &poetPublicKey[0],
             poetPublicKey.size(),
-            &pseManifest[0],
-            pseManifest.size(),
             &enclaveQuote[0],
-            enclaveQuote.size(),
-            &sealedSignupData[0],
-            sealedSignupData.size());
+            enclaveQuote.size());
     ThrowPoetError(result);
-    
+
     // Save the output parameters in our properties so that they can
     // be read from Python code
     this->poet_public_key = std::string(&poetPublicKey[0]);
-    this->pse_manifest = std::string(&pseManifest[0]);
     this->enclave_quote = std::string(&enclaveQuote[0]);
-    this->sealed_signup_data = std::string(&sealedSignupData[0]);
 } // _SignupData::_SignupData
-    
+
 _SignupData* _SignupData::CreateSignupData(
     const std::string& originatorPublicKeyHash
     )
@@ -61,37 +53,6 @@ _SignupData* _SignupData::CreateSignupData(
     return new _SignupData(originatorPublicKeyHash);
 } // _SignupData::CreateSignupData
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-std::string _SignupData::UnsealSignupData(
-    const std::string& sealedSignupData
-    )
-{
-    // Create some buffers for receiving the output parameters
-    std::vector<char> poetPublicKey(Poet_GetPublicKeySize());
-    
-    // Unseal the signup data
-    poet_err_t result = 
-        Poet_UnsealSignupData(
-            sealedSignupData.c_str(),
-            &poetPublicKey[0],
-            poetPublicKey.size());
-    ThrowPoetError(result);
-    
-    // Return the PoET public key to the caller
-    return std::string(&poetPublicKey[0]);
-} // _SignupData::UnsealSignupData
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void _SignupData::ReleaseSignupData(
-    const std::string& sealedSignupData
-    )
-{
-    // Unseal the signup data
-    poet_err_t result =
-        Poet_ReleaseSignupData(
-            sealedSignupData.c_str());
-    ThrowPoetError(result);
-} // _SignupData::UnsealSignupData
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 _SignupData* _create_signup_data(
@@ -102,18 +63,11 @@ _SignupData* _create_signup_data(
         _SignupData::CreateSignupData(originator_public_key_hash);
 } // _create_signup_data
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-std::string unseal_signup_data(
-    const std::string& sealed_signup_data
-    )
+void _destroy_signup_data(_SignupData* signup_data)
 {
-    return _SignupData::UnsealSignupData(sealed_signup_data);
-} // _unseal_signup_data
+    if(signup_data != NULL) {
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void release_signup_data(
-    const std::string& sealed_signup_data
-    )
-{
-    _SignupData::ReleaseSignupData(sealed_signup_data);
-} // _unseal_signup_data
+        delete signup_data;
+    }
+}
+

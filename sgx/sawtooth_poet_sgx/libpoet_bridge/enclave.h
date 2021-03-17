@@ -25,7 +25,6 @@
 #include "sgx_key_exchange.h"
 
 #include "poet.h"
-#include "sealed_data.h"
 
 namespace sawtooth {
     namespace poet {
@@ -46,18 +45,12 @@ namespace sawtooth {
             {
                 return this->quoteSize;
             } // GetQuoteSize
-            size_t GetSealedSignupDataSize() const
-            {
-                return this->sealedSignupDataSize;
-            } // GetSealedSignupDataSize
-
             void GetEpidGroup(
                 sgx_epid_group_id_t outEpidGroup
                 );
             void GetEnclaveCharacteristics(
                 sgx_measurement_t* outEnclaveMeasurement,
-                sgx_basename_t* outEnclaveBasename,
-                sgx_sha256_hash_t* outEnclavePseManifestHash
+                sgx_basename_t* outEnclaveBasename
                 );
             void SetSpid(
                 const std::string& inSpid
@@ -76,45 +69,38 @@ namespace sawtooth {
             void CreateSignupData(
                 const std::string& inOriginatorPublicKeyHash,
                 sgx_ec256_public_t* outPoetPublicKey,
-                buffer_t& outEnclaveQuote,
-                sgx_ps_sec_prop_desc_t* outPseManifest,
-                buffer_t& outSealedSignupData
-                );
-            void UnsealSignupData(
-                const buffer_t& inSealedSignupData,
-                sgx_ec256_public_t* outPoetPublicKey
-                );
-            void ReleaseSignupData(
-                const buffer_t& inSealedSignupData
+                buffer_t& outEnclaveQuote
                 );
             void VerifySignupInfo(
                 const std::string& inOriginatorPublicKeyHash,
                 const sgx_ec256_public_t* inPoetPublicKey,
                 const sgx_quote_t* inEnclaveQuote,
-                size_t inEnclaveQuoteSize,
-                const sgx_sha256_hash_t* inPseManifestHash
+                size_t inEnclaveQuoteSize
                 );
 
-            void CreateWaitTimer(
-                const buffer_t& inSealedSignupData,
-                const std::string& inValidatorAddress,
-                const std::string& inPreviousCertificateId,
-                double requestTime,
-                double localMean,
-                char* outSerializedTimer,
-                size_t inSerializedTimerLength,
-                sgx_ec256_signature_t* outTimerSignature
+            void Enclave_InitializeWaitCertificate(
+                const char* inPreviousWaitCertificate,
+                size_t inPreviousWaitCertificateLen,
+                const char* inValidatorId,
+                size_t inValidatorIdLen,
+                uint8_t* duration,
+                size_t inDurationLen
                 );
-
-            void CreateWaitCertificate(
-                const buffer_t& inSealedSignupData,
-                const std::string& inSerializedWaitTimer,
-                const sgx_ec256_signature_t* inWaitTimerSignature,
-                const std::string& inBlockHash,
+            void Enclave_FinalizeWaitCertificate(
+                const char* inPreviousWaitCertificate,
+                size_t inPreviousWaitCertificateLen,
+                const char* inPrevBlockId,
+                size_t inPrevBlockIdLen,
+                const char* inPrevWaitCertificateSig,
+                size_t inPrevWaitCertificateSigLen,
+                const char* inBlockSummary,
+                size_t inBlockSummaryLen,
+                uint64_t inWaitTime,
                 char* outSerializedWaitCertificate,
-                size_t inSerializedWaitCertificateLength,
+                size_t inSerializedWaitCertificateLen,
                 sgx_ec256_signature_t* outWaitCertificateSignature
                 );
+
             void VerifyWaitCertificate(
                 const std::string& inSerializedWaitCertificate,
                 const sgx_ec256_signature_t* inWaitCertificateSignature,
@@ -139,7 +125,6 @@ namespace sawtooth {
             sgx_ra_context_t raContext;
 
             size_t quoteSize;
-            size_t sealedSignupDataSize;
 
             std::string signatureRevocationList;
             sgx_spid_t spid;
