@@ -51,7 +51,7 @@ RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/nightly bionic univers
     python3-zmq \
     unzip \
     && pip3 install \
-    pylint \
+    pylint==2.6.2 \
     pycodestyle \
     bandit \
     coverage --upgrade
