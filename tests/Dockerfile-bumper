@@ -45,7 +45,7 @@ RUN echo "deb [arch=amd64] http://repo.sawtooth.me/ubuntu/bumper/nightly xenial 
     sawtooth-smallbank-workload \
     software-properties-common
 
-RUN pip3 install coverage --upgrade
+RUN pip3 install coverage==5.5 --upgrade
 
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
  && add-apt-repository \
